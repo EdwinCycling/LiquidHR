@@ -13,10 +13,8 @@ import { LiquidHrPayrollSourceProvider } from './source/liquid-hr-source-provide
 import { authorizeMySalaryPayrollAccess, type EmployeePayrollAccess } from './payroll-professional-service'
 
 const decimalText = z.string().max(24).regex(/^(?:0|[1-9]\d{0,9})(?:\.\d{1,4})?$/)
-const moneyText = z.string().max(16).regex(/^(?:0|[1-9]\d{0,9})(?:\.\d{1,2})?$/)
 
 export const payrollProFormaScenarioSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('BONUS'), amount: moneyText }).strict(),
   z.object({ type: z.literal('EXTRA_PAID_HOURS'), hours: decimalText }).strict(),
   z.object({ type: z.literal('SALARY_INCREASE'), percentage: decimalText }).strict(),
   z.object({ type: z.literal('CONTRACT_HOURS'), hoursPerWeek: decimalText }).strict(),
@@ -62,11 +60,6 @@ export class PayrollProFormaError extends Error {
 
 function validateScenario(scenario: PayrollProFormaScenario): void {
   const zero = FixedDecimal.fromInteger(BigInt(0))
-  if (scenario.type === 'BONUS') {
-    const amount = decimal(scenario.amount)
-    if (!amount || amount.compare(zero) <= 0) throw new PayrollProFormaError('SCENARIO_INPUT_INVALID', 400)
-    return
-  }
   const value = decimal(scenario.type === 'EXTRA_PAID_HOURS' ? scenario.hours
     : scenario.type === 'SALARY_INCREASE' ? scenario.percentage : scenario.hoursPerWeek)
   if (!value || value.compare(zero) <= 0) throw new PayrollProFormaError('SCENARIO_INPUT_INVALID', 400)
@@ -168,19 +161,6 @@ function calculateScenarioOverrides(
   const payrollOwned = object(source?.payrollOwned)
   if (!source || !payrollOwned) return { overrides: {}, gap: scenarioGap('SCENARIO_PAYROLL_SOURCE_UNAVAILABLE') }
   const overrides: Record<string, PayrollSerializedValue> = {}
-
-  if (scenario.type === 'BONUS') {
-    const amount = decimal(scenario.amount)
-    const currentBonus = decimal(atPath(source, ['payrollOwned', 'amounts', 'specialRewardWage']))
-    const annualWageResolved = atPath(source, ['payrollOwned', 'taxProfile', 'specialRewardAnnualWageResolved']) === true
-    const bonusPensionable = atPath(source, ['payrollOwned', 'controls', 'specialRewardPensionable'])
-    if (!amount || amount.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) return { overrides, gap: scenarioGap('BONUS_AMOUNT_MUST_BE_POSITIVE') }
-    if (!currentBonus || !annualWageResolved || bonusPensionable !== false) {
-      return { overrides, gap: scenarioGap('SPECIAL_REWARD_TAX_OR_PENSION_PROFILE_UNRESOLVED', 'payrollConfiguration', 'SOURCE_GAP') }
-    }
-    withOverride(overrides, 'PAYFULL02_SPECIAL_REWARD_WAGE.amount', 'MONEY', currentBonus.add(amount).round(2, 'HALF_UP'))
-    return { overrides, gap: null }
-  }
 
   if (scenario.type === 'SALARY_INCREASE') {
     const percentage = decimal(scenario.percentage)
@@ -308,10 +288,9 @@ function difference(before: PayrollProFormaAmounts, after: PayrollProFormaAmount
 const defaultDependencies: PayrollProFormaDependencies = {
   authorizeSelf: authorizeMySalaryPayrollAccess,
   readSource: async (input, access) => {
-    // authorizeSelf has already enforced the existing own-employee salary
-    // permission and returned the active Payroll scope. Keep the actual source
-    // read under the same authenticated database/RLS session.
-    return await new LiquidHrPayrollSourceProvider().getPayrollSourceSnapshotForAuthorizedEmployee(input, {
+    const provider = new LiquidHrPayrollSourceProvider()
+    return await provider.getPayrollSourceSnapshotForAuthorizedEmployee(input, {
+      actorUserId: access.actorUserId,
       employeeId: access.employeeId,
       scope: access.scope,
     })
@@ -410,4 +389,24 @@ export function createPayrollProFormaService(dependencies: PayrollProFormaDepend
 
 export async function calculateMySalaryProForma(scenario: PayrollProFormaScenario): Promise<PayrollProFormaResult> {
   return await createPayrollProFormaService().calculate(scenario)
+}
+
+export async function calculateAuthorizedTargetPayrollProForma(
+  access: EmployeePayrollAccess,
+  scenario: PayrollProFormaScenario,
+  dependencies: {
+    readonly readSource?: PayrollProFormaDependencies['readSource']
+    readonly now?: () => Date
+  } = {},
+): Promise<PayrollProFormaResult> {
+  const provider = new LiquidHrPayrollSourceProvider()
+  const service = createPayrollProFormaService({
+    authorizeSelf: async () => access,
+    readSource: dependencies.readSource ?? (async (input) => {
+      // HR Admin target reads use the standard permission matrix and RLS path.
+      return await provider.getPayrollSourceSnapshot(input)
+    }),
+    now: dependencies.now ?? (() => new Date()),
+  })
+  return await service.calculate(scenario)
 }

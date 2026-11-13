@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PayrollSourceProviderInput, PayrollSourceSnapshot } from '@liquid-hr/payroll-engine'
 import { createRetailSourceSnapshot } from './payd2-retail-source-fixture'
 import { hashPayrollSourceSnapshot } from './source/snapshot-hash'
-import { createPayrollProFormaService, type PayrollProFormaDependencies } from './payroll-pro-forma-service'
+import {
+  calculateAuthorizedTargetPayrollProForma,
+  createPayrollProFormaService,
+  payrollProFormaScenarioSchema,
+  type PayrollProFormaDependencies,
+} from './payroll-pro-forma-service'
 import type { EmployeePayrollAccess } from './payroll-professional-service'
 
 let access: EmployeePayrollAccess
@@ -63,18 +68,30 @@ describe('read-only Employee Payroll pro-forma service', () => {
     expect(snapshot).toEqual(before)
   })
 
-  it('uses one snapshot for both sides and fails closed for an unresolved bonus withholding profile', async () => {
-    const readOnce = vi.fn(async () => snapshot)
-    const result = await service({ readSource: readOnce }).calculate({ type: 'BONUS', amount: '500.00' })
+  it('uses the same Payroll engine for an HR Admin authorized employee target', async () => {
+    const result = await calculateAuthorizedTargetPayrollProForma(
+      access,
+      { type: 'SALARY_INCREASE', percentage: '5' },
+      { readSource, now: () => new Date('2026-07-31T12:00:00.000Z') },
+    )
 
-    expect(readOnce).toHaveBeenCalledTimes(1)
-    expect(result.sourceHash).toBe(snapshot.sourceHash)
-    expect(result.baseline).not.toBeNull()
-    expect(result.status).toBe('SOURCE_GAP')
-    expect(result.scenario).toBeNull()
-    expect(result.gaps).toEqual(expect.arrayContaining([
-      expect.objectContaining({ field: 'payrollConfiguration', reasonCode: 'SPECIAL_REWARD_TAX_OR_PENSION_PROFILE_UNRESOLVED' }),
-    ]))
+    expect(result).toMatchObject({
+      status: 'CALCULATED',
+      sourceStatus: 'READY',
+      baseline: { gross: '4767.20', net: '3461.38' },
+    })
+    expect(result.scenario?.gross).toBe('5005.56')
+    expect(readSource).toHaveBeenCalledWith(
+      { ...access.scope, employeeId: access.employeeId, payrollPeriod: { year: 2026, month: 7 } },
+      access,
+    )
+  })
+
+  it('keeps BONUS read-only by rejecting it from the calculation contract', async () => {
+    const readOnce = vi.fn(async () => snapshot)
+
+    expect(payrollProFormaScenarioSchema.safeParse({ type: 'BONUS', amount: '100.00' }).success).toBe(false)
+    expect(readOnce).not.toHaveBeenCalled()
   })
 
   it('returns SOURCE_GAP without exposing calculated amounts when employer configuration is missing', async () => {
@@ -142,7 +159,7 @@ describe('read-only Employee Payroll pro-forma service', () => {
         sourceGaps: modified.sourceGaps,
       }),
     }
-    const result = await service({ readSource: async () => contractSnapshot }).calculate({ type: 'CONTRACT_HOURS', hoursPerWeek: '30' })
+    const result = await service({ readSource: async () => contractSnapshot }).calculate({ type: 'CONTRACT_HOURS', hoursPerWeek: '32' })
 
     expect(result.status).toBe('CALCULATED')
     expect(result.sourceHash).toBe(contractSnapshot.sourceHash)

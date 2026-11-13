@@ -82,6 +82,90 @@ describe('calculatePension', () => {
     })
   })
 
+  it('allocates a cent rounding remainder to the employer only when the arrangement records that rule', () => {
+    const arrangement: PensionArrangementInput = {
+      ...flatArrangement,
+      flatTotalRate: '24.7500',
+      employerSharePercent: '75.0000',
+      employeeSharePercent: '25.0000',
+      annualFranchise: '0.00',
+      annualPensionableSalaryCap: null,
+    }
+    const calculationInput = input({
+      arrangement,
+      fullTimeMonthlyPensionableSalary: '0.08',
+      monthlyPayrollGross: '0.08',
+    })
+
+    expect(calculatePension(calculationInput)).toMatchObject({
+      status: 'BLOCKED',
+      reasonCode: 'PENSION_PREMIUM_SPLIT_ROUNDING_UNRESOLVED',
+    })
+    const balanced = calculatePension({
+      ...calculationInput,
+      arrangement: {
+        ...arrangement,
+        pensionableSalaryDefinition: {
+          ...arrangement.pensionableSalaryDefinition,
+          monthlyShareAllocation: 'EMPLOYER_TAKES_ROUNDING_REMAINDER',
+        },
+      },
+    })
+    expect(balanced).toMatchObject({
+      status: 'CALCULATED',
+      totalPremiumMonthly: '0.02',
+      employeePremiumMonthly: '0.01',
+      employerPremiumMonthly: '0.01',
+      allocationDifference: '0.00',
+    })
+    expect(balanced.trace).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        componentCode: 'PENSION_EMPLOYER_SHARE',
+        roundingRule: 'Exact remainder after employee share rounding; employer total reconciles to monthly premium',
+      }),
+    ]))
+  })
+
+  it('accepts a mid-month participation start only with verified calendar-day proration evidence', () => {
+    const arrangement: PensionArrangementInput = {
+      ...flatArrangement,
+      pensionableSalaryDefinition: {
+        ...flatArrangement.pensionableSalaryDefinition,
+        partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA',
+      },
+    }
+    const calculationInput = input({
+      arrangement,
+      period: { year: 2026, month: 10 },
+      participationStartDate: '2026-10-16',
+      partTimeFactor: '0.5161',
+      partialMonthProration: {
+        method: 'CALENDAR_DAYS_PRO_RATA',
+        periodStart: '2026-10-01',
+        periodEndExclusive: '2026-11-01',
+        activeStart: '2026-10-16',
+        activeEndExclusive: '2026-11-01',
+        contractualPartTimeFactor: '1.0000',
+        periodFactor: '0.5161',
+      },
+    })
+    const result = calculatePension(calculationInput)
+    expect(result).toMatchObject({ status: 'CALCULATED' })
+    expect(result.trace.find((step) => step.componentCode === 'PENSION_PENSIONABLE_BASE')?.inputs)
+      .toMatchObject({
+        partialMonthProration: null,
+        partialMonthProrationMethod: 'CALENDAR_DAYS_PRO_RATA',
+        partialMonthPeriodStart: '2026-10-01',
+        partialMonthActiveStart: '2026-10-16',
+        partialMonthContractualPartTimeFactor: '1.0000',
+        partialMonthPeriodFactor: '0.5161',
+      })
+    expect(calculatePension({
+      ...calculationInput,
+      partialMonthProration: { ...calculationInput.partialMonthProration!, periodFactor: '0.5000' },
+    })).toMatchObject({ status: 'BLOCKED', reasonCode: 'PENSION_PARTIAL_MONTH_PRORATION_UNVERIFIED' })
+  })
+
   it('blocks a generic pension arrangement when participation starts mid-period', () => {
     expect(calculatePension(input({ participationStartDate: '2026-10-16' }))).toMatchObject({
       status: 'BLOCKED',

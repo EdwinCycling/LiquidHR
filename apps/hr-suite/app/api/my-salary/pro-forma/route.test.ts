@@ -35,6 +35,10 @@ describe('POST /api/my-salary/pro-forma', () => {
   })
 
   it('rejects malformed and oversized requests', async () => {
+    const readOnlyBonus = await POST(new Request('http://localhost:3000/api/my-salary/pro-forma', {
+      method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://localhost:3000' },
+      body: JSON.stringify({ type: 'BONUS', amount: '250.00' }),
+    }))
     const malformed = await POST(new Request('http://localhost:3000/api/my-salary/pro-forma', {
       method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://localhost:3000' }, body: '{',
     }))
@@ -42,6 +46,7 @@ describe('POST /api/my-salary/pro-forma', () => {
       method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://localhost:3000' }, body: ' '.repeat(2049),
     }))
 
+    expect(readOnlyBonus.status).toBe(400)
     expect(malformed.status).toBe(400)
     expect(oversized.status).toBe(413)
     expect(calculateMySalaryProForma).not.toHaveBeenCalled()

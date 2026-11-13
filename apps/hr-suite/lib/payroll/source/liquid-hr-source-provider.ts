@@ -34,6 +34,7 @@ import {
 import { sha256, stableSerialize } from '@liquid-hr/payroll-engine'
 import {
   AuthorizationError,
+  requireAuthContext,
   requirePermission,
   type AuthContext,
 } from '@/lib/auth/permissions'
@@ -50,11 +51,12 @@ import {
   type EmploymentPayrollSourceProjection,
 } from '@/lib/employment/employment-detail-service'
 import { isPayrollLabEnabled } from '../feature-flag'
-import { payrollScopeFromAuthContext } from '../scope'
+import { assertPayrollEmployeeSourceAuthorization, payrollScopeFromAuthContext } from '../scope'
 import type { PayrollEmployeeSourceAuthorization } from '../scope'
 import { payrollSourceProviderInputSchema, payrollSourceSnapshotSchema } from './schemas'
 import { isValidPayrollSourceDate } from './source-readiness'
 import { hashPayrollSourceSnapshot } from './snapshot-hash'
+import { resolvePensionComponentRates } from './pension-rate-mapping'
 import {
   hashPayrollEmployerConfiguration,
   isNewIncomeRelationshipWithoutOpening,
@@ -63,6 +65,30 @@ import {
   type PayrollEmployerConfiguration,
 } from '../payroll-setup'
 import { createPayrollSetupRepository } from '../payroll-setup-repository'
+
+export type PayrollSourcePermission =
+  | 'salary:read'
+  | 'contract:read'
+  | 'leave:read'
+  | 'organization-placement:read'
+  | 'job-catalog:read'
+
+export type PayrollSourcePermissionAuthorizer = (
+  permission: PayrollSourcePermission,
+  employeeId: string,
+) => Promise<AuthContext>
+
+export async function authorizePayrollSourceRead(
+  employeeId: string,
+  authorizePermission: PayrollSourcePermissionAuthorizer = requirePermission,
+): Promise<AuthContext> {
+  const salaryContext = await authorizePermission('salary:read', employeeId)
+  await authorizePermission('contract:read', employeeId)
+  await authorizePermission('leave:read', employeeId)
+  await authorizePermission('organization-placement:read', employeeId)
+  await authorizePermission('job-catalog:read', employeeId)
+  return salaryContext
+}
 import { verifyPayrollPeriodIdentityInCalendar } from '../payroll-setup-service'
 import { mapCorePensionEligibilityRule } from '../pension-eligibility-source-mapping'
 import {
@@ -77,7 +103,10 @@ import type {
 } from '../database'
 import type { PayrollScope } from '../scope'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
-import { listPayrollEmploymentDirectories } from './payroll-employment-directory'
+import {
+  listPayrollEmploymentDirectories,
+  listPayrollEmploymentForAuthorizedTarget,
+} from './payroll-employment-directory'
 import { formatExactHours, parseExactHours } from '@/lib/actual-work/exact-hours'
 
 type EmploymentRow = Database['public']['Tables']['employments']['Row']
@@ -173,11 +202,22 @@ export interface PayrollSourceTimeline {
   readonly salaryTableSource?: EmploymentPayrollSourceProjection['salaryTableSource']
 }
 
+type PayrollSourceConfigurationVersion = Pick<PayrollEmployerConfigurationVersionRow,
+  | 'id' | 'payroll_administration_id' | 'source_tenant_id' | 'source_hr_group_id' | 'source_administration_id'
+  | 'configuration_version' | 'effective_from' | 'effective_to' | 'configuration_hash' | 'status' | 'source_reference'
+> & Partial<Pick<PayrollEmployerConfigurationVersionRow, 'configuration_json' | 'created_at' | 'created_by_user_id'>>
+
+type PayrollSourceOpeningBalance = Pick<PayrollOpeningCumulativeSnapshotRow,
+  | 'id' | 'payroll_administration_id' | 'source_tenant_id' | 'source_hr_group_id' | 'source_administration_id'
+  | 'source_employment_id' | 'snapshot_version' | 'as_of_date' | 'opening_balance_json' | 'snapshot_hash'
+  | 'provenance_status' | 'provenance_source'
+> & Partial<Pick<PayrollOpeningCumulativeSnapshotRow, 'created_at' | 'created_by_user_id'>>
+
 export type PayrollSourceSetup = {
-  readonly configurationRows: readonly PayrollEmployerConfigurationVersionRow[]
-  readonly configurationRow: PayrollEmployerConfigurationVersionRow | null
+  readonly configurationRows: readonly PayrollSourceConfigurationVersion[]
+  readonly configurationRow: PayrollSourceConfigurationVersion | null
   readonly configuration: PayrollEmployerConfiguration | null
-  readonly openingBalance: PayrollOpeningCumulativeSnapshotRow | null
+  readonly openingBalance: PayrollSourceOpeningBalance | null
   readonly bpfDetailhandel2026Source?: {
     readonly sourceId: string
     readonly sourceVersion: string
@@ -189,7 +229,13 @@ export type PayrollSourceSetup = {
 
 export interface PayrollSourceProviderDependencies {
   readonly authorize: (employeeId: string) => Promise<Pick<AuthContext, 'tenantId' | 'hrGroupId' | 'administrationId'>>
+  readonly requireCurrentAuthContext?: () => Promise<AuthContext>
   readonly listEmployments: (employeeId: string) => Promise<readonly PayrollSourceEmployment[]>
+  readonly listEmploymentsForAuthorizedTarget?: (
+    employeeId: string,
+    scope: PayrollScope,
+    employmentId?: string,
+  ) => Promise<readonly PayrollSourceEmployment[]>
   readonly listEmploymentsBatch?: (
     employeeIds: readonly string[], scope: PayrollScope,
   ) => Promise<readonly PromiseSettledResult<readonly PayrollSourceEmployment[]>[]>
@@ -415,15 +461,10 @@ export async function loadDefaultPayrollTimelinesBatch(
 
 function defaultDependencies(): PayrollSourceProviderDependencies {
   return {
-    authorize: async (employeeId) => {
-      const salaryContext = await requirePermission('salary:read', employeeId)
-      await requirePermission('contract:read', employeeId)
-      await requirePermission('leave:read', employeeId)
-      await requirePermission('organization-placement:read', employeeId)
-      await requirePermission('job-catalog:read', employeeId)
-      return salaryContext
-    },
+    requireCurrentAuthContext: requireAuthContext,
+    authorize: async (employeeId) => await authorizePayrollSourceRead(employeeId),
     listEmployments: async (employeeId) => await listEmployeeEmployments(employeeId),
+    listEmploymentsForAuthorizedTarget: listPayrollEmploymentForAuthorizedTarget,
     listEmploymentsBatch: listPayrollEmploymentDirectories,
     createCorrelationId: randomUUID,
     reportDiagnostic: (diagnostic) => {
@@ -437,7 +478,7 @@ function defaultDependencies(): PayrollSourceProviderDependencies {
       if (authorization) {
         const [projection] = await getActualWorkPayrollProjectionsBatch([{
           employeeId, employmentId, month, ...(payrollPeriodIdentity ? { payrollPeriodIdentity } : {}),
-        }], [{ ...authorization.scope, employeeId }]).catch((error: unknown) => {
+        }], [{ ...authorization.scope, employeeId, employmentId, sourceAuthorization: authorization }]).catch((error: unknown) => {
           throw new PayrollSourceReadFailure('actual-work-projection', error)
         })
         if (!projection) throw new PayrollSourceReadFailure('actual-work-projection', new Error('ACTUAL_WORK_PAYROLL_BATCH_INCOMPLETE'))
@@ -702,10 +743,17 @@ function actualWorkVariableWage(
     return [{ record, mapping }]
   })
   if (payable.length === 0) return { amount: '0.00', used: false, errorCode: null }
-  if (salaries.length !== 1 || salaries[0]?.payment_type !== 'HOURLY_VARIABLE' || salaries[0].hourly_rate === null) {
+  const salary = salaries.length === 1 ? salaries[0] : undefined
+  const supportsHourlyWork = salary?.payment_type === 'HOURLY_VARIABLE'
+    || (salary?.payment_type === 'PERIODIC_FIXED' && salary.payment_frequency === 'MONTHLY')
+  if (!salary || !supportsHourlyWork || salary.hourly_rate === null) {
     return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_HOURLY_RATE_REQUIRED' }
   }
   try {
+    const hourlyRate = FixedDecimal.parse(String(salary.hourly_rate))
+    if (hourlyRate.compare(FixedDecimal.fromInteger(BigInt(0))) <= 0) {
+      return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_HOURLY_RATE_REQUIRED' }
+    }
     let amount = FixedDecimal.fromInteger(BigInt(0))
     for (const { record, mapping } of payable) {
       if (mapping.calculationRule !== 'HOURLY_RATE_X_HOURS'
@@ -715,8 +763,7 @@ function actualWorkVariableWage(
         || typeof mapping.factor !== 'string') {
         return { amount: '0.00', used: true, errorCode: 'ACTUAL_WORK_PAYROLL_COMPONENT_SOURCE_GAP' }
       }
-      const rowAmount = FixedDecimal.parse(String(salaries[0].hourly_rate))
-        .multiply(FixedDecimal.parse(String(record.hours)))
+      const rowAmount = hourlyRate.multiply(FixedDecimal.parse(String(record.hours)))
         .multiply(FixedDecimal.parse(mapping.factor))
       amount = amount.add(rowAmount)
     }
@@ -1058,8 +1105,11 @@ function resolvePayrollTaxProfile(
       hasSpecialSituation: profile.has_special_situation,
       payrollTaxCreditApplies: profile.payroll_tax_credit_applies,
       sourceClassification: profile.source_classification,
-      sourceReferenceHash: createHash('sha256').update(profile.source_reference, 'utf8').digest('hex').slice(0, 24),
-      confirmedByUserId: profile.confirmed_by_user_id,
+      ...(profile.source_reference_hash || profile.source_reference ? {
+        sourceReferenceHash: profile.source_reference_hash?.slice(0, 24)
+          ?? createHash('sha256').update(profile.source_reference ?? '', 'utf8').digest('hex').slice(0, 24),
+      } : {}),
+      ...(profile.confirmed_by_user_id ? { confirmedByUserId: profile.confirmed_by_user_id } : {}),
       confirmedAt: profile.confirmed_at,
       createdAt: profile.created_at,
       ageCategory: projection.ageCategory,
@@ -1502,7 +1552,7 @@ function calendarDayFactor(activeStart: string, activeEndExclusive: string, peri
   return FixedDecimal.parse(String(paidDays)).divideToScale(FixedDecimal.parse(String(periodDays)), 8, 'ARITHMETIC').round(4, 'HALF_UP').toString(4)
 }
 
-function openingCumulatives(row: PayrollOpeningCumulativeSnapshotRow | null): Record<string, string> | null {
+function openingCumulatives(row: PayrollSourceOpeningBalance | null): Record<string, string> | null {
   if (!row || typeof row.opening_balance_json !== 'object' || row.opening_balance_json === null || Array.isArray(row.opening_balance_json)) return null
   if (!/^[0-9a-f]{64}$/i.test(row.snapshot_hash)
     || sha256(stableSerialize(row.opening_balance_json)) !== row.snapshot_hash) return null
@@ -1518,16 +1568,6 @@ function openingCumulatives(row: PayrollOpeningCumulativeSnapshotRow | null): Re
     try { result[key] = FixedDecimal.parse(String(values[key])).toString(2) } catch { return null }
   }
   return result
-}
-
-function actualPensionRate(totalRate: string | null, sharePercent: string): string | null {
-  if (!totalRate) return null
-  try {
-    return FixedDecimal.parse(totalRate).multiply(FixedDecimal.parse(sharePercent))
-      .divideToScale(FixedDecimal.parse('100'), 8, 'ARITHMETIC').toString(4)
-  } catch {
-    return null
-  }
 }
 
 function pfzwBaseComponentRates(definition: Readonly<Record<string, unknown>>): {
@@ -1562,13 +1602,14 @@ function sourceText(value: unknown): string | null {
 function monthlyPayrollGrossForPension(
   regularWage: Record<string, string | boolean>,
   caoCalculation: CaoPayrollCalculation,
+  actualWorkVariableWage: string,
 ): string {
   try {
     const base = FixedDecimal.parse(String(regularWage.grossAmount))
     const premium = caoCalculation.status === 'CALCULATED' && caoCalculation.premiumAmount
       ? FixedDecimal.parse(caoCalculation.premiumAmount)
       : FixedDecimal.fromInteger(BigInt(0))
-    return base.add(premium).round(2, 'HALF_UP').toString(2)
+    return base.add(premium).add(FixedDecimal.parse(actualWorkVariableWage)).round(2, 'HALF_UP').toString(2)
   } catch {
     return String(regularWage.grossAmount)
   }
@@ -1760,10 +1801,10 @@ function buildPfzw2026Input(input: {
 
 function buildRegularPayrollOwned(input: {
   readonly configuration: PayrollEmployerConfiguration | null
-  readonly configurationRow: PayrollEmployerConfigurationVersionRow | null
-  readonly openingBalance: PayrollOpeningCumulativeSnapshotRow | null
+  readonly configurationRow: PayrollSourceConfigurationVersion | null
+  readonly openingBalance: PayrollSourceOpeningBalance | null
   readonly bpfDetailhandel2026Source: PayrollSourceSetup['bpfDetailhandel2026Source']
-  readonly configurationRows: readonly PayrollEmployerConfigurationVersionRow[]
+  readonly configurationRows: readonly Pick<PayrollEmployerConfigurationVersionRow, 'status'>[]
   readonly employmentStartsOn: string
   readonly activeStart: string
   readonly activeEndExclusive: string
@@ -1793,14 +1834,17 @@ function buildRegularPayrollOwned(input: {
   } else if (hashPayrollEmployerConfiguration(configuration) !== input.configurationRow.configuration_hash) {
     gaps.push(makeGap('payrollConfiguration', 'UNSUPPORTED', 'PAYROLL_EMPLOYER_CONFIGURATION_HASH_INVALID'))
   } else {
-    for (const blocker of payrollEmployerConfigurationBlockers(configuration)) {
+    const blockers = payrollEmployerConfigurationBlockers(configuration)
+    for (const blocker of blockers) {
       gaps.push(makeGap('payrollConfiguration', 'SOURCE_GAP', `PAYROLL_CONFIGURATION_${blocker.code}`))
     }
   }
 
   const isNewIncomeRelationship = isNewIncomeRelationshipWithoutOpening(input.employmentStartsOn, input.periodStart)
   const opening = openingCumulatives(input.openingBalance)
-  if (!opening && !isNewIncomeRelationship) gaps.push(makeGap('openingCumulative', 'SOURCE_GAP', 'PAYROLL_OPENING_CUMULATIVE_MISSING'))
+  if (!opening && !isNewIncomeRelationship) {
+    gaps.push(makeGap('openingCumulative', 'SOURCE_GAP', 'PAYROLL_OPENING_CUMULATIVE_MISSING'))
+  }
   if (input.openingBalance && !opening) gaps.push(makeGap('openingCumulative', 'UNSUPPORTED', 'PAYROLL_OPENING_CUMULATIVE_INVALID'))
 
   const actualWorkRecord = asRecord(input.actualWorkSnapshot.canonicalSource)
@@ -1823,6 +1867,12 @@ function buildRegularPayrollOwned(input: {
     ? calendarDayFactor(input.activeStart, input.activeEndExclusive, input.periodStart, input.periodEndExclusive)
     : '1.0000'
   const scheduleFactor = input.schedule?.part_time_factor
+  const pensionActiveStart = assignment
+    ? laterDate(input.activeStart, assignment.participation_start_date)
+    : input.activeStart
+  const pensionPeriodFactor = method === 'CALENDAR_DAYS_PRO_RATA'
+    ? calendarDayFactor(pensionActiveStart, input.activeEndExclusive, input.periodStart, input.periodEndExclusive)
+    : '1.0000'
   let effectivePartTimeFactor: string | null = null
   if (input.variableHourlyBasis) {
     // Released hours already reflect the hours worked in the active period;
@@ -1831,7 +1881,7 @@ function buildRegularPayrollOwned(input: {
   } else if (scheduleFactor !== undefined) {
     try {
       effectivePartTimeFactor = FixedDecimal.parse(String(scheduleFactor))
-        .multiply(FixedDecimal.parse(periodFactor))
+        .multiply(FixedDecimal.parse(pensionPeriodFactor))
         .round(4, 'HALF_UP')
         .toString(4)
     } catch {
@@ -1861,7 +1911,7 @@ function buildRegularPayrollOwned(input: {
     && Number.isFinite(Date.parse(bpfSource.sourceUpdatedAt))
     && bpfSource.sourceReference.trim().length > 0
   const bpfMonthlyPayrollGross = input.regularWage
-    ? monthlyPayrollGrossForPension(input.regularWage, input.caoCalculation)
+    ? monthlyPayrollGrossForPension(input.regularWage, input.caoCalculation, input.actualWorkVariableWage.amount)
     : null
   const bpfCurrentGrossMatches = !bpfDetailhandelVcr || !bpfSourceMetadataValid
     || bpfMonthlyPayrollGross === null
@@ -1880,7 +1930,11 @@ function buildRegularPayrollOwned(input: {
   }
   if (arrangementInput && input.regularWage && effectivePartTimeFactor && assignment
     && bpfVcrFirstPeriodReady && bpfCurrentGrossMatches) {
-    const monthlyPayrollGross = monthlyPayrollGrossForPension(input.regularWage, input.caoCalculation)
+    const monthlyPayrollGross = monthlyPayrollGrossForPension(
+      input.regularWage,
+      input.caoCalculation,
+      input.actualWorkVariableWage.amount,
+    )
     const pfzw2026 = buildPfzw2026Input({
       arrangement: arrangementInput,
       assignment,
@@ -1907,6 +1961,20 @@ function buildRegularPayrollOwned(input: {
         partTimeFactor: effectivePartTimeFactor,
         ageForTier: assignment.age_for_tier,
         participationStartDate: assignment.participation_start_date,
+        ...(method === 'CALENDAR_DAYS_PRO_RATA' && assignment.participation_start_date > input.periodStart
+          && scheduleFactor !== undefined
+          ? {
+            partialMonthProration: {
+              method,
+              periodStart: input.periodStart,
+              periodEndExclusive: input.periodEndExclusive,
+              activeStart: pensionActiveStart,
+              activeEndExclusive: input.activeEndExclusive,
+              contractualPartTimeFactor: String(scheduleFactor),
+              periodFactor: pensionPeriodFactor,
+            },
+          }
+          : {}),
         sourceSnapshotId: input.sourceId,
         sourceSnapshotHash: input.coreSourceHash,
         ...(pfzw2026 ? { pfzw2026 } : {}),
@@ -1940,11 +2008,11 @@ function buildRegularPayrollOwned(input: {
     const typedPfzwRates = arrangementInput
       ? pfzwBaseComponentRates(arrangementInput.pensionableSalaryDefinition)
       : null
-    const totalRate = typedPfzwRates?.totalRate ?? arrangementInput?.flatTotalRate ?? null
-    const employeeRate = typedPfzwRates?.employeeRate
-      ?? actualPensionRate(totalRate, arrangementInput?.employeeSharePercent ?? '')
-    const employerRate = typedPfzwRates?.employerRate
-      ?? actualPensionRate(totalRate, arrangementInput?.employerSharePercent ?? '')
+    const { totalRate, employeeRate, employerRate } = resolvePensionComponentRates(
+      arrangementInput,
+      pensionResult,
+      typedPfzwRates,
+    )
     if (!employeeRate) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_EMPLOYEE_RATE_UNRESOLVED'))
     if (!employerRate) gaps.push(makeGap('pension', 'SOURCE_GAP', 'PENSION_EMPLOYER_RATE_UNRESOLVED'))
     const payrollOwned: Record<string, unknown> = {
@@ -1984,7 +2052,9 @@ function buildRegularPayrollOwned(input: {
         cumulativeContinuity: Boolean(opening) || isNewIncomeRelationship,
         reservationContinuity: Boolean(opening) || isNewIncomeRelationship,
         hashesConsistent: Boolean(input.configurationRow.configuration_hash)
-          && (Boolean(input.openingBalance) ? /^[0-9a-f]{64}$/i.test(input.openingBalance?.snapshot_hash ?? '') : isNewIncomeRelationship),
+          && (Boolean(input.openingBalance)
+            ? /^[0-9a-f]{64}$/i.test(input.openingBalance?.snapshot_hash ?? '')
+            : isNewIncomeRelationship),
         variableWageIsRegular: true,
         specialRewardPensionable: false,
         specialRewardIncludedInHolidayReserve: false,
@@ -2072,7 +2142,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
    */
   async getPayrollSourceSnapshotForAuthorizedEmployee(
     rawInput: PayrollSourceProviderInput,
-    authorization: { readonly employeeId: string; readonly scope: PayrollScope },
+    authorization: { readonly actorUserId: string; readonly employeeId: string; readonly scope: PayrollScope },
   ): Promise<PayrollSourceSnapshot> {
     const input = payrollSourceProviderInputSchema.parse(rawInput)
     if (input.employeeId !== authorization.employeeId
@@ -2081,7 +2151,40 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       || input.administrationId !== authorization.scope.administrationId) {
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
-    return await this.getPayrollSourceSnapshotWithActualWork(input, undefined, authorization.scope)
+    const sourceAuthorization: PayrollEmployeeSourceAuthorization = {
+      kind: 'EMPLOYEE_SELF',
+      actorUserId: authorization.actorUserId,
+      employeeId: authorization.employeeId,
+      scope: authorization.scope,
+    }
+    await this.assertCurrentSourceAuthorization(sourceAuthorization, input)
+    return await this.getPayrollSourceSnapshotWithActualWork(
+      input, undefined, authorization.scope, undefined, undefined, sourceAuthorization,
+    )
+  }
+
+  private async assertCurrentSourceAuthorization(
+    authorization: PayrollEmployeeSourceAuthorization,
+    input: PayrollSourceProviderInput,
+  ): Promise<void> {
+    const loadContext = this.dependencies.requireCurrentAuthContext
+    if (!loadContext) throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+    let context: AuthContext
+    try {
+      context = await loadContext()
+    } catch {
+      throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+    }
+    if (context.userId !== authorization.actorUserId
+      || context.tenantId !== authorization.scope.tenantId
+      || context.hrGroupId !== authorization.scope.hrGroupId
+      || context.administrationId !== authorization.scope.administrationId) {
+      throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+    }
+    if (context.employeeId !== authorization.employeeId || input.employeeId !== authorization.employeeId) {
+      throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
+    }
+    assertPayrollEmployeeSourceAuthorization(authorization, input.employeeId)
   }
 
   async getPayrollSourceSnapshots(
@@ -2306,17 +2409,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           month: `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`,
         }
       })
-      const actualWorkScopes = validatedIndexes.map((index) => {
-        const input = rawInputs[index]!
-        const authorization = authorizationByInputIndex.get(index)
-        if (!authorization || authorization.status !== 'fulfilled') {
-          throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
-        }
-        const scope = payrollScopeFromAuthContext(authorization.value)
-        if (!scope) throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
-        return { employeeId: input.employeeId, ...scope }
-      })
-      actualWork = await loadActualWorkBatch(actualWorkInputs, actualWorkScopes)
+      actualWork = await loadActualWorkBatch(actualWorkInputs)
       if (actualWork.length !== validatedIndexes.length) throw new Error('PAYROLL_ACTUAL_WORK_BATCH_INCOMPLETE')
     } catch {
       return await readAuthorizedIndividually(validatedIndexes)
@@ -2354,6 +2447,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     preauthorizedContext?: Pick<AuthContext, 'tenantId' | 'hrGroupId' | 'administrationId'>,
     timelineOverride?: PayrollSourceTimeline,
     prevalidatedEmployment?: PayrollSourceEmployment,
+    sourceAuthorization?: PayrollEmployeeSourceAuthorization,
   ): Promise<PayrollSourceSnapshot> {
     const parsedInput = payrollSourceProviderInputSchema.safeParse(rawInput)
     if (!parsedInput.success) throw new PayrollSourceProviderError('PAYROLL_SOURCE_INPUT_INVALID', 400)
@@ -2413,9 +2507,6 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     ) {
       throw new PayrollSourceProviderError('PAYROLL_SOURCE_SCOPE_FORBIDDEN', 403)
     }
-    const selfAuthorization: PayrollEmployeeSourceAuthorization | undefined = preauthorizedContext
-      ? { employeeId: input.employeeId, scope: authorizedScope }
-      : undefined
     const periodIdentity = input.payrollPeriodIdentity
     if (periodIdentity) {
       const referenceMonth = periodIdentity.startsOn.slice(0, 7)
@@ -2437,7 +2528,17 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     } else {
       let employments: readonly PayrollSourceEmployment[]
       try {
-        employments = await this.dependencies.listEmployments(input.employeeId)
+        if (preauthorizedContext) {
+          const listTargetEmployment = this.dependencies.listEmploymentsForAuthorizedTarget
+          if (!listTargetEmployment) throw new Error('PAYROLL_TARGET_DIRECTORY_UNAVAILABLE')
+          employments = await listTargetEmployment(
+            input.employeeId,
+            authorizedScope,
+            input.employmentId,
+          )
+        } else {
+          employments = await this.dependencies.listEmployments(input.employeeId)
+        }
       } catch (error) {
         const sourceCategory = safeSourceCategory(error, 'employment-directory')
         reportFailure(sourceCategory, safeSourceErrorCode(error))
@@ -2455,7 +2556,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           input.employeeId,
           employment.id,
           input.payrollPeriod,
-          selfAuthorization,
+          sourceAuthorization,
         )
       } catch (error) {
         if (input.employmentId !== undefined && isEmploymentNotFoundReadFailure(error)) {
@@ -2477,7 +2578,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
           ? periodIdentity.startsOn.slice(0, 7)
           : `${input.payrollPeriod.year}-${String(input.payrollPeriod.month).padStart(2, '0')}`,
         periodIdentity,
-        selfAuthorization,
+        sourceAuthorization,
       )
     } catch (error) {
       const sourceCategory = safeSourceCategory(error, 'actual-work-projection')
@@ -2918,7 +3019,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         sourceRowId: payrollSetup.configurationRow.id,
         versionKey: `payroll_employer_configuration:${payrollSetup.configurationRow.id}`,
         version: `${payrollSetup.configurationRow.configuration_version}:${payrollSetup.configurationRow.configuration_hash}`,
-        versionParts: [String(payrollSetup.configurationRow.configuration_version), payrollSetup.configurationRow.configuration_hash],
+        versionParts: [
+          String(payrollSetup.configurationRow.configuration_version),
+          payrollSetup.configurationRow.configuration_hash,
+        ],
         validFrom: payrollSetup.configurationRow.effective_from,
         validUntilExclusive: payrollSetup.configurationRow.effective_to === null
           ? null : dayAfter(payrollSetup.configurationRow.effective_to),
@@ -2928,7 +3032,10 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
         sourceRowId: payrollSetup.openingBalance.id,
         versionKey: `payroll_opening_cumulative:${payrollSetup.openingBalance.id}`,
         version: `${payrollSetup.openingBalance.snapshot_version}:${payrollSetup.openingBalance.snapshot_hash}`,
-        versionParts: [String(payrollSetup.openingBalance.snapshot_version), payrollSetup.openingBalance.snapshot_hash],
+        versionParts: [
+          String(payrollSetup.openingBalance.snapshot_version),
+          payrollSetup.openingBalance.snapshot_hash,
+        ],
         validFrom: payrollSetup.openingBalance.as_of_date, validUntilExclusive: null,
       }] : []),
       ...(payrollSetup?.bpfDetailhandel2026Source ? [{
@@ -3177,7 +3284,8 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     // the hash-bound canonical source, so it must use a stable pre-persistence
     // identity or a re-read would look like a source change.
     const calculationSourceId = `CORE_SOURCE:${coreSourceHash}`
-    const regularPayroll = this.dependencies.loadPayrollSetup
+    const hasPayrollSetupReader = Boolean(this.dependencies.loadPayrollSetup)
+    const regularPayroll = hasPayrollSetupReader
       ? buildRegularPayrollOwned({
           configuration: payrollSetup?.configuration ?? null,
           configurationRow: payrollSetup?.configurationRow ?? null,
@@ -3213,6 +3321,9 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
     // eligible by itself.
     const componentConfiguration = payrollSetup?.configuration
     const componentConfigurationRow = payrollSetup?.configurationRow
+    const componentConfigurationHashMatches = componentConfiguration && componentConfigurationRow
+      ? hashPayrollEmployerConfiguration(componentConfiguration) === componentConfigurationRow.configuration_hash
+      : false
     const canExposeVariableWageSource = !regularPayroll.payrollOwned
       && mappedActualWorkVariableWage.used
       && mappedActualWorkVariableWage.errorCode === null
@@ -3223,7 +3334,7 @@ export class LiquidHrPayrollSourceProvider implements PayrollSourceProvider {
       && componentConfigurationRow.status === 'ACTIVE'
       && componentConfigurationRow.effective_from <= bounds.start
       && (componentConfigurationRow.effective_to === null || componentConfigurationRow.effective_to >= bounds.start)
-      && hashPayrollEmployerConfiguration(componentConfiguration) === componentConfigurationRow.configuration_hash
+      && componentConfigurationHashMatches
     const variableWageSourceOnly = canExposeVariableWageSource
       && componentConfiguration
       && componentConfigurationRow

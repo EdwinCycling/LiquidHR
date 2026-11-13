@@ -5,9 +5,21 @@ import { AuthorizationError, requirePermission, type AuthContext } from '@/lib/a
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
 import { buildPayrollSourceIncomeRelationshipProjection } from './payroll-source-income-relationship-projection'
-import { assertPayrollEmployeeSourceAuthorization, type PayrollEmployeeSourceAuthorization } from '@/lib/payroll/scope'
+import type { PayrollEmployeeSourceAuthorization } from '@/lib/payroll/scope'
+import { assertCurrentPayrollSourceAuthorization } from '@/lib/payroll/payroll-source-authorization'
 
 type TaxProfileRow = Database['public']['Tables']['employment_payroll_tax_profiles']['Row']
+type TaxProfilePayrollProjectionRow = Omit<Pick<TaxProfileRow,
+  | 'id' | 'employee_id' | 'employment_id' | 'income_relationship_id' | 'employment_income_relationship_id'
+  | 'residence_country_code' | 'wage_tax_table' | 'herleiding_code' | 'time_period' | 'regular_wage_only'
+  | 'full_period_only' | 'has_special_situation' | 'payroll_tax_credit_applies' | 'source_classification'
+  | 'source_reference' | 'effective_from' | 'effective_to' | 'version_number' | 'supersedes_profile_id'
+  | 'confirmed_by_user_id' | 'confirmed_at' | 'created_at'
+>, 'source_reference' | 'confirmed_by_user_id'> & {
+  readonly source_reference?: string | null
+  readonly source_reference_hash?: string | null
+  readonly confirmed_by_user_id?: string | null
+}
 
 export type EmploymentPayrollTaxSourceProjection = {
   readonly ageCategory: 'UNDER_AOW' | 'AT_OR_ABOVE_AOW' | null
@@ -36,13 +48,7 @@ export type EmploymentPayrollTaxSourceProjection = {
       readonly incomeRelationshipUpdatedAt: string
     }[]
   }
-  readonly taxProfiles: readonly Pick<TaxProfileRow,
-    | 'id' | 'employee_id' | 'employment_id' | 'income_relationship_id' | 'employment_income_relationship_id'
-    | 'residence_country_code' | 'wage_tax_table' | 'herleiding_code' | 'time_period' | 'regular_wage_only'
-    | 'full_period_only' | 'has_special_situation' | 'payroll_tax_credit_applies' | 'source_classification'
-    | 'source_reference' | 'effective_from' | 'effective_to' | 'version_number' | 'supersedes_profile_id'
-    | 'confirmed_by_user_id' | 'confirmed_at' | 'created_at'
-  >[]
+  readonly taxProfiles: readonly TaxProfilePayrollProjectionRow[]
 }
 
 export type EmploymentPayrollTaxDossier = {
@@ -259,7 +265,7 @@ function projectEmploymentPayrollTaxSource(input: {
       endsOn: income.ends_on,
     })),
     payrollIncomeRelationshipProjection,
-    taxProfiles: taxProfiles as EmploymentPayrollTaxSourceProjection['taxProfiles'],
+    taxProfiles,
   }
 }
 
@@ -274,7 +280,7 @@ export async function getEmploymentPayrollTaxSourceProjection(
   authorization?: PayrollEmployeeSourceAuthorization,
 ): Promise<EmploymentPayrollTaxSourceProjection> {
   const authorizedScope = authorization
-    ? assertPayrollEmployeeSourceAuthorization(authorization, employeeId)
+    ? await assertCurrentPayrollSourceAuthorization(authorization, employeeId)
     : null
   const salaryContext = authorizedScope ?? await requirePermission('salary:read', employeeId)
   const identityContext = authorizedScope ?? await requirePermission('employee:read', employeeId)
@@ -302,16 +308,16 @@ export async function getEmploymentPayrollTaxSourceProjection(
     () => supabase.from('employment_income_relationships')
       .select('id, employment_id, income_relationship_id, valid_from, valid_until, updated_at')
       .eq('tenant_id', salaryContext.tenantId).eq('administration_id', administrationId)
-      .eq('employee_id', employeeId).lte('valid_from', end)
+      .eq('employee_id', employeeId).eq('employment_id', employmentId).lte('valid_from', end)
       .or(`valid_until.is.null,valid_until.gte.${start}`).limit(100),
     () => supabase.from('employments').select('id, starts_on, ends_on, record_status, deleted_at')
       .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', hrGroupId)
-      .eq('administration_id', administrationId).eq('employee_id', employeeId)
+      .eq('administration_id', administrationId).eq('employee_id', employeeId).eq('id', employmentId)
       .eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', end)
       .or(`ends_on.is.null,ends_on.gte.${start}`).limit(100),
     () => supabase.from('employment_payroll_tax_profiles').select('*')
       .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', hrGroupId)
-      .eq('administration_id', administrationId).eq('employee_id', employeeId)
+      .eq('administration_id', administrationId).eq('employee_id', employeeId).eq('employment_id', employmentId)
       .lte('effective_from', end).or(`effective_to.is.null,effective_to.gte.${start}`)
       .order('effective_from').order('version_number').limit(200),
   ], 4)

@@ -6,8 +6,10 @@ export interface PayrollScope {
   readonly administrationId: string
 }
 
-/** Narrow, request-local authorization passed only after an own-employee salary check. */
-export interface PayrollEmployeeSourceAuthorization {
+/** Narrow request-local authorizations produced only by the matching server guard. */
+export type PayrollEmployeeSourceAuthorization = {
+  readonly kind: 'EMPLOYEE_SELF'
+  readonly actorUserId: string
   readonly employeeId: string
   readonly scope: PayrollScope
 }

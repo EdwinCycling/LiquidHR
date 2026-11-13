@@ -131,7 +131,9 @@ describe('Payroll Lab server-only boundary', () => {
 
   it('keeps the Core source adapter server-only and delegates reads to existing domain services', () => {
     expect(sourceProviderModule.startsWith("import 'server-only'")).toBe(true)
-    expect(sourceProviderModule).toContain("requirePermission('salary:read'")
+    expect(sourceProviderModule).toContain('export async function authorizePayrollSourceRead(')
+    expect(sourceProviderModule).toContain("await authorizePermission('salary:read', employeeId)")
+    expect(sourceProviderModule).toContain('authorize: async (employeeId) => await authorizePayrollSourceRead(employeeId)')
     expect(sourceProviderModule).toContain("from '@/lib/employment/employment-service'")
     expect(sourceProviderModule).toContain("from '@/lib/employment/employment-detail-service'")
     expect(sourceProviderModule).not.toContain("from '@/lib/supabase/server'")

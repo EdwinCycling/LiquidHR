@@ -43,6 +43,45 @@ function sourceSnapshot(): PayrollSourceSnapshot {
 }
 
 describe('NL 2026 composite week/day wage withholding', () => {
+  it('applies the white weekly tax table with payroll tax credit on a broken period', () => {
+    const snapshot = sourceSnapshot()
+    const canonicalSource = structuredClone(snapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    regularWage.timePeriod = 'WEEK_DAY_1_0'
+    regularWage.payrollTaxCredit = true
+    regularWage.grossAmount = '421.62'
+    const weeklySnapshot = { ...snapshot, canonicalSource: canonicalSource as typeof snapshot.canonicalSource }
+    const result = calculatePayroll(buildCalculationInputs(weeklySnapshot, NL_2026_RULE_PACKAGE, {
+      scopeInstanceIds: { INCOME_RELATIONSHIP: weeklySnapshot.sourceIncomeRelationshipId! },
+    }), NL_2026_RULE_REGISTRY)
+    const values = Object.fromEntries(result.resultRows.map((row) => [row.key, row.value]))
+    const registeredTrace = result.trace.flatMap((step) => step.registeredRuleTrace ?? [])
+
+    expect(result.status).toBe('CALCULATED')
+    expect(values).toMatchObject({ wage_tax: '12.25', net_salary: '409.37' })
+    expect(registeredTrace.find((trace) => trace.code === 'period.composite-segment-plan')?.values)
+      .toMatchObject({ payrollTaxCredit: { valueType: 'BOOLEAN', value: true } })
+    expect(registeredTrace.find((trace) => trace.code === 'result.period-values.week')?.values)
+      .toMatchObject({ wageTax: { valueType: 'MONEY', value: '12.25' } })
+  })
+
+  it('applies the white daily tax table with payroll tax credit on a broken period', () => {
+    const snapshot = sourceSnapshot()
+    const canonicalSource = structuredClone(snapshot.canonicalSource) as Record<string, unknown>
+    const regularWage = canonicalSource.regularWage as Record<string, unknown>
+    regularWage.timePeriod = 'WEEK_DAY_0_1'
+    regularWage.payrollTaxCredit = true
+    regularWage.grossAmount = '84.33'
+    const dailySnapshot = { ...snapshot, canonicalSource: canonicalSource as typeof snapshot.canonicalSource }
+    const result = calculatePayroll(buildCalculationInputs(dailySnapshot, NL_2026_RULE_PACKAGE, {
+      scopeInstanceIds: { INCOME_RELATIONSHIP: dailySnapshot.sourceIncomeRelationshipId! },
+    }), NL_2026_RULE_REGISTRY)
+    const values = Object.fromEntries(result.resultRows.map((row) => [row.key, row.value]))
+
+    expect(result.status).toBe('CALCULATED')
+    expect(values).toMatchObject({ wage_tax: '2.45', net_salary: '81.88' })
+  })
+
   it('aggregates two week-table and one day-table withholding amounts', () => {
     const snapshot = sourceSnapshot()
     const result = calculatePayroll(buildCalculationInputs(snapshot, NL_2026_RULE_PACKAGE, {

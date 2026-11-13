@@ -161,6 +161,7 @@ export type SnapshotOptions = {
   readonly invalidR2TaxProfileVersion?: boolean
   readonly bpfCurrentGrossMismatch?: boolean
   readonly syntheticFlatPensionForLifecycle?: boolean
+  readonly fixedMonthlySalaryForMss?: boolean
 }
 export const scope = {
   tenantId: '16000000-0000-4000-8000-000000000061',
@@ -199,6 +200,7 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
   const r1 = caseCode === 'R1'
   const completeR2 = !r1 && options.completeR2PayrollSource === true
   const syntheticFlatPensionForLifecycle = (r1 || completeR2) && options.syntheticFlatPensionForLifecycle === true
+  const fixedMonthlySalaryForMss = r1 && options.fixedMonthlySalaryForMss === true
   const firstEmploymentDate = r1 || completeR2 ? '2026-07-01' : '2026-01-01'
   const employment: PayrollSourceEmployment = {
     id: ids.employment,
@@ -218,20 +220,20 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
   }
   const salary: PayrollSourceSalary = {
     id: ids.salary,
-    salary_basis: 'CAO_SCALE',
-    salary_route: 'SCALE_WITH_STEPS',
+    salary_basis: fixedMonthlySalaryForMss ? 'MANUAL' : 'CAO_SCALE',
+    salary_route: fixedMonthlySalaryForMss ? 'MANUAL' : 'SCALE_WITH_STEPS',
     payment_type: 'PERIODIC_FIXED' as PayrollSourceSalary['payment_type'],
     payment_frequency: 'MONTHLY' as PayrollSourceSalary['payment_frequency'],
     currency_code: 'EUR',
     fulltime_amount: r1 ? 4758.96 : 2542.50,
     parttime_amount: r1 ? 4758.96 : 1605.79,
-    hourly_rate: r1 ? 28.90 : null,
-    salary_structure_id: `a7000000-0000-4000-8000-0000000000${r1 ? '64' : '65'}`,
-    salary_scale_id: `a8000000-0000-4000-8000-0000000000${r1 ? '64' : '65'}`,
-    salary_scale_step_id: `a9000000-0000-4000-8000-0000000000${r1 ? '64' : '65'}`,
-    salary_step_code: r1 ? '15' : '1',
-    cao_scale_name: r1 ? 'I' : 'C',
-    cao_step_name: r1 ? '15' : '1',
+    hourly_rate: r1 && !fixedMonthlySalaryForMss ? 28.90 : null,
+    salary_structure_id: fixedMonthlySalaryForMss ? null : `a7000000-0000-4000-8000-0000000000${r1 ? '64' : '65'}`,
+    salary_scale_id: fixedMonthlySalaryForMss ? null : `a8000000-0000-4000-8000-0000000000${r1 ? '64' : '65'}`,
+    salary_scale_step_id: fixedMonthlySalaryForMss ? null : `a9000000-0000-4000-8000-0000000000${r1 ? '64' : '65'}`,
+    salary_step_code: fixedMonthlySalaryForMss ? null : r1 ? '15' : '1',
+    cao_scale_name: fixedMonthlySalaryForMss ? null : r1 ? 'I' : 'C',
+    cao_step_name: fixedMonthlySalaryForMss ? null : r1 ? '15' : '1',
     salary_band_id: null,
     valid_from: '2026-01-01',
     valid_until: null,
@@ -277,7 +279,9 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     source_classification: 'HR_ADMIN_CONFIRMED',
     source_reference: completeR2
       ? 'SYNTHETIC_FIXTURE:PAY-W02B-R2-NET-ORACLE-01; fictional NL resident under AOW age with loonheffingskorting on this single IKV'
-      : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; fictional NL resident under AOW age with loonheffingskorting on this single IKV',
+      : fixedMonthlySalaryForMss
+        ? 'SYNTHETIC_FIXTURE:PAYFAST-MSS-FIXED-MONTHLY-2026; fictional NL resident under AOW age with one linked IKV'
+        : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; fictional NL resident under AOW age with loonheffingskorting on this single IKV',
     effective_from: completeR2 && options.invalidR2TaxProfileEffectiveDate ? '2026-02-30' : firstEmploymentDate,
     effective_to: null,
     version_number: completeR2 && options.invalidR2TaxProfileVersion ? 0 : 1,
@@ -410,7 +414,9 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     status: 'ACTIVE',
     sourceReference: completeR2
       ? 'SYNTHETIC_FIXTURE:PAY-W02B-R2-NET-ORACLE-01; fictional small Retail Non-Food employer with stipulated classifications and employer rates; not a real employer decision'
-      : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; fictitious small clothing retailer, permanent written contract, sector 17 and assumed no employer exemption',
+      : fixedMonthlySalaryForMss
+        ? 'SYNTHETIC_FIXTURE:PAYFAST-MSS-FIXED-MONTHLY-2026; fictional employer parameters for isolated arithmetic only'
+        : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; fictitious small clothing retailer, permanent written contract, sector 17 and assumed no employer exemption',
     employer: {
       sectorCode: '17',
       whkDecisionReference: completeR2 ? 'SYNTHETIC-WHK-PAY-W02B-R2-2026-v1' : 'SYNTHETIC-WHK-2026-RETAIL-17-SMALL',
@@ -436,7 +442,9 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
       partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA',
       methodSourceReference: completeR2
         ? 'SYNTHETIC_FIXTURE:PAY-W02B-R2-NET-ORACLE-01; full July period and synthetic employment starts on 2026-07-01'
-        : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; full July period, new employment starts on 2026-07-01',
+        : fixedMonthlySalaryForMss
+          ? 'SYNTHETIC_FIXTURE:PAYFAST-MSS-FIXED-MONTHLY-2026; first full payroll period for synthetic employment starting 2026-07-01'
+          : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; full July period, new employment starts on 2026-07-01',
     },
   }) : null
   const configurationRow = configuration ? {
@@ -471,7 +479,9 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     },
     sourceReference: completeR2
       ? 'SYNTHETIC_FIXTURE:PAY-W02B-R2-NET-ORACLE-01; explicitly zero opening cumulative before the first July 2026 payroll period'
-      : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; zero opening cumulative before fictional first employment/IKV on 2026-07-01',
+      : fixedMonthlySalaryForMss
+        ? 'SYNTHETIC_FIXTURE:PAYFAST-MSS-FIXED-MONTHLY-2026; explicit zero opening before first synthetic employment and payroll period'
+        : 'SYNTHETIC_FIXTURE:PAYD2-RETAIL-02; zero opening cumulative before fictional first employment/IKV on 2026-07-01',
   }
   const openingBalance = (r1 || completeR2) && !(completeR2 && options.omitR2OpeningCumulative) ? {
     id: ids.openingCumulative,
@@ -556,22 +566,26 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     }],
     laborConditions: [{
       id: ids.laborCondition,
-      condition_group: 'CAO',
+      condition_group: fixedMonthlySalaryForMss ? 'EMPLOYMENT' : 'CAO',
       labor_condition_set_id: ids.laborSet,
       valid_from: '2026-01-01',
       valid_until: null,
       updated_at: '2026-01-01T09:03:00.000Z',
       set: {
         id: ids.laborSet,
-        code: 'CAO_RETAIL_NON_FOOD_2026_2027',
-        name: 'Cao Retail Non-Food / Mode 2026–2027 (synthetic fixture)',
+        code: fixedMonthlySalaryForMss ? 'MANUAL_EMPLOYMENT_TERMS_2026' : 'CAO_RETAIL_NON_FOOD_2026_2027',
+        name: fixedMonthlySalaryForMss ? 'Manual employment terms 2026 (synthetic fixture)' : 'Cao Retail Non-Food / Mode 2026–2027 (synthetic fixture)',
         standard_hours_per_week: 38,
         is_active: true,
         valid_from: '2026-01-01',
         updated_at: '2026-01-01T09:03:00.000Z',
       },
     }],
-    salaryTableSource: {
+    salaryTableSource: fixedMonthlySalaryForMss ? {
+      status: 'NOT_APPLICABLE',
+      reasonCode: null,
+      source: null,
+    } : {
       status: 'RESOLVED',
       reasonCode: null,
       source: {
@@ -689,7 +703,7 @@ function createSnapshotFixture(caseCode: RetailCase, options: SnapshotOptions = 
     createCorrelationId: () => `PAYD2-RETAIL-01-${caseCode}-CORRELATION`,
   }
 
-  return { ids, employeeId, employment, salary, schedule, actualWork, dependencies }
+  return { ids, employeeId, employment, salary, schedule, actualWork, dependencies, fixedMonthlySalaryForMss }
 }
 
 export async function createRetailSourceSnapshot(
@@ -698,6 +712,7 @@ export async function createRetailSourceSnapshot(
 ): Promise<PayrollSourceSnapshot> {
   const fixture = createSnapshotFixture(caseCode, options)
   const completeR2 = caseCode === 'R2' && options.completeR2PayrollSource === true
+  const fixedMonthlySalaryForMss = fixture.fixedMonthlySalaryForMss
   const source = await new LiquidHrPayrollSourceProvider(fixture.dependencies).getPayrollSourceSnapshot({
     ...scope,
     employeeId: fixture.employeeId,
@@ -708,13 +723,30 @@ export async function createRetailSourceSnapshot(
   const canonicalSource = {
     ...sourceCanonical,
     caseProvenance: {
-      fixtureId: `PAYD2-RETAIL-${caseCode === 'R1' ? '02' : '01'}-${caseCode}`,
+      fixtureId: fixedMonthlySalaryForMss ? 'PAYFAST-MSS-FIXED-MONTHLY-2026' : `PAYD2-RETAIL-${caseCode === 'R1' ? '02' : '01'}-${caseCode}`,
       dataClass: 'SYNTHETIC_FIXTURE',
       sourcePurpose: 'In-memory source-provider dependency; no Core or Payroll database access or write',
-      employerScope: caseCode === 'R1'
-        ? 'Fictional Retail Mode case; selected employer inputs do not confirm real employer or CAO/BPF applicability'
-        : 'Fictional Retail Mode case; not employer-confirmed or a CAO applicability finding',
-      ...(caseCode === 'R1' ? {
+      employerScope: fixedMonthlySalaryForMss
+        ? 'Fictional manual fixed-salary case; selected employer and pension inputs are for isolated arithmetic only'
+        : caseCode === 'R1'
+          ? 'Fictional Retail Mode case; selected employer inputs do not confirm real employer or CAO/BPF applicability'
+          : 'Fictional Retail Mode case; not employer-confirmed or a CAO applicability finding',
+      ...(fixedMonthlySalaryForMss ? {
+        syntheticPayrollInputs: {
+          sourceClassification: 'SYNTHETIC_FIXTURE',
+          salaryBasis: 'MANUAL_FIXED_MONTHLY',
+          fulltimeMonthlySalary: '4758.96',
+          contractHoursPerWeek: '38',
+          fulltimeHoursPerWeek: '38',
+          employmentAndIkvStart: '2026-07-01',
+          period: '2026-07',
+          pensionProfile: 'SYNTHETIC_FLAT_FIRST_PERIOD',
+          openingCumulative: 'EXPLICIT_ZERO_FIRST_PERIOD',
+          taxProfile: 'SYNTHETIC_SINGLE_READY_IKV',
+          realEmployerAndEmployeeApplicability: 'SOURCE_GAP',
+        },
+      } : {}),
+      ...(caseCode === 'R1' && !fixedMonthlySalaryForMss ? {
         officialRuleSources: PAYD2_RETAIL_02_OFFICIAL_SOURCE_PINS,
         syntheticPayrollInputs: {
           sourceClassification: 'SYNTHETIC_FIXTURE',

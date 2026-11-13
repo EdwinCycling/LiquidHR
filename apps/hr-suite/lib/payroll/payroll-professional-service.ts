@@ -589,6 +589,13 @@ async function authorizeEmployeeSalary(
   return await createEmployeePayrollAccess(context, employeeId, dependencies)
 }
 
+export async function authorizeEmployeeSalaryPayrollAccess(
+  employeeId: string,
+  dependencies: EmployeePayrollDependencies = defaultEmployeePayrollDependencies,
+): Promise<EmployeePayrollAccess | null> {
+  return await authorizeEmployeeSalary(employeeId, dependencies)
+}
+
 async function listFinalizedEmployeePeriods(
   access: EmployeePayrollAccess,
   dependencies: EmployeePayrollDependencies,

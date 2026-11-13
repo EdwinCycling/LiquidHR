@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, requireAnyPermission, requireHrGroupId, requirePermission } = vi.hoisted(() => ({
+const { createClient, requireAnyPermission, requireHrGroupId, requirePermission, assertCurrentPayrollSourceAuthorization } = vi.hoisted(() => ({
   createClient: vi.fn(),
   requireAnyPermission: vi.fn(),
   requirePermission: vi.fn(),
   requireHrGroupId: vi.fn(),
+  assertCurrentPayrollSourceAuthorization: vi.fn(),
 }))
 
 vi.mock('@/lib/auth/permissions', () => ({ AuthorizationError: class AuthorizationError extends Error { readonly status = 403 }, requireAnyPermission, requirePermission, requireHrGroupId }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('@/lib/payroll/payroll-source-authorization', () => ({ assertCurrentPayrollSourceAuthorization }))
 
 import {
   ActualWorkServiceError,
@@ -415,6 +417,49 @@ describe('Actual Work payroll batch source read', () => {
     ])).rejects.toMatchObject({ code: 'ACTUAL_WORK_MONTH_INVALID' })
     expect(requirePermission).not.toHaveBeenCalled()
     expect(createClient).not.toHaveBeenCalled()
+  })
+})
+
+describe('Actual Work Payroll source authorization', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('denies an Employee batch before source reads when request authorization is no longer current', async () => {
+    const actorUserId = '77777777-7777-4777-8777-777777777777'
+    const tenantId = '88888888-8888-4888-8888-888888888888'
+    const hrGroupId = '99999999-9999-4999-8999-999999999999'
+    const administrationId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const employmentTargetId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    assertCurrentPayrollSourceAuthorization.mockRejectedValue(new Error('DIRECT_TEAM_PLACEMENT_REVOKED'))
+    const from = vi.fn(() => queryResult([]))
+    createClient.mockResolvedValue({ from })
+
+    await expect(getActualWorkPayrollProjectionsBatch([{
+      employeeId,
+      employmentId: employmentTargetId,
+      month: '2026-10',
+    }], [{
+      employeeId,
+      employmentId: employmentTargetId,
+      tenantId,
+      hrGroupId,
+      administrationId,
+      sourceAuthorization: {
+        kind: 'EMPLOYEE_SELF',
+        actorUserId,
+        employeeId,
+        scope: { tenantId, hrGroupId, administrationId },
+      },
+    }])).rejects.toMatchObject({ code: 'ACTUAL_WORK_NOT_AUTHORIZED', status: 403 })
+
+    expect(assertCurrentPayrollSourceAuthorization).toHaveBeenCalledWith({
+      kind: 'EMPLOYEE_SELF',
+      actorUserId,
+      employeeId,
+      scope: { tenantId, hrGroupId, administrationId },
+    }, employeeId)
+    expect(from).not.toHaveBeenCalled()
   })
 })
 

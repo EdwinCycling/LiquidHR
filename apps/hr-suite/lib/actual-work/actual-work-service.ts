@@ -3,6 +3,8 @@ import { cache } from 'react'
 import { requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { loadQueriesInBatches } from '@/lib/supabase/bounded-query-loader'
 import { createClient } from '@/lib/supabase/server'
+import type { PayrollEmployeeSourceAuthorization } from '@/lib/payroll/scope'
+import { assertCurrentPayrollSourceAuthorization } from '@/lib/payroll/payroll-source-authorization'
 import { exactHoursToDatabase, formatExactHours, isPositiveExactHours, parseExactHours } from './exact-hours'
 import type { PayrollPeriodIdentity } from '@liquid-hr/payroll-engine'
 import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, actualWorkVoidEntrySchema, type ActualWorkBulkSaveInput, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
@@ -26,9 +28,11 @@ export type ActualWorkReadDependencies = ActualWorkAuth
 
 export type ActualWorkPayrollBatchAuthorizedScope = {
   readonly employeeId: string
+  readonly employmentId: string
   readonly tenantId: string
   readonly hrGroupId: string
   readonly administrationId: string
+  readonly sourceAuthorization: PayrollEmployeeSourceAuthorization
 }
 
 export type ActualWorkBulkProjection = {
@@ -562,10 +566,29 @@ export async function getActualWorkPayrollProjectionsBatch(
     const first = preauthorizedScopes[0]
     if (preauthorizedScopes.length !== inputs.length || !first
       || preauthorizedScopes.some((authorized, index) => authorized.employeeId !== inputs[index]?.employeeId
+        || authorized.employmentId !== inputs[index]?.employmentId
         || authorized.tenantId !== first.tenantId
         || authorized.hrGroupId !== first.hrGroupId
         || authorized.administrationId !== first.administrationId)) {
       throw new ActualWorkServiceError('ACTUAL_WORK_EMPLOYMENT_NOT_FOUND', 404)
+    }
+    for (const authorized of preauthorizedScopes) {
+      const authorization = authorized.sourceAuthorization
+      try {
+        if (authorization.scope.tenantId !== authorized.tenantId
+          || authorization.scope.hrGroupId !== authorized.hrGroupId
+          || authorization.scope.administrationId !== authorized.administrationId) {
+          throw new ActualWorkServiceError('ACTUAL_WORK_NOT_AUTHORIZED', 403)
+        }
+        await assertCurrentPayrollSourceAuthorization(authorization, authorized.employeeId)
+      } catch {
+        throw new ActualWorkServiceError('ACTUAL_WORK_NOT_AUTHORIZED', 403)
+      }
+      if (authorized.tenantId !== first.tenantId
+        || authorized.hrGroupId !== first.hrGroupId
+        || authorized.administrationId !== first.administrationId) {
+        throw new ActualWorkServiceError('ACTUAL_WORK_NOT_AUTHORIZED', 403)
+      }
     }
     tenantId = first.tenantId
     hrGroupId = first.hrGroupId

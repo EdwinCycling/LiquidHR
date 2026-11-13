@@ -53,6 +53,15 @@ export interface PensionCalculationInput {
   /** Required only for progressive arrangements; supplied as an age, not a date of birth. */
   readonly ageForTier: number | null
   readonly participationStartDate: string
+  readonly partialMonthProration?: {
+    readonly method: 'CALENDAR_DAYS_PRO_RATA'
+    readonly periodStart: string
+    readonly periodEndExclusive: string
+    readonly activeStart: string
+    readonly activeEndExclusive: string
+    readonly contractualPartTimeFactor: string
+    readonly periodFactor: string
+  }
   readonly sourceSnapshotId: string
   readonly sourceSnapshotHash: string
   /** Bound after CalculationInputSet persistence; omitted during source projection. */
@@ -142,6 +151,10 @@ function validDate(value: string): boolean {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
 }
 
+function dateDays(start: string, endExclusive: string): number {
+  return (Date.parse(`${endExclusive}T00:00:00.000Z`) - Date.parse(`${start}T00:00:00.000Z`)) / 86_400_000
+}
+
 function recordText(value: Readonly<Record<string, unknown>>, key: string): string | null {
   return typeof value[key] === 'string' ? value[key] as string : null
 }
@@ -150,6 +163,36 @@ function decimalEquals(value: string | null, expected: string): boolean {
   if (value === null) return false
   try {
     return FixedDecimal.parse(value).compare(FixedDecimal.parse(expected)) === 0
+  } catch {
+    return false
+  }
+}
+
+function verifiedPartialMonthProration(input: PensionCalculationInput): boolean {
+  const evidence = input.partialMonthProration
+  if (!evidence
+    || evidence.method !== 'CALENDAR_DAYS_PRO_RATA'
+    || recordText(input.arrangement.pensionableSalaryDefinition, 'partialMonthMethod') !== evidence.method) return false
+  const periodStart = `${input.period.year}-${String(input.period.month).padStart(2, '0')}-01`
+  const periodEndExclusive = new Date(Date.UTC(input.period.year, input.period.month, 1)).toISOString().slice(0, 10)
+  if (evidence.periodStart !== periodStart || evidence.periodEndExclusive !== periodEndExclusive
+    || !validDate(evidence.activeStart) || !validDate(evidence.activeEndExclusive)
+    || evidence.activeStart < periodStart || evidence.activeStart < input.participationStartDate
+    || evidence.activeEndExclusive <= evidence.activeStart || evidence.activeEndExclusive > periodEndExclusive) return false
+  try {
+    const activeDays = dateDays(evidence.activeStart, evidence.activeEndExclusive)
+    const periodDays = dateDays(periodStart, periodEndExclusive)
+    if (!Number.isInteger(activeDays) || !Number.isInteger(periodDays) || activeDays <= 0 || periodDays <= 0) return false
+    const expectedPeriodFactor = FixedDecimal.fromInteger(BigInt(activeDays))
+      .divideToScale(FixedDecimal.fromInteger(BigInt(periodDays)), 8, 'ARITHMETIC')
+      .round(4, 'HALF_UP')
+    const contractualFactor = FixedDecimal.parse(evidence.contractualPartTimeFactor)
+    const periodFactor = FixedDecimal.parse(evidence.periodFactor)
+    const actualPartTimeFactor = FixedDecimal.parse(input.partTimeFactor)
+    if (contractualFactor.compare(ZERO) <= 0 || contractualFactor.compare(FixedDecimal.parse('1')) > 0
+      || periodFactor.compare(expectedPeriodFactor) !== 0
+      || periodFactor.compare(ZERO) <= 0 || periodFactor.compare(FixedDecimal.parse('1')) > 0) return false
+    return contractualFactor.multiply(periodFactor).round(4, 'HALF_UP').compare(actualPartTimeFactor) === 0
   } catch {
     return false
   }
@@ -203,8 +246,12 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
     || input.participationStartDate > periodEnd) {
     return blocked(input, 'PENSION_ARRANGEMENT_NOT_EFFECTIVE_FOR_PERIOD')
   }
-  if (input.participationStartDate > periodStart) {
+  if (input.participationStartDate > periodStart && !verifiedPartialMonthProration(input)) {
     return blocked(input, 'PENSION_PARTIAL_MONTH_PRORATION_UNVERIFIED')
+  }
+  const monthlyShareAllocation = recordText(arrangement.pensionableSalaryDefinition, 'monthlyShareAllocation')
+  if (monthlyShareAllocation !== null && monthlyShareAllocation !== 'EMPLOYER_TAKES_ROUNDING_REMAINDER') {
+    return blocked(input, 'PENSION_MONTHLY_SHARE_ALLOCATION_UNSUPPORTED')
   }
   if (recordText(arrangement.pensionableSalaryDefinition, 'method') === BPF_DETAILHANDEL_2026_METHOD) {
     if (input.bpfDetailhandel2026 === undefined) {
@@ -452,7 +499,9 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
       .divideToScale(TWELVE, 8, 'ARITHMETIC')
     : monthlyPremium.multiply(employeeShare).divideToScale(ONE_HUNDRED, 8, 'ARITHMETIC')
   const employeeMonthly = employeeMonthlyUnrounded.round(2, 'ARITHMETIC')
-  const employerMonthlyUnrounded = bpfDetailhandelVcr
+  const employerRemainderAllocation = bpfDetailhandelVcr
+    || monthlyShareAllocation === 'EMPLOYER_TAKES_ROUNDING_REMAINDER'
+  const employerMonthlyUnrounded = employerRemainderAllocation
     ? monthlyPremium.subtract(employeeMonthly)
     : monthlyPremium.multiply(employerShare).divideToScale(ONE_HUNDRED, 8, 'ARITHMETIC')
   const employerMonthly = employerMonthlyUnrounded.round(2, 'ARITHMETIC')
@@ -473,6 +522,17 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
     annualPensionableSalaryCap: arrangement.annualPensionableSalaryCap,
     ageForTier: input.ageForTier,
     participationStartDate: input.participationStartDate,
+    partialMonthProration: null,
+    ...(input.partialMonthProration === undefined ? {} : {
+      partialMonthProrationMethod: input.partialMonthProration.method,
+      partialMonthPeriodStart: input.partialMonthProration.periodStart,
+      partialMonthPeriodEndExclusive: input.partialMonthProration.periodEndExclusive,
+      partialMonthActiveStart: input.partialMonthProration.activeStart,
+      partialMonthActiveEndExclusive: input.partialMonthProration.activeEndExclusive,
+      partialMonthContractualPartTimeFactor: input.partialMonthProration.contractualPartTimeFactor,
+      partialMonthPeriodFactor: input.partialMonthProration.periodFactor,
+    }),
+    monthlyShareAllocation,
     contractClassification: arrangement.contractClassification,
   }
   const traceBase = {
@@ -585,12 +645,12 @@ export function calculatePension(input: PensionCalculationInput): PensionCalcula
       inputs: { monthlyTotal: money(monthlyPremium), employerSharePercent: arrangement.employerSharePercent },
       assessmentBase: money(monthlyPremium),
       rate: arrangement.employerSharePercent,
-      formula: bpfDetailhandelVcr
+      formula: employerRemainderAllocation
         ? 'monthlyTotal − rounded employee share; assign any cent remainder to employer'
         : 'monthlyTotal × employerSharePercent ÷ 100',
       unroundedValue: employerMonthlyUnrounded.toString(),
-      roundingRule: bpfDetailhandelVcr
-        ? 'Exact residual after employee share rounded HALF_UP to cents; allocation reconciles to monthly total'
+      roundingRule: employerRemainderAllocation
+        ? 'Exact remainder after employee share rounding; employer total reconciles to monthly premium'
         : 'HALF_UP to 2 decimal places; allocation must reconcile to monthly total',
       roundingStage: 'EMPLOYER_SHARE',
       result: money(employerMonthly),

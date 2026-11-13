@@ -806,14 +806,40 @@ export function calculatePayrollSnapshot(
     if (inputs.engineVersion !== PAYROLL_ENGINE_VERSION || inputs.rulePackageCompositionId !== rulePackage.compositionId) {
       return {
         status: 'CALCULATION_FAILED', result: null, sourceHash: snapshot.sourceHash,
-        inputHash: inputs.inputHash, resultHash: null, gaps, incompleteComponents,
+        inputHash: inputs.inputHash, resultHash: null,
+        gaps: [...gaps, {
+          field: 'payrollEngine', status: 'UNSUPPORTED', reasonCode: 'PAYROLL_ENGINE_VERSION_OR_RULE_PACKAGE_MISMATCH',
+        }],
+        incompleteComponents,
       }
     }
     const result = calculatePayroll(inputs, ruleRegistry)
     if (result.status !== 'CALCULATED' || result.sourceHash !== snapshot.sourceHash || result.inputHash !== inputs.inputHash) {
+      const failureGaps: PayrollSourceGap[] = [
+        ...(result.sourceGaps ?? []).map((gap) => ({
+          field: `payrollEngine:${gap.field}`,
+          status: gap.status,
+          reasonCode: gap.reasonCode,
+        })),
+        ...result.controls.filter((control) => control.status === 'FAIL').map((control) => ({
+          field: `payrollEngine:${control.code}`,
+          status: 'UNSUPPORTED' as const,
+          reasonCode: 'PAYROLL_ENGINE_CONTROL_FAILED',
+        })),
+      ]
+      if (failureGaps.length === 0) {
+        const reasonCode = result.status !== 'CALCULATED'
+          ? 'PAYROLL_ENGINE_RESULT_NOT_CALCULATED'
+          : result.sourceHash !== snapshot.sourceHash
+            ? 'PAYROLL_ENGINE_SOURCE_HASH_MISMATCH'
+            : 'PAYROLL_ENGINE_INPUT_HASH_MISMATCH'
+        failureGaps.push({ field: 'payrollEngine', status: 'UNSUPPORTED', reasonCode })
+      }
       return {
         status: 'CALCULATION_FAILED', result: null, sourceHash: snapshot.sourceHash,
-        inputHash: inputs.inputHash, resultHash: result.resultHash, gaps, incompleteComponents,
+        inputHash: inputs.inputHash, resultHash: result.resultHash,
+        gaps: [...gaps, ...failureGaps],
+        incompleteComponents,
       }
     }
     return {
@@ -823,7 +849,9 @@ export function calculatePayrollSnapshot(
   } catch {
     return {
       status: 'CALCULATION_FAILED', result: null, sourceHash: snapshot.sourceHash,
-      inputHash: null, resultHash: null, gaps, incompleteComponents,
+      inputHash: null, resultHash: null,
+      gaps: [...gaps, { field: 'payrollEngine', status: 'UNSUPPORTED', reasonCode: 'PAYROLL_ENGINE_INPUT_OR_CALCULATION_FAILED' }],
+      incompleteComponents,
     }
   }
 }

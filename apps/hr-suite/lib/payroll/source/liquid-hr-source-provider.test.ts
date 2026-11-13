@@ -289,10 +289,64 @@ function withPayrollReleases(
   }
 }
 
+function syntheticNoPensionAssignment(): NonNullable<PayrollSourceTimeline['pensionAssignments']>[number] {
+  return {
+    id: '92000000-0000-4000-8000-000000000019',
+    pension_arrangement_id: 'PAYFAST-TEST-NO-PENSION',
+    effective_from: '2026-01-01',
+    effective_to: null,
+    participation_start_date: '2026-09-01',
+    assignment_reason: 'SYNTHETIC_TEST_EXPLICIT_NO_PARTICIPATION',
+    provenance_json: { status: 'SYNTHETIC_TEST', legalApplicability: 'NOT_ASSERTED' },
+    updated_at: '2026-01-01T00:00:00.000Z',
+    version_number: 1,
+    supersedes_assignment_id: null,
+    age_for_tier: null,
+    arrangement_resolution_reason: null,
+    arrangement_resolution_change_version_ids: [],
+    arrangement: {
+      id: '93000000-0000-4000-8000-000000000019',
+      code: 'PAYFAST-TEST-NO-PENSION',
+      name: 'Synthetic test zero pension',
+      arrangement_type: 'FLAT_PREMIUM',
+      effective_from: '2026-01-01',
+      arrangement_established_from: '2026-01-01',
+      effective_to: null,
+      transition_date: null,
+      grandfathering_mode: 'NONE',
+      flat_total_rate: 0,
+      employer_share_pct: 75,
+      employee_share_pct: 25,
+      annual_franchise: 0,
+      annual_pensionable_salary_cap: null,
+      pensionable_salary_definition: {
+        method: 'SYNTHETIC_TEST_ZERO_PENSION',
+        annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
+        basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE',
+        floorAtZero: true,
+      },
+      eligibility_rule: {
+        participantGroup: 'NEW_ENTRANT',
+        employmentOrParticipationStartOnOrAfter: '2026-01-01',
+      },
+      contract_classification: 'UNKNOWN',
+      contract_classification_provenance: { status: 'NOT_USED_FOR_SYNTHETIC_ZERO_PENSION' },
+      provenance_json: { status: 'SYNTHETIC_TEST', legalApplicability: 'NOT_ASSERTED' },
+      is_active: true,
+      version_id: '93000000-0000-4000-8000-000000000019',
+      version_number: 1,
+      version_created_at: '2026-01-01T00:00:00.000Z',
+      source_updated_at: '2026-01-01T00:00:00.000Z',
+      tiers: [],
+    },
+  }
+}
+
 function dependencies(overrides: Partial<PayrollSourceProviderDependencies> = {}): PayrollSourceProviderDependencies {
   return {
     authorize: vi.fn(async () => ({ tenantId, hrGroupId, administrationId })),
     listEmployments: vi.fn(async () => [employment()]),
+    listEmploymentsForAuthorizedTarget: vi.fn(async () => [employment()]),
     loadTimeline: vi.fn(async () => ({ employment: employment(), salaries: [salary()], schedules: [schedule()] })),
     loadActualWork: vi.fn(async () => actualWork()),
     isEnabled: vi.fn(() => true),
@@ -586,7 +640,7 @@ describe('LiquidHR Payroll source provider', () => {
     expect(deps.loadActualWorkBatch).not.toHaveBeenCalled()
   })
 
-  it('keeps the individual source fingerprint when Actual Work reads use the scoped batch path', async () => {
+  it('keeps the source fingerprint while the generic batch reauthorizes Actual Work without caller scopes', async () => {
     const batchActualWork = actualWork({
       entries: [actualWorkEntry({ hours: 4 })],
       types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
@@ -605,7 +659,7 @@ describe('LiquidHR Payroll source provider', () => {
       employeeId,
       employmentId,
       month: '2026-09',
-    }], [{ employeeId, tenantId, hrGroupId, administrationId }])
+    }])
     expect(loadActualWork).not.toHaveBeenCalled()
     expect(authorize).toHaveBeenCalledOnce()
     expect(batchSnapshot?.status).toBe('fulfilled')
@@ -1242,6 +1296,33 @@ describe('LiquidHR Payroll source provider', () => {
     }))
   })
 
+  it('calculates explicitly mapped released extra hours for a fixed monthly salary with an hourly rate', async () => {
+    const setup = completePayrollSetup()
+    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(),
+        salaries: [salary({ payment_type: 'PERIODIC_FIXED', hourly_rate: 18.75 })],
+        schedules: [schedule()],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection(),
+        pensionAssignments: [syntheticNoPensionAssignment()],
+      })),
+      loadActualWork: vi.fn(async () => withPayrollReleases(actualWork({
+        entries: [actualWorkEntry({ hours: 2 })],
+        types: [actualWorkType({ code: 'AW_WORK', name: 'Gewerkte uren' })],
+      }))),
+      loadPayrollSetup: vi.fn(async () => setup),
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+
+    const source = snapshot.canonicalSource as Record<string, unknown>
+    const payrollOwned = source.payrollOwned as Record<string, unknown>
+    const amounts = payrollOwned.amounts as Record<string, unknown>
+    expect(amounts.variableRegularWage).toBe('37.50')
+    expect(snapshot.sourceGaps).not.toContainEqual(expect.objectContaining({
+      field: 'actualWork', reasonCode: 'ACTUAL_WORK_HOURLY_RATE_REQUIRED',
+    }))
+  })
+
   it('calculates an on-call hourly pension basis from released paid hours without inventing fixed monthly salary', async () => {
     const setup = completePayrollSetup()
     const fixture = {
@@ -1311,8 +1392,8 @@ describe('LiquidHR Payroll source provider', () => {
             id: 'MARS-PENSION-2026', code: 'MARS-PENSION-2026', name: 'Mars BV TEST-pensioenfixture',
             arrangement_type: 'FLAT_PREMIUM', effective_from: '2026-01-01',
             arrangement_established_from: '2026-01-01', effective_to: null, transition_date: null,
-            grandfathering_mode: 'NONE', flat_total_rate: 25, employer_share_pct: 60,
-            employee_share_pct: 40, annual_franchise: 19172, annual_pensionable_salary_cap: 137800,
+            grandfathering_mode: 'NONE', flat_total_rate: 15, employer_share_pct: 66.6667,
+            employee_share_pct: 33.3333, annual_franchise: 19172, annual_pensionable_salary_cap: 137800,
             pensionable_salary_definition: {
               annualization: '12_X_REGULAR_MONTHLY_PENSIONABLE_SALARY',
               basis: 'ANNUAL_PENSIONABLE_SALARY_MINUS_FRANCHISE', floorAtZero: true,
@@ -1357,6 +1438,7 @@ describe('LiquidHR Payroll source provider', () => {
     })
     expect(pension).toMatchObject({
       partialMonthMethod: 'CALENDAR_DAYS_PRO_RATA', periodFactor: '1.0000',
+      totalPremiumRate: '15', employeeRate: '5.0000', employerRate: '10.0000',
       variableHourlyBasis: {
         hourlyRate: '20.00', fullTimeHoursPerWeek: '40.0000',
         fullTimeMonthlyHours: '173.33333333', fullTimeMonthlyPensionableSalary: '3466.66666660',
@@ -1364,8 +1446,8 @@ describe('LiquidHR Payroll source provider', () => {
       },
       calculationStatus: 'CALCULATED',
     })
-    expect(amounts.employeePension).toBe('1.08')
-    expect(amounts.employerPension).toBe('1.62')
+    expect(amounts.employeePension).toBe('0.54')
+    expect(amounts.employerPension).toBe('1.08')
     expect(pension.calculationTrace).toEqual(expect.arrayContaining([
       expect.objectContaining({
         componentCode: 'PENSION_ANNUALIZED_PENSIONABLE_SALARY',
@@ -2236,33 +2318,17 @@ describe('LiquidHR Payroll source provider', () => {
     expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain('raw authorization detail')
   })
 
-  it('reads an already self-authorized employee scope without requiring broader HR permissions', async () => {
-    const authorize = vi.fn(async () => { throw new AuthorizationError('broader HR permission is absent') })
-    const deps = dependencies({ authorize })
-    const provider = new LiquidHrPayrollSourceProvider(deps)
-    const authorization = { employeeId, scope: { tenantId, hrGroupId, administrationId } }
-
-    const snapshot = await provider.getPayrollSourceSnapshotForAuthorizedEmployee(request, {
-      ...authorization,
-    })
-
-    expect(snapshot.sourceEmployeeId).toBe(employeeId)
-    expect(snapshot.sourceTenantId).toBe(tenantId)
-    expect(authorize).not.toHaveBeenCalled()
-    expect(deps.listEmployments).toHaveBeenCalledWith(employeeId)
-    expect(deps.loadTimeline).toHaveBeenCalledWith(employeeId, employmentId, request.payrollPeriod, authorization)
-    expect(deps.loadActualWork).toHaveBeenCalledWith(employeeId, employmentId, '2026-09', undefined, authorization)
-  })
-
   it('rejects an authorized source context when employee or administration does not match', async () => {
     const deps = dependencies()
     const provider = new LiquidHrPayrollSourceProvider(deps)
 
     await expect(provider.getPayrollSourceSnapshotForAuthorizedEmployee(request, {
+      actorUserId: '40000000-0000-4000-8000-000000000098',
       employeeId: '40000000-0000-4000-8000-000000000099',
       scope: { tenantId, hrGroupId, administrationId },
     })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_SCOPE_FORBIDDEN', status: 403 })
     await expect(provider.getPayrollSourceSnapshotForAuthorizedEmployee(request, {
+      actorUserId: '40000000-0000-4000-8000-000000000098',
       employeeId,
       scope: { tenantId, hrGroupId, administrationId: otherAdministrationId },
     })).rejects.toMatchObject({ code: 'PAYROLL_SOURCE_SCOPE_FORBIDDEN', status: 403 })

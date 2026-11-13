@@ -253,6 +253,18 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
   const canConfirmAbsence = authContext.employeeId !== employeeId && authContext.permissions.includes('absence:write')
   const canChangeAbsenceCapacity = authContext.permissions.includes('absence:write')
   const compact = view === 'compact'
+  const hasPayrollProFormaRole = authContext.activeRoles.some((role) =>
+    role === 'DIRECT_MANAGER' || role === 'HR_ADMIN' || role === 'TENANT_ADMIN',
+  )
+  const canOpenPayrollProForma = authContext.employeeId !== employeeId && hasPayrollProFormaRole
+    ? await permissionAllowed('salary:read', employeeId, requestContext.supabase)
+    : false
+  const payrollProFormaHref = canOpenPayrollProForma
+    ? authContext.activeRoles.includes('HR_ADMIN') || authContext.activeRoles.includes('TENANT_ADMIN')
+      ? `/payroll/employees/${employeeId}/pro-forma`
+      : `/employees/${employeeId}/pro-forma`
+    : null
+  const tPayrollProfessional = payrollProFormaHref ? await getTranslator('payrollProfessional', locale) : null
   const today = new Date().toISOString().slice(0, 10)
   const aiSettings = (tab === 'overview' || tab === 'notes') && canUseAi
     ? await getAiGroupSettingsForContext(authContext).catch(() => null)
@@ -313,6 +325,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 </div>
                 <div className="flex w-full basis-full flex-wrap items-center justify-end gap-2">
                   <EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} locale={locale} weather={workWeather} />
+                  {payrollProFormaHref && tPayrollProfessional ? <Link className="button-secondary inline-flex min-h-10 items-center px-3 text-sm" href={payrollProFormaHref}>{tPayrollProfessional('proFormaTitle')}</Link> : null}
                   {canActAsEmployee ? <FocusActAsButton employeeId={employeeId} errorLabel={tFocus('actAs.failed')} label={tFocus('actAs.start')} loadingLabel={tFocus('actAs.starting')} tooltipLabel={tFocus('actAs.tooltip')} /> : null}
                   <Link aria-label={tEmployees('compact')} href={`/employees/${employeeId}?tab=${tab}&view=compact`} prefetch={false} title={tEmployees('compact')} className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"><Minimize2 aria-hidden="true" size={18} /></Link>
                   <EmployeeArchiveToggle headerStyle employeeId={employeeId} archived={detail.employee.isArchived} hasActiveEmployment={detail.employments.some((employment) => employment.record_status === 'CONFIRMED')} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed'), notFound: tEmployees('archiveNotFound'), hasActiveEmployment: tEmployees('hasActiveEmployment') }} />

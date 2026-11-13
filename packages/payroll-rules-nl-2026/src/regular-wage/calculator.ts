@@ -205,9 +205,6 @@ function requiredScope(inputs: Readonly<Record<string, PayrollSerializedValue>>)
   const fullPeriod = inputBoolean(inputs, 'fullPeriod')
   if (timePeriod !== 'MONTH' && compositePeriod === null) unsupported('TIME_PERIOD')
   if (compositePeriod !== null && fullPeriod) unsupported('COMPOSITE_PERIOD_FULL_PERIOD')
-  if (compositePeriod !== null && inputBoolean(inputs, 'payrollTaxCredit')) {
-    unsupported('COMPOSITE_PERIOD_WITH_TAX_CREDIT')
-  }
   if (inputBoolean(inputs, 'hasSpecialSituation')) unsupported('SPECIAL_SITUATION')
   const incomeRelationshipCount = inputDecimal(inputs, 'incomeRelationshipCount')
   if (incomeRelationshipCount.compare(FixedDecimal.fromInteger(BigInt(1))) !== 0) unsupported('MULTIPLE_INCOME_RELATIONSHIPS')
@@ -435,11 +432,12 @@ function monthlyRounded(
 function calculateCompositePeriodWithholding(context: {
   readonly period: Nl2026CompositePeriod
   readonly taxableWage: FixedDecimal
+  readonly payrollTaxCredit: boolean
   readonly parameters: Readonly<Record<string, PayrollTypedParameter>>
   readonly roundingDefinitions: readonly PayrollRoundingDefinition[]
   readonly trace: PayrollRegisteredRuleTraceStep[]
 }): { readonly outputs: Readonly<Record<string, PayrollSerializedValue>>; readonly trace: readonly PayrollRegisteredRuleTraceStep[] } {
-  const { period, taxableWage, parameters, roundingDefinitions, trace } = context
+  const { period, taxableWage, payrollTaxCredit, parameters, roundingDefinitions, trace } = context
   const paidWorkdays = compositePaidWorkdays(period)
   const weekFactor = parameterDecimal(parameters, 'weekFactor')
   const dayFactor = parameterDecimal(parameters, 'dayFactor')
@@ -471,9 +469,9 @@ function calculateCompositePeriodWithholding(context: {
       remainingDays: decimalValue(FixedDecimal.fromInteger(BigInt(period.remainingDays))),
       paidWorkdays: decimalValue(FixedDecimal.fromInteger(BigInt(paidWorkdays))),
       dailyWage: decimalValue(dailyWage, 12),
-      payrollTaxCredit: booleanValue(false),
+      payrollTaxCredit: booleanValue(payrollTaxCredit),
     },
-    sourceReference: 'Handboek Loonheffingen 2026, §9.3.4; Rekenvoorschriften 2026 v2, §2.2.1 table 1b, p.8',
+    sourceReference: 'Handboek Loonheffingen 2026, §9.3.4; separate white weekly and daily table segments',
   })
 
   for (const segment of segments) {
@@ -489,23 +487,35 @@ function calculateCompositePeriodWithholding(context: {
     }))
 
     const annualTaxBeforeCredits = calculateAnnualTaxBeforeCredits(parameters, annualTableWage, roundingDefinitions, trace)
-    const annualTaxAfterCredits = maximum(ZERO, applyPayrollRounding(annualTaxBeforeCredits, taxAfterCreditsRounding))
+    const generalCredit = calculateGeneralCredit(parameters, annualTableWage, payrollTaxCredit, roundingDefinitions, trace)
+    const labourCredit = calculateLabourCredit(parameters, annualTableWage, payrollTaxCredit, roundingDefinitions, trace)
+    const excessCredits = maximum(ZERO, generalCredit.add(labourCredit).subtract(annualTaxBeforeCredits))
+    const appliedLabourCredit = maximum(ZERO, labourCredit.subtract(excessCredits))
+    const taxRemainingAfterLabourCredit = maximum(ZERO, annualTaxBeforeCredits.subtract(appliedLabourCredit))
+    const appliedGeneralCredit = minimum(generalCredit, taxRemainingAfterLabourCredit)
+    const annualTaxAfterCreditsRaw = maximum(
+      ZERO,
+      annualTaxBeforeCredits.subtract(appliedLabourCredit).subtract(appliedGeneralCredit),
+    )
+    const annualTaxAfterCredits = maximum(ZERO, applyPayrollRounding(annualTaxAfterCreditsRaw, taxAfterCreditsRounding))
     trace.push({
       code: `credit.application-and-cap.${segmentName}`,
       values: {
         annualTaxBeforeCredits: moneyValue(annualTaxBeforeCredits),
-        theoreticalGeneralCredit: moneyValue(ZERO),
-        theoreticalLabourCredit: moneyValue(ZERO),
-        appliedLabourCredit: moneyValue(ZERO),
-        appliedGeneralCredit: moneyValue(ZERO),
+        theoreticalGeneralCredit: moneyValue(generalCredit),
+        theoreticalLabourCredit: moneyValue(labourCredit),
+        appliedLabourCredit: moneyValue(appliedLabourCredit),
+        appliedGeneralCredit: moneyValue(appliedGeneralCredit),
         annualTaxAfterCredits: moneyValue(annualTaxAfterCredits),
       },
-      sourceReference: 'Rekenvoorschriften 2026 v2, §2.2.4, p.13; loonheffingskorting not applied',
+      sourceReference: payrollTaxCredit
+        ? 'Rekenvoorschriften 2026 v2, §2.2.4, p.13; applied in labour-credit then general-credit order per table segment'
+        : 'Rekenvoorschriften 2026 v2, §2.2.4, p.13; loonheffingskorting not applied',
     })
     trace.push(roundingTrace({
       code: `rounding.tax-after-credits.${segmentName}`,
       definition: taxAfterCreditsRounding,
-      unrounded: annualTaxBeforeCredits,
+      unrounded: annualTaxAfterCreditsRaw,
       rounded: annualTaxAfterCredits,
     }))
 
@@ -591,6 +601,7 @@ export function calculateNl2026RegularWageWithholding(context: {
     return calculateCompositePeriodWithholding({
       period: compositePeriod,
       taxableWage,
+      payrollTaxCredit,
       parameters,
       roundingDefinitions,
       trace,

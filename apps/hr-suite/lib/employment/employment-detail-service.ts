@@ -22,7 +22,8 @@ import { readPayrollSourcePensionVersionTiers } from './payroll-source-pension-v
 import { readPayrollSourceQueryCached } from './payroll-source-read-cache'
 import { readPayrollTimelineBatch, type PayrollTimelineTarget } from './payroll-timeline-batch-reader'
 import { salaryRowCoversPayrollPeriod, salaryRowOverlapsPayrollPeriod } from './salary-table-period'
-import { assertPayrollEmployeeSourceAuthorization, type PayrollEmployeeSourceAuthorization } from '@/lib/payroll/scope'
+import type { PayrollEmployeeSourceAuthorization } from '@/lib/payroll/scope'
+import { assertCurrentPayrollSourceAuthorization } from '@/lib/payroll/payroll-source-authorization'
 
 type Tables = Database['public']['Tables']
 type Employment = Tables['employments']['Row']
@@ -130,7 +131,7 @@ export async function getEmploymentIncomeRelationshipProjection(
   let employment: Pick<Employment, 'id' | 'tenant_id' | 'hr_group_id' | 'administration_id' | 'employee_id'>
   if (payrollSourceEmployment) {
     const scope = authorization
-      ? assertPayrollEmployeeSourceAuthorization(authorization, employeeId)
+      ? await assertCurrentPayrollSourceAuthorization(authorization, employeeId)
       : null
     const context = scope ?? await requirePermission('contract:read', employeeId)
     if (payrollSourceEmployment.id !== employmentId
@@ -480,7 +481,7 @@ async function getEmploymentPayrollSourceProjectionWithRows(
   authorization?: PayrollEmployeeSourceAuthorization,
 ): Promise<EmploymentPayrollSourceProjection> {
   const authorizedScope = authorization
-    ? assertPayrollEmployeeSourceAuthorization(authorization, employeeId)
+    ? await assertCurrentPayrollSourceAuthorization(authorization, employeeId)
     : null
   const context = authorizedScope ?? await requirePermission('salary:read', employeeId)
   if (!authorizedScope) {
