@@ -1,5 +1,7 @@
 # Wet verbetering poortwachter
 
+> **13-11-2026 — aanvullende acceptatie PARTIAL:** bij een bestaand gestart traject gaf de directe START-RPC Tenant Admin een toegestane idempotente respons en weigerde zij Manager en Employee met `42501`. HR Admin koppelde een bestaand TEST-document aan een voortgangsmijlpaal en ontkoppelde het weer; de lege toestand is teruggelezen. Employee zag het eigen dossier zonder koppel-/verwijderactie. Taaktransities en volledige deadline-/scope-matrix blijven OPEN; zie [handoff](../../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md).
+
 > **13-11-2026 — integratieacceptatie PARTIAL:** WVP02 en WVP05 zijn in Core TEST-migratiehistorie aanwezig. Lokale HR Admin-/Manager-/Employee-leesproeven en negatieve dossiergrenzen zijn uitgevoerd; aanvullende taak-, document- en directe autorisatieproeven blijven OPEN. Zie [integratiehandoff](../../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md).
 
 Status: **LEIDEND — WVP01 geïmplementeerd; WVP02 casus-/taakwerkplek verbeterd in lokale code (2026-11-06). Core TEST-migraties, audittriggers, guidance en procesinstantie zijn op 2026-11-04 door de gebruiker bevestigd; native rol-/browseracceptatie blijft OPEN.**

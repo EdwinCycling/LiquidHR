@@ -1,5 +1,7 @@
 # TAL-INS01 — Talent & Development-overzicht
 
+> **13-11-2026 — aanvullende acceptatie PARTIAL:** HR Admin en Manager openden het ontwikkelrapport; Employee werd eerder geweigerd. Volledige bronherleiding, filters en negatieve scopegevallen blijven OPEN. Zie [handoff](../../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md).
+
 > **13-11-2026 — integratieacceptatie PARTIAL:** het bestaande ontwikkelrapport is lokaal geopend als HR Admin en Manager; Employee werd uit het managementrapport geweigerd. De volledige bron-, filter- en scopeset blijft OPEN. Zie [integratiehandoff](../../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md).
 
 **06-11-2026 — lokale kandidaat.** Het bestaande ontwikkelrapport toont samen de bestaande ontwikkelplan-, skills-/competentie- en gespreksbronnen. Actieve plannen en hun vastgelegde gemiddelde voortgang verwijzen naar de bestaande ontwikkelplanroute; skillvereisten zonder beoordeling en met verlopen bewijs verwijzen naar het bestaande skillgaprapport; ontbrekende gesprekregistraties en verlopen opvolging verwijzen naar het bestaande gespreksrapport. Bestaande medewerker- en planlinks blijven in de detailrapporten beschikbaar.

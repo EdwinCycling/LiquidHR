@@ -1,5 +1,7 @@
 # TAL-INS02 — skillgaps en ontwikkelprioriteiten
 
+> **13-11-2026 — aanvullende acceptatie PARTIAL:** HR Admin zag bestaande prioriteiten en de filter `Actief` resulteerde in een lege lijst; Manager zag geen actuele functievereisten in de geselecteerde scope. Een positieve expliciete plan-/capabilitykoppeling is in deze proef niet aangetroffen en blijft OPEN. Zie [handoff](../../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md).
+
 > **13-11-2026 — integratieacceptatie OPEN:** code is aanwezig in de gezamenlijke kandidaat en de gerichte WVP-/Talent-tests slagen; een afzonderlijke live controle van de prioriteitenlijst en gekoppelde plannen is niet uitgevoerd. Zie [integratiehandoff](../../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md).
 
 **06-11-2026 — lokale kandidaat.** Het bestaande skillgaprapport bevat al functie-/rolvereisten, aantoonbare niveaus en aparte statussen voor onvoldoende niveau, niet beoordeeld, ontbrekend niveau, ontbrekend bewijs en verlopen bewijs. TAL-INS02 voegt daar een prioriteitenlijst aan toe. Een ontwikkelplan wordt uitsluitend gekoppeld wanneer zowel de bestaande medewerker-ID als de bestaande capability-ID overeenkomen. Planstatus en vastgelegde voortgang blijven bronwaarden. Medewerker- en profiel-/rolverkennerlinks en de bestaande planroute blijven beschikbaar.
