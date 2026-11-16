@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const readSql = (file: string) => readFileSync(new URL(file, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
-const migration = readSql('./20261024150000_employee_directory_scope_hardening.sql')
+const migration = readSql('./20261024200635_20261024150000_employee_directory_scope_hardening.sql')
 const originalDirectoryDetail = readSql('./20260804144733_employee_directory_settings_v5.sql')
 const latestDirectoryDetail = readSql('./20260804145603_employee_directory_schedule_fallback.sql')
 const employeeOverview = readSql('./20261013143616_employee_overview_server_pagination.sql')

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('../../supabase/migrations/20261015080000_paytest_personas_employee_access_closeout.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../../supabase/migrations/20261015061113_paytest_personas_employee_access_closeout.sql', import.meta.url), 'utf8')
 const tenant = '07249eb9-545c-883b-b26b-d52f83b4f4a1'
 const group = '6ba6f1df-e376-40f2-abff-ffdf000172e1'
 const admin = '8483abc9-f275-c80b-5a23-fedc54ce9f0a'

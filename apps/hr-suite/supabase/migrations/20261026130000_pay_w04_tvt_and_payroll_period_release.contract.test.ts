@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('./20261026130000_pay_w04_tvt_and_payroll_period_release.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('./20261026181027_pay_w04_tvt_and_payroll_period_release.sql', import.meta.url), 'utf8')
   .replace(/\r\n/g, '\n')
 
 describe('W04 TVT and Payroll period release migration', () => {

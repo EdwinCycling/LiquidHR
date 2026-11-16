@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const migration = readFileSync(resolve(__dirname, '20261017135159_star_performer_manager_read_contract.sql'), 'utf8')
+const migration = readFileSync(resolve(__dirname, '20261017142025_star_performer_manager_read_contract.sql'), 'utf8')
 
 describe('STAR-V2-04B Manager read contract migration', () => {
   it('grants only the dedicated Manager read permission', () => {

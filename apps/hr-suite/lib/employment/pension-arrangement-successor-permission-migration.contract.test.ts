@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('../../supabase/migrations/20261020201028_pension_arrangement_successor_permission.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../../supabase/migrations/20261021054844_pension_arrangement_successor_permission.sql', import.meta.url), 'utf8')
 
 describe('pension arrangement successor permission migration contract', () => {
   it('uses the same scoped pension-management permission as the editor and assignment RPC', () => {

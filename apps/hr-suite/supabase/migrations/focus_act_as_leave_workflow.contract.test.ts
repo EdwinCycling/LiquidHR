@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const migration = readFileSync(
-  new URL('./20260922230000_allow_focus_act_as_leave_workflow.sql', import.meta.url),
+  new URL('./20260923164105_20260922230000_allow_focus_act_as_leave_workflow.sql', import.meta.url),
   'utf8',
 ).toLowerCase()
 

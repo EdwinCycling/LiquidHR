@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const sql = readFileSync(resolve(__dirname, '20260920160000_focus_public_wrapper_security.sql'), 'utf8')
+const sql = readFileSync(resolve(__dirname, '20260920153724_focus_public_wrapper_security.sql'), 'utf8')
 
 describe('Focus public wrapper security migration contract', () => {
   it('keeps authenticated access on the scoped public wrappers', () => {

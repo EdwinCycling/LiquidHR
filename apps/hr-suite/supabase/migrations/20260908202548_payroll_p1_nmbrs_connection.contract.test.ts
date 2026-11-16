@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const sql = readFileSync('supabase/migrations/20260908202548_payroll_p1_nmbrs_connection.sql', 'utf8')
+const sql = readFileSync('supabase/migrations/20260908203016_payroll_p1_nmbrs_connection.sql', 'utf8')
 const service = readFileSync('lib/payroll/payroll-service.ts', 'utf8')
 const client = readFileSync('lib/payroll/providers/nmbrs/client.ts', 'utf8')
 
@@ -24,7 +24,7 @@ describe('Payroll P1 Nmbrs connection contract', () => {
   })
 
   it('covers every P1 OAuth state foreign key with a private index migration', () => {
-    const indexes = readFileSync('supabase/migrations/20260909100000_payroll_p1_advisor_indexes.sql', 'utf8')
+    const indexes = readFileSync('supabase/migrations/20260909125131_payroll_p1_advisor_indexes.sql', 'utf8')
     expect(indexes).toContain('on payroll_private.payroll_oauth_states (provider_id)')
     expect(indexes).toContain('on payroll_private.payroll_oauth_states (initiated_by_user_id)')
   })

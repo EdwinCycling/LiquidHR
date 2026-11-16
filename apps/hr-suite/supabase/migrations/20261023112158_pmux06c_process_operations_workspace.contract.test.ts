@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { PGlite } from '@electric-sql/pglite'
 import { afterEach, describe, expect, it } from 'vitest'
 
-const migrationUrl = new URL('./20261023112158_pmux06c_process_operations_workspace.sql', import.meta.url)
+const migrationUrl = new URL('./20261023202745_pmux06c_process_operations_workspace.sql', import.meta.url)
 const tenantA = '00000000-0000-4000-8000-000000000001'
 const tenantB = '00000000-0000-4000-8000-000000000002'
 const groupA = '00000000-0000-4000-8000-000000000011'

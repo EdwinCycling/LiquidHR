@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const sql = readFileSync(resolve(__dirname, '20260920154500_fix_absence_reminder_recipient_variable.sql'), 'utf8')
+const sql = readFileSync(resolve(__dirname, '20260920152756_fix_absence_reminder_recipient_variable.sql'), 'utf8')
 
 describe('absence reminder recipient variable migration contract', () => {
   it('qualifies the PL/pgSQL reminder variable in the recipient projection', () => {

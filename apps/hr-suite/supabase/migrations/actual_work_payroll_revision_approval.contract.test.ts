@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('./20261027163113_actual_work_payroll_revision_approval.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('./20261028130821_20261027163113_actual_work_payroll_revision_approval.sql', import.meta.url), 'utf8')
   .replace(/\r\n/g, '\n')
 const fingerprintStart = migration.indexOf('create or replace function internal_security.actual_work_payroll_entry_fingerprint(')
 const fingerprintEnd = migration.indexOf('create or replace function public.approve_actual_work_entry_for_payroll_period(', fingerprintStart)

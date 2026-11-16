@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const migrationPath = 'supabase/migrations/20260920165000_fix_leave_opening_balance_ambiguous_year.sql'
+const migrationPath = 'supabase/migrations/20260920164852_fix_leave_opening_balance_ambiguous_year.sql'
 
 describe('Leave opening-balance ambiguity fix', () => {
   it('qualifies the cohort year lookup with a distinct PL/pgSQL variable', async () => {

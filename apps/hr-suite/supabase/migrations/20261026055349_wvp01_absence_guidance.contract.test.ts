@@ -143,8 +143,8 @@ describe('WVP01/WVP02 uitvoerbaar databasecontract', () => {
       ('${missingInstanceStart}','${tenant}','${group}','ADMINISTRATION','${admin}','process-definition:publish'),
       ('${noTaskAct}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:read'),
       ('${noTaskAct}','${tenant}','${group}','ADMINISTRATION','${admin}','absence:write')`)
-    await db.exec(readFileSync(new URL('./20261026055349_wvp01_absence_guidance.sql', import.meta.url),'utf8'))
-    await db.exec(readFileSync(new URL('./20261106150000_wvp02_sec01_start_permission_guard.sql', import.meta.url),'utf8'))
+    await db.exec(readFileSync(new URL('./20261026131216_20261026055349_wvp01_absence_guidance.sql', import.meta.url),'utf8'))
+    await db.exec(readFileSync(new URL('./20261109085616_20261106150000_wvp02_sec01_start_permission_guard.sql', import.meta.url),'utf8'))
   },30000)
   afterAll(async () => { await db?.close() })
   it('HR ziet beide cases, manager alleen team, employee alleen zichzelf',async () => {
@@ -210,7 +210,7 @@ describe('WVP01/WVP02 uitvoerbaar databasecontract', () => {
     }
   })
   it('bindt uitsluitend de WVP-audittriggers aan de casesleutelhelper',async () => {
-    await db.exec(readFileSync(new URL('./20261026172808_wvp01_guidance_audit_case_id.sql',import.meta.url),'utf8'))
+    await db.exec(readFileSync(new URL('./20261026175140_20261026172808_wvp01_guidance_audit_case_id.sql',import.meta.url),'utf8'))
     const triggers=await db.query<{tgname:string; proname:string}>(`select trigger.tgname, procedure.proname
       from pg_trigger trigger join pg_proc procedure on procedure.oid=trigger.tgfoid
       where trigger.tgrelid in ('public.absence_guidance'::regclass,'public.absence_guidance_events'::regclass)

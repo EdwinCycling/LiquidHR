@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('../../supabase/migrations/20261014155924_core_local_payroll_persona_link.sql', import.meta.url), 'utf8')
-const tenantScopeFix = readFileSync(new URL('../../supabase/migrations/20261014223000_core_local_payroll_persona_tenant_scope_fix.sql', import.meta.url), 'utf8')
-const auditFix = readFileSync(new URL('../../supabase/migrations/20261014224500_core_local_payroll_persona_audit_fix.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../../supabase/migrations/20261014162631_core_local_payroll_persona_link_v1.sql', import.meta.url), 'utf8')
+const tenantScopeFix = readFileSync(new URL('../../supabase/migrations/20261014210655_core_local_payroll_persona_tenant_scope_fix.sql', import.meta.url), 'utf8')
+const auditFix = readFileSync(new URL('../../supabase/migrations/20261014210811_core_local_payroll_persona_audit_fix.sql', import.meta.url), 'utf8')
 
 const actorId = '11111111-1111-4111-8111-111111111111'
 const otherActorId = '11111111-1111-4111-8111-111111111112'

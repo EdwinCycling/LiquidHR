@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('../../supabase/migrations/20261014164200_scope_manager_employment_salary_read.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../../supabase/migrations/20261014171041_scope_manager_employment_salary_read.sql', import.meta.url), 'utf8')
 const tenantScopedSalaryReadMigration = readFileSync(new URL('../../supabase/migrations/20261029064812_allow_tenant_scoped_employment_salary_visibility.sql', import.meta.url), 'utf8')
 
 const tenantId = '10000000-0000-4000-8000-000000000001'

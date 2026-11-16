@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
-const migrationSource = readFileSync(new URL('./20261021160000_pmux03b_process_work_experience.sql', import.meta.url), 'utf8')
+const migrationSource = readFileSync(new URL('./20261023195803_pmux03b_process_work_experience.sql', import.meta.url), 'utf8')
 const migration = migrationSource.toLowerCase()
 const processAutomationFoundation = readFileSync(new URL('./20260808122825_process_automation_p2_foundation.sql', import.meta.url), 'utf8')
 const employeeScopeFoundation = readFileSync(new URL('./20260805181522_hr_group_people_organization_roles.sql', import.meta.url), 'utf8')

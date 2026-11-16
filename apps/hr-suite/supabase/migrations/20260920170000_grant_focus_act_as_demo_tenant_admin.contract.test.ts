@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const sql = readFileSync(resolve(__dirname, '20260920170000_grant_focus_act_as_demo_tenant_admin.sql'), 'utf8')
+const sql = readFileSync(resolve(__dirname, '20260920175556_grant_focus_act_as_demo_tenant_admin.sql'), 'utf8')
 
 describe('DEV demo tenant Focus act-as alignment migration contract', () => {
   it('grants the existing capability only to the existing demo tenant TENANT_ADMIN override', () => {

@@ -33,7 +33,7 @@ describe('continuous appraisal attachment storage key binding', () => {
       process.cwd(),
       'supabase',
       'migrations',
-      '20261011120317_secure_continuous_appraisal_attachment_storage_keys.sql',
+      '20261011130922_secure_continuous_appraisal_attachment_storage_keys.sql',
     ), 'utf8').toLowerCase()
 
     expect(migration).toMatch(/add constraint continuous_appraisal_attachments_storage_key_binding[\s\S]*check[\s\S]*storage\.foldername\(storage_key\)[\s\S]*not valid/)

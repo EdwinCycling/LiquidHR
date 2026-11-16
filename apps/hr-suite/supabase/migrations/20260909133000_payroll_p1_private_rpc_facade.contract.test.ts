@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const sql = readFileSync('supabase/migrations/20260909133000_payroll_p1_private_rpc_facade.sql', 'utf8')
+const sql = readFileSync('supabase/migrations/20260909133103_payroll_p1_private_rpc_facade.sql', 'utf8')
 const privateClient = readFileSync('lib/payroll/server/private-client.ts', 'utf8')
 const service = readFileSync('lib/payroll/payroll-service.ts', 'utf8')
 const browserActions = readFileSync('components/payroll/payroll-settings-actions.tsx', 'utf8')

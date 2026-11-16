@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('./20261026100906_pay_w04_hr_hours_to_payroll.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('./20261026181001_pay_w04_hr_hours_to_payroll.sql', import.meta.url), 'utf8')
 const guardStart = migration.indexOf('create or replace function internal_security.require_actual_work_correction_audit()')
 const guardEnd = migration.indexOf('revoke all on function internal_security.prepare_actual_work_payroll_mapping_version()', guardStart)
 const correctionGuardSql = migration.slice(guardStart, guardEnd)

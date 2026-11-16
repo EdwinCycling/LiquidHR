@@ -93,7 +93,7 @@ describe('WVP05 documentkoppelingen databasecontract', () => {
         ('${otherAdministrationDocumentId}','${tenant}','${id(92)}','${employee}','${id(70)}','Andere administratie.pdf','ander-admin.pdf',now(),null),
         ('${foreignTenantDocumentId}','${id(90)}','${administration}','${employee}','${id(70)}','Andere tenant.pdf','ander-tenant.pdf',now(),null);
     `)
-    await db.exec(readFileSync(new URL('./20261106180416_wvp05_milestone_document_links.sql', import.meta.url), 'utf8'))
+    await db.exec(readFileSync(new URL('./20261109085632_20261106180416_wvp05_milestone_document_links.sql', import.meta.url), 'utf8'))
     await db.exec(`
       grant usage on schema internal_security,auth to authenticated;
       -- The production absence foundation already grants this SELECT; reproduce it in the isolated fixture.

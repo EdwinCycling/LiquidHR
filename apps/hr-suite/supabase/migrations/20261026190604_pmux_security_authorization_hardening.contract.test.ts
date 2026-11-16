@@ -3,11 +3,11 @@ import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
 const migration = readFileSync(
-  new URL('./20261026190604_pmux_security_authorization_hardening.sql', import.meta.url),
+  new URL('./20261027170458_20261026190604_pmux_security_authorization_hardening.sql', import.meta.url),
   'utf8',
 )
 const actionGuardMigration = readFileSync(
-  new URL('./20261028125342_pmux_work_item_claim_guard.sql', import.meta.url),
+  new URL('./20261028131456_pmux_work_item_claim_guard.sql', import.meta.url),
   'utf8',
 )
 
@@ -684,7 +684,7 @@ describe('PMUX authorization hardening', () => {
     expect(leaveAction.indexOf('process_form_actor_allowed(')).toBeLessThan(leaveAction.indexOf('update public.leave_requests'))
     expect(leaveAction.indexOf('process_form_actor_allowed(')).toBeLessThan(leaveAction.indexOf('book_leave_request_workflow('))
 
-    const focusAdapter = readFileSync(new URL('./20260922230000_allow_focus_act_as_leave_workflow.sql', import.meta.url), 'utf8').toLowerCase()
+    const focusAdapter = readFileSync(new URL('./20260923164105_20260922230000_allow_focus_act_as_leave_workflow.sql', import.meta.url), 'utf8').toLowerCase()
     const focusStart = focusAdapter.indexOf('create or replace function internal_security.start_leave_request_workflow_internal(')
     const focusEnd = focusAdapter.indexOf('\n$$;', focusStart)
     const focusLeave = focusAdapter.slice(focusStart, focusEnd)

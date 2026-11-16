@@ -1,0 +1,890 @@
+{
+  "evidence_id": "SEC101-MIGRATION-RECONCILIATION-20261116",
+  "candidate": {
+    "branch": "work/liquidhr-final-20261116",
+    "commit": "7f53e82318f012c38cc475192c712da0b2eb287a"
+  },
+  "source_project": "wnpfloqpjvaacobppbpk",
+  "baseline": {
+    "remote_migrations": 600,
+    "original_active_local_files": 585,
+    "remote_versions_missing_locally": 75,
+    "local_only_versions_before_reconciliation": 60,
+    "stale_local_versions_archived": 59,
+    "intended_expand_migration": "20261116110043"
+  },
+  "restored_from_remote_migration_ledger_statements": [
+    {
+      "version": "20260920145610",
+      "name": "focus_self_report_setting_read",
+      "file": "20260920145610_focus_self_report_setting_read.sql",
+      "source_sha256": "52fdfb0021f3ff77e6e223d7ea09483adfc5fc899f895656f169f1da251f40d4"
+    },
+    {
+      "version": "20260920152220",
+      "name": "focus_reminder_target_published",
+      "file": "20260920152220_focus_reminder_target_published.sql",
+      "source_sha256": "e74a2d7379ace262610498bea6454bbed72dac5ae763767a65e1699653b159f5"
+    },
+    {
+      "version": "20260920152756",
+      "name": "fix_absence_reminder_recipient_variable",
+      "file": "20260920152756_fix_absence_reminder_recipient_variable.sql",
+      "source_sha256": "4bbff46ab6a1b5ef50ca5aa27f0bdfce4694bcd28a3e91f020fbcf73f95b7663"
+    },
+    {
+      "version": "20260920153724",
+      "name": "focus_public_wrapper_security",
+      "file": "20260920153724_focus_public_wrapper_security.sql",
+      "source_sha256": "e6627108cdc983d1b64b1ea32090dc4d1e51e6213b43edff04e5e20b4ff22eeb"
+    },
+    {
+      "version": "20260920164852",
+      "name": "fix_leave_opening_balance_ambiguous_year",
+      "file": "20260920164852_fix_leave_opening_balance_ambiguous_year.sql",
+      "source_sha256": "de2ada9135e55dee9d692bb62300e74d2b05b0d119c99233b61ea423ac9f2d70"
+    },
+    {
+      "version": "20260920175556",
+      "name": "grant_focus_act_as_demo_tenant_admin",
+      "file": "20260920175556_grant_focus_act_as_demo_tenant_admin.sql",
+      "source_sha256": "9d39694ec7d9e36cc6ebfedf90c96ff137ccca28ecde9908daf607970d6a28f7"
+    },
+    {
+      "version": "20260920180303",
+      "name": "allow_focus_act_as_audit_events",
+      "file": "20260920180303_allow_focus_act_as_audit_events.sql",
+      "source_sha256": "3b15ab0a53af9622aad0414b9e012fba5a436ce2979d4921a453538a90ad805b"
+    },
+    {
+      "version": "20260920180557",
+      "name": "grant_focus_act_as_audit_insert",
+      "file": "20260920180557_grant_focus_act_as_audit_insert.sql",
+      "source_sha256": "a14e044dd892b8358dce8f64cdc5fbb2643ed6aa5a71a306381c4f6d44a1d8fa"
+    },
+    {
+      "version": "20260923164105",
+      "name": "20260922230000_allow_focus_act_as_leave_workflow",
+      "file": "20260923164105_20260922230000_allow_focus_act_as_leave_workflow.sql",
+      "source_sha256": "16085b1ef56313119080f02638dd81e5dbdb428955d4f6c2eb8436fced188063"
+    },
+    {
+      "version": "20260924073155",
+      "name": "d01_document_access_and_metadata",
+      "file": "20260924073155_d01_document_access_and_metadata.sql",
+      "source_sha256": "02775ebbff161c737a4f406c0fdda6c409598f7d4dccd4d6b81285a06accee44"
+    },
+    {
+      "version": "20260924075753",
+      "name": "d01_document_policy_recursion_fix",
+      "file": "20260924075753_d01_document_policy_recursion_fix.sql",
+      "source_sha256": "b31dc990d248c287be0446cd2527d67db7d67930d7c2096a242e3d7a79e28ea1"
+    },
+    {
+      "version": "20260924093658",
+      "name": "fix_d01_document_reminder_id_ambiguity",
+      "file": "20260924093658_fix_d01_document_reminder_id_ambiguity.sql",
+      "source_sha256": "c493b34a87eec5f36ceef8094ccdb33392fb60ca55d05e856dd07ceb8320a55c"
+    },
+    {
+      "version": "20260924143939",
+      "name": "d01_document_actor_audience_scope",
+      "file": "20260924143939_d01_document_actor_audience_scope.sql",
+      "source_sha256": "e8b11386570219b801a3d208f295e40014a8c554939634dc1da9f758e988ac46"
+    },
+    {
+      "version": "20260925092114",
+      "name": "allow_scoped_document_expiry_reminders",
+      "file": "20260925092114_allow_scoped_document_expiry_reminders.sql",
+      "source_sha256": "c31127912edd84040992bc2a5558c04c67f2ab691b3f01b879c372e05db7c30e"
+    },
+    {
+      "version": "20260927082836",
+      "name": "20260927080748_document_studio_optional_placeholders",
+      "file": "20260927082836_20260927080748_document_studio_optional_placeholders.sql",
+      "source_sha256": "b143f31d6af55bc51287c72ef3968c3f7dd0ac3752e4ec88c56373093cb6093c"
+    },
+    {
+      "version": "20260927164911",
+      "name": "abs02_absence_hardening_wvp",
+      "file": "20260927164911_abs02_absence_hardening_wvp.sql",
+      "source_sha256": "f56369f7469c11c80a6cd266130878455fe75e7daaf10368a2788b94e0baa23c"
+    },
+    {
+      "version": "20260927165416",
+      "name": "abs02_absence_lifecycle_self_scope",
+      "file": "20260927165416_abs02_absence_lifecycle_self_scope.sql",
+      "source_sha256": "fe505c8cece5b9b8a5571f1750b79b4571b647c47218b9b6b30d8a0ee95c7a88"
+    },
+    {
+      "version": "20260927173517",
+      "name": "abs02_advisor_followup",
+      "file": "20260927173517_abs02_advisor_followup.sql",
+      "source_sha256": "eb8ab9d45104ce6624155bf1ea3401f0cc15f9b9f5a1f92887ee3315dbb3ed43"
+    },
+    {
+      "version": "20260927173629",
+      "name": "abs02_subject_fk_index",
+      "file": "20260927173629_abs02_subject_fk_index.sql",
+      "source_sha256": "beed50dd227655a7c5b5ee0fe45b3110cb69a64bc7aed105ec4c184fd75096c2"
+    },
+    {
+      "version": "20260927175438",
+      "name": "abs02_self_scope_permission_fix",
+      "file": "20260927175438_abs02_self_scope_permission_fix.sql",
+      "source_sha256": "7d12659d6cecc37c7fcd923766da314d6947a19c73d13eab33332b092977c4c1"
+    },
+    {
+      "version": "20260928095705",
+      "name": "ai01_a2_durable_recovery",
+      "file": "20260928095705_ai01_a2_durable_recovery.sql",
+      "source_sha256": "5af5066b3f57dec47c403040e0726999e3991fb32f4fe26fa73893bd89d7b3dd"
+    },
+    {
+      "version": "20260928095805",
+      "name": "control01_first_admin_invitation_enum",
+      "file": "20260928095805_control01_first_admin_invitation_enum.sql",
+      "source_sha256": "71a9d9bed138482d65a07aa83ba53601be8121d349e5826a597816164c7f3396"
+    },
+    {
+      "version": "20260928095820",
+      "name": "control01_customer_bootstrap",
+      "file": "20260928095820_control01_customer_bootstrap.sql",
+      "source_sha256": "142c5bbf0fbab865b4b397ab45dfa959bc8c706bae3c2315e94dfcbab6374f17"
+    },
+    {
+      "version": "20260928095904",
+      "name": "control01_payroll_import_staging",
+      "file": "20260928095904_control01_payroll_import_staging.sql",
+      "source_sha256": "f2f85f413af376c4c0535cae6fe206b56acb59eca369957ca7b9b108c831f79a"
+    },
+    {
+      "version": "20260929184205",
+      "name": "control01_payroll_income_relationship_read_policy",
+      "file": "20260929184205_control01_payroll_income_relationship_read_policy.sql",
+      "source_sha256": "80dfa2a712a52f9953bf6771024665b13845c21c21c48e4e309ce8b137745e39"
+    },
+    {
+      "version": "20261004113111",
+      "name": "control02_xml_import_provenance_guard",
+      "file": "20261004113111_control02_xml_import_provenance_guard.sql",
+      "source_sha256": "97b81a09dc2642b35e8cd94feeaf328660eb2931c02b0cc4161fb73757c86523"
+    },
+    {
+      "version": "20261004113209",
+      "name": "control01_payroll_import_role_override_permissions",
+      "file": "20261004113209_control01_payroll_import_role_override_permissions.sql",
+      "source_sha256": "6d795fe2f91d89e8822faf4df9561290914f4d9c230372ceaa163658e2884476"
+    },
+    {
+      "version": "20261007064118",
+      "name": "20261004150133_control02_payroll_import_scope_invariants",
+      "file": "20261007064118_20261004150133_control02_payroll_import_scope_invariants.sql",
+      "source_sha256": "4dd5974988ff7b9dbadb31d98b5908ee326b7763d64b78ea267d153a17fe1a6c"
+    },
+    {
+      "version": "20261007064155",
+      "name": "20261005100056_control02_payroll_finalization_ledger",
+      "file": "20261007064155_20261005100056_control02_payroll_finalization_ledger.sql",
+      "source_sha256": "19c8f67bb56e7e38171daa45187514f145f1ffe3747d49bf0cc5e7ed6ba6b1bd"
+    },
+    {
+      "version": "20261007081449",
+      "name": "control02_test_core_transactional_write",
+      "file": "20261007081449_control02_test_core_transactional_write.sql",
+      "source_sha256": "f9b43fe4e0fc14384fca44ffafcf11a1b656a4a2bde59f1363a6b77d30ee942a"
+    },
+    {
+      "version": "20261007081753",
+      "name": "control02_test_finalization_advisor_followup",
+      "file": "20261007081753_control02_test_finalization_advisor_followup.sql",
+      "source_sha256": "2ff3d77628a7996136ef0d7dd383694936402694f401b35b4c917d7c059154d3"
+    },
+    {
+      "version": "20261007095236",
+      "name": "control02_test_xml_batch_staging_gate",
+      "file": "20261007095236_control02_test_xml_batch_staging_gate.sql",
+      "source_sha256": "bd082b30d3035eaabc9f0a39a213f930e882354c0427d1f867f0ee320c26224c"
+    },
+    {
+      "version": "20261007095817",
+      "name": "control02_test_payroll_import_fk_indexes",
+      "file": "20261007095817_control02_test_payroll_import_fk_indexes.sql",
+      "source_sha256": "081d1cf2a243d84e1b9af82c7284e2a8150aca23870db8b2a2f9bbfe14faa4be"
+    },
+    {
+      "version": "20261007114524",
+      "name": "20261005051804_apiai01_rate_limit_and_read_audit",
+      "file": "20261007114524_20261005051804_apiai01_rate_limit_and_read_audit.sql",
+      "source_sha256": "f65feb129f41ef5cc63556bed5578f49ed988946c40d83e8d2f95aa454adafc2"
+    },
+    {
+      "version": "20261007130507",
+      "name": "control02_test_qualify_finalization_event_columns",
+      "file": "20261007130507_control02_test_qualify_finalization_event_columns.sql",
+      "source_sha256": "36b50a2d7a90abe37098355b1611ac1d8b69a95c41e4ab45b88b8386d9fc38af"
+    },
+    {
+      "version": "20261007131544",
+      "name": "control02_test_qualify_plan_invalidation_columns",
+      "file": "20261007131544_control02_test_qualify_plan_invalidation_columns.sql",
+      "source_sha256": "c97a5d43818fcdedb2b50ffda5af0bf3ba70f92f5e519a36bde1cea7f3a2c301"
+    },
+    {
+      "version": "20261008061705",
+      "name": "control02_test_finalization_writer_guard_fix",
+      "file": "20261008061705_control02_test_finalization_writer_guard_fix.sql",
+      "source_sha256": "68b513a253c4f454419c4cd39dc9035b2ac51f755fe5157973c5b5fd941f280d"
+    },
+    {
+      "version": "20261008080804",
+      "name": "control02_test_employment_number_readback_ambiguity_fix",
+      "file": "20261008080804_control02_test_employment_number_readback_ambiguity_fix.sql",
+      "source_sha256": "4799e52d68ac29bfe77c005e8b4ceb6d7b0aee2d456c5eebac9c3d091ea230ab"
+    },
+    {
+      "version": "20261008084750",
+      "name": "control02_completion_event_lease_and_employee_allocator_reconciliation",
+      "file": "20261008084750_control02_completion_event_lease_and_employee_allocator_reconciliation.sql",
+      "source_sha256": "7a7dd4c2915ef5ce0571e613269031dc3e597273b59211b0dafb3065d3b4f4f4"
+    },
+    {
+      "version": "20261008091819",
+      "name": "control02_test_income_source_reference_guard_fix",
+      "file": "20261008091819_control02_test_income_source_reference_guard_fix.sql",
+      "source_sha256": "e3a017294c1fd3139f146233897e80c30f07d3f6098696f61af42f4b5c1a72fb"
+    },
+    {
+      "version": "20261008095650",
+      "name": "control02_test_employee_proof_guard_variable_fix",
+      "file": "20261008095650_control02_test_employee_proof_guard_variable_fix.sql",
+      "source_sha256": "b59b2da1b800dc84abcbcc8dee74a9d4c0dcc7d705319d452c89fb2a4714f020"
+    },
+    {
+      "version": "20261008145503",
+      "name": "control02_test_draft_employment_readback_guard_fix",
+      "file": "20261008145503_control02_test_draft_employment_readback_guard_fix.sql",
+      "source_sha256": "20e601dace30555bac5dcd9e47656e24149886f45db8472b94fcd6d8dc37eced"
+    },
+    {
+      "version": "20261008165059",
+      "name": "control02_test_final_writer_runtime_guards",
+      "file": "20261008165059_control02_test_final_writer_runtime_guards.sql",
+      "source_sha256": "715061c071f8f5e2e95ac341f7c80d36e7780b4f22ed351a67f3264bd31ab46d"
+    },
+    {
+      "version": "20261011130922",
+      "name": "secure_continuous_appraisal_attachment_storage_keys",
+      "file": "20261011130922_secure_continuous_appraisal_attachment_storage_keys.sql",
+      "source_sha256": "016f7eb16cfb79b9d42fc4d57c29e95866260bdb641d87c43d08007a7c077ce6"
+    },
+    {
+      "version": "20261014162631",
+      "name": "core_local_payroll_persona_link_v1",
+      "file": "20261014162631_core_local_payroll_persona_link_v1.sql",
+      "source_sha256": "b101712601c6ac1ca5c17e4d7df2146455b92ec2f1ea03cee96e0a86f4dabb55"
+    },
+    {
+      "version": "20261014171041",
+      "name": "scope_manager_employment_salary_read",
+      "file": "20261014171041_scope_manager_employment_salary_read.sql",
+      "source_sha256": "52ef5185a3a592dcc0362e6de730bf6c3be7701352e6f5bf4e9da256eb57fc1e"
+    },
+    {
+      "version": "20261014210655",
+      "name": "core_local_payroll_persona_tenant_scope_fix",
+      "file": "20261014210655_core_local_payroll_persona_tenant_scope_fix.sql",
+      "source_sha256": "bdd58461dc28831fecce8dd663921bb4e0dad4275ceb924283b7defc3d67d2b0"
+    },
+    {
+      "version": "20261014210811",
+      "name": "core_local_payroll_persona_audit_fix",
+      "file": "20261014210811_core_local_payroll_persona_audit_fix.sql",
+      "source_sha256": "8cb3b6dcd16574658b8db6fb0ddc6bc5cf2a8619459c245040d295c8a215dd02"
+    },
+    {
+      "version": "20261015061113",
+      "name": "paytest_personas_employee_access_closeout",
+      "file": "20261015061113_paytest_personas_employee_access_closeout.sql",
+      "source_sha256": "e0f51de7b622681ea5d466eccc6be937173fbe64b68c881b14b42143d9fb3ef5"
+    },
+    {
+      "version": "20261017142025",
+      "name": "star_performer_manager_read_contract",
+      "file": "20261017142025_star_performer_manager_read_contract.sql",
+      "source_sha256": "742a25cb2c6add229768239169a8eebda38a88af2ebad4d1a60cecd04b8bf49a"
+    },
+    {
+      "version": "20261021054844",
+      "name": "pension_arrangement_successor_permission",
+      "file": "20261021054844_pension_arrangement_successor_permission.sql",
+      "source_sha256": "121a0ae5aa2e8d5d7168ccaeba6c2907168ca14d108e0480a01679661d6b20e8"
+    },
+    {
+      "version": "20261023195803",
+      "name": "pmux03b_process_work_experience",
+      "file": "20261023195803_pmux03b_process_work_experience.sql",
+      "source_sha256": "76ab77244d1a6648fe93298208117650d984462f2a60576a2853d26e2a3cea50"
+    },
+    {
+      "version": "20261023195824",
+      "name": "pmux05_form_condition_draft_save",
+      "file": "20261023195824_pmux05_form_condition_draft_save.sql",
+      "source_sha256": "43885b6a422d268d00b89d85ee72555639701533078f1585681f43cc8b3dcf58"
+    },
+    {
+      "version": "20261023195839",
+      "name": "pmux05_step_participant_field_access",
+      "file": "20261023195839_pmux05_step_participant_field_access.sql",
+      "source_sha256": "ff3b8e460af53b237f21b20461e1f5783dc1610f6687fc40e33f1ad131288851"
+    },
+    {
+      "version": "20261023195900",
+      "name": "pmux06a_materialize_process_sla_deadlines",
+      "file": "20261023195900_pmux06a_materialize_process_sla_deadlines.sql",
+      "source_sha256": "f3d759ad697d4890716a380fd3ca6a701dcccb805e01a590f9ddd1faa863f7ca"
+    },
+    {
+      "version": "20261023202553",
+      "name": "pmux06b_process_reminders_escalations",
+      "file": "20261023202553_pmux06b_process_reminders_escalations.sql",
+      "source_sha256": "4fb340133beea4948de61cc0ac94e93749cc7898616a986f8857be1e1958f8c6"
+    },
+    {
+      "version": "20261023202621",
+      "name": "pmux06b1_process_reminder_system_scheduler",
+      "file": "20261023202621_pmux06b1_process_reminder_system_scheduler.sql",
+      "source_sha256": "4ae2c33c537d73fcced1c39e68841b46fa909601b543db1996f55bafbdae88ef"
+    },
+    {
+      "version": "20261023202745",
+      "name": "pmux06c_process_operations_workspace",
+      "file": "20261023202745_pmux06c_process_operations_workspace.sql",
+      "source_sha256": "f59b383fa2582b890f112af41bbcedb186de8814fae85f0daa0bbe07ecf65e49"
+    },
+    {
+      "version": "20261023202850",
+      "name": "pmux07a_process_insights",
+      "file": "20261023202850_pmux07a_process_insights.sql",
+      "source_sha256": "48fa370be4463fb10bfda9988d60204ee46a924bffe44a3a6fa2a410c65f048c"
+    },
+    {
+      "version": "20261024200635",
+      "name": "20261024150000_employee_directory_scope_hardening",
+      "file": "20261024200635_20261024150000_employee_directory_scope_hardening.sql",
+      "source_sha256": "8dbaa69654f477927fc0183951d949126eefbcc46057fd25d35093f8305b5836"
+    },
+    {
+      "version": "20261025061834",
+      "name": "20261025090000_pmux_p9_deadline_definition_normalization",
+      "file": "20261025061834_20261025090000_pmux_p9_deadline_definition_normalization.sql",
+      "source_sha256": "5307228e14366288efbbd6d2028148d0352cd3f16eeec33a3f6d93fa862117dd"
+    },
+    {
+      "version": "20261025131521",
+      "name": "20261025100000_pmux06a1_work_calendars",
+      "file": "20261025131521_20261025100000_pmux06a1_work_calendars.sql",
+      "source_sha256": "8d8fb6bc5a7c8bd5fbd610f677d40943eb91984191c0f86671c94df056278362"
+    },
+    {
+      "version": "20261026131216",
+      "name": "20261026055349_wvp01_absence_guidance",
+      "file": "20261026131216_20261026055349_wvp01_absence_guidance.sql",
+      "source_sha256": "d4ec81cdab60e398a61d7ee12e8fb76e7d1bbf68829264501eb6efb3cd35659a"
+    },
+    {
+      "version": "20261026175140",
+      "name": "20261026172808_wvp01_guidance_audit_case_id",
+      "file": "20261026175140_20261026172808_wvp01_guidance_audit_case_id.sql",
+      "source_sha256": "ce24adf9ca2c07f5a86d3e482008dc3bfeb921f983f8e15589d5bdc966923f99"
+    },
+    {
+      "version": "20261026181001",
+      "name": "pay_w04_hr_hours_to_payroll",
+      "file": "20261026181001_pay_w04_hr_hours_to_payroll.sql",
+      "source_sha256": "930345d8fa8f8daf13928422bbffad64b8e37c4af069abced1aa8862f602e8e9"
+    },
+    {
+      "version": "20261026181027",
+      "name": "pay_w04_tvt_and_payroll_period_release",
+      "file": "20261026181027_pay_w04_tvt_and_payroll_period_release.sql",
+      "source_sha256": "a2c098b9086bcc5c5c85999e23c4f72c8397fb3bf065fd6a6f5d391fd69a04f2"
+    },
+    {
+      "version": "20261027170458",
+      "name": "20261026190604_pmux_security_authorization_hardening",
+      "file": "20261027170458_20261026190604_pmux_security_authorization_hardening.sql",
+      "source_sha256": "c33ea14731663178fe5c259f31423be2a0ad64f2323353309c526e6943ede6bc"
+    },
+    {
+      "version": "20261028130821",
+      "name": "20261027163113_actual_work_payroll_revision_approval",
+      "file": "20261028130821_20261027163113_actual_work_payroll_revision_approval.sql",
+      "source_sha256": "400fff4c24e68fe6bf7c06190bf493428c4913d3087e543117c9de25563856bf"
+    },
+    {
+      "version": "20261028131456",
+      "name": "pmux_work_item_claim_guard",
+      "file": "20261028131456_pmux_work_item_claim_guard.sql",
+      "source_sha256": "ad4119c05369d454a2cb1670efb644ddc16cfad970a81ce06335ae2c3c580528"
+    },
+    {
+      "version": "20261108154320",
+      "name": "20261108090000_payfast_self_scoped_source_reads",
+      "file": "20261108154320_20261108090000_payfast_self_scoped_source_reads.sql",
+      "source_sha256": "280b41105b9460c4b7d03ac5c33d92276f0d569e005aab4651f0c552b39da703"
+    },
+    {
+      "version": "20261109085616",
+      "name": "20261106150000_wvp02_sec01_start_permission_guard",
+      "file": "20261109085616_20261106150000_wvp02_sec01_start_permission_guard.sql",
+      "source_sha256": "5f41b5fcb070ca600cd61d6e3a3c25f281424c0b1365b5fbc2a5c2708a850eb4"
+    },
+    {
+      "version": "20261109085632",
+      "name": "20261106180416_wvp05_milestone_document_links",
+      "file": "20261109085632_20261106180416_wvp05_milestone_document_links.sql",
+      "source_sha256": "10e77acea18aa8c4b3b40f8f43957f7d9903ce4cd4de3d69cf002bbf93a6b552"
+    },
+    {
+      "version": "20261111070222",
+      "name": "payfast_101_emergency_fiscal_profile_read_scope_20261111",
+      "file": "20261111070222_payfast_101_emergency_fiscal_profile_read_scope_20261111.sql",
+      "source_sha256": "55260eea5aca139bf59b92463e55a78f0d1cab39d4febbc04d25aff56f1590ef"
+    },
+    {
+      "version": "20261111070450",
+      "name": "payfast_101_emergency_tax_audit_scope_20261111",
+      "file": "20261111070450_payfast_101_emergency_tax_audit_scope_20261111.sql",
+      "source_sha256": "ebd46b241b147efa07ebc2ae9fa860f3f01a095e7b6457503bee3fb38192922f"
+    },
+    {
+      "version": "20261111180954",
+      "name": "20261109110000_payfast_mss_direct_team_source_reads",
+      "file": "20261111180954_20261109110000_payfast_mss_direct_team_source_reads.sql",
+      "source_sha256": "e5f3569e73b0596beb47643eaa2797f6f1b9478573269bd582a9be7d9e0d63f5"
+    }
+  ],
+  "archived_stale_local_versions": [
+    {
+      "archived_file": "20260908115903_payroll_p0_foundation.sql",
+      "canonical_version": "20260908181859",
+      "canonical_file": "20260908181859_payroll_p0_foundation.sql",
+      "archived_sha256": "cda6d1c34e62ad5d3d5cde3091c249087f29b339a169856b473509b602bb44f9"
+    },
+    {
+      "archived_file": "20260908184201_payroll_p0_fk_indexes.sql",
+      "canonical_version": "20260908184235",
+      "canonical_file": "20260908184235_payroll_p0_fk_indexes.sql",
+      "archived_sha256": "16c55a3cab87183a7c9c8865e80af5b821628f36c613543ccce244fdcd046f2b"
+    },
+    {
+      "archived_file": "20260908202548_payroll_p1_nmbrs_connection.sql",
+      "canonical_version": "20260908203016",
+      "canonical_file": "20260908203016_payroll_p1_nmbrs_connection.sql",
+      "archived_sha256": "307369f26222bd2ec4f73db010e75c0b8902e94cdce84816c4b0324182c92eb6"
+    },
+    {
+      "archived_file": "20260909100000_payroll_p1_advisor_indexes.sql",
+      "canonical_version": "20260909125131",
+      "canonical_file": "20260909125131_payroll_p1_advisor_indexes.sql",
+      "archived_sha256": "c23c9bb635c9d9cdf249fca9a9066e5e0241ad90036ade4b2dfdf986790ca767"
+    },
+    {
+      "archived_file": "20260909133000_payroll_p1_private_rpc_facade.sql",
+      "canonical_version": "20260909133103",
+      "canonical_file": "20260909133103_payroll_p1_private_rpc_facade.sql",
+      "archived_sha256": "f07710d4f0311d073341e2d9e6ac32014f7121bd5dfbb106ed44e6b34a598d2e"
+    },
+    {
+      "archived_file": "20260920150000_focus_self_report_setting_read.sql",
+      "canonical_version": "20260920145610",
+      "canonical_file": "20260920145610_focus_self_report_setting_read.sql",
+      "archived_sha256": "992253d459ef1fe12ed832cfe6c59ec4505ffece28a6e583eece00de12661a8a"
+    },
+    {
+      "archived_file": "20260920153000_focus_reminder_target_published.sql",
+      "canonical_version": "20260920152220",
+      "canonical_file": "20260920152220_focus_reminder_target_published.sql",
+      "archived_sha256": "eec8718d9c16b5bb60dcb61e39423458ce2cd0d5c2bb863d7006e52c896361e3"
+    },
+    {
+      "archived_file": "20260920154500_fix_absence_reminder_recipient_variable.sql",
+      "canonical_version": "20260920152756",
+      "canonical_file": "20260920152756_fix_absence_reminder_recipient_variable.sql",
+      "archived_sha256": "053ba8115d9a35e52b4f32349ef004200f269efbcd38c8c47b40e163a926b3b1"
+    },
+    {
+      "archived_file": "20260920160000_focus_public_wrapper_security.sql",
+      "canonical_version": "20260920153724",
+      "canonical_file": "20260920153724_focus_public_wrapper_security.sql",
+      "archived_sha256": "29fac10584edb5ba4186d47d7c7e1dfdb157271d19b8ebd2513173cbed47245a"
+    },
+    {
+      "archived_file": "20260920165000_fix_leave_opening_balance_ambiguous_year.sql",
+      "canonical_version": "20260920164852",
+      "canonical_file": "20260920164852_fix_leave_opening_balance_ambiguous_year.sql",
+      "archived_sha256": "760cd05a6d11487e7297d75e2ce95fb694710fb1a302fc4109f5de6d8ac4d8ea"
+    },
+    {
+      "archived_file": "20260920170000_grant_focus_act_as_demo_tenant_admin.sql",
+      "canonical_version": "20260920175556",
+      "canonical_file": "20260920175556_grant_focus_act_as_demo_tenant_admin.sql",
+      "archived_sha256": "c48fc04ad87141775dc461d864609a9e6b7012cf14b6e47e000198f8f097bf3b"
+    },
+    {
+      "archived_file": "20260920171000_allow_focus_act_as_audit_events.sql",
+      "canonical_version": "20260920180303",
+      "canonical_file": "20260920180303_allow_focus_act_as_audit_events.sql",
+      "archived_sha256": "c20af523425e698e81a5df1a77dd495d6da3f9ee3a339fb6c882ae1fd6120557"
+    },
+    {
+      "archived_file": "20260920172000_grant_focus_act_as_audit_insert.sql",
+      "canonical_version": "20260920180557",
+      "canonical_file": "20260920180557_grant_focus_act_as_audit_insert.sql",
+      "archived_sha256": "262450a65c3d9ff23c97b2ede466351d09f69adccd6d83cccdddab301ab4150a"
+    },
+    {
+      "archived_file": "20260922230000_allow_focus_act_as_leave_workflow.sql",
+      "canonical_version": "20260923164105",
+      "canonical_file": "20260923164105_20260922230000_allow_focus_act_as_leave_workflow.sql",
+      "archived_sha256": "420c6ef663ec3bc7b3bc450dd3c6cfed3942a2b0f857484a348615a8bb2f5d46"
+    },
+    {
+      "archived_file": "20260924090000_d01_document_access_and_metadata.sql",
+      "canonical_version": "20260924073155",
+      "canonical_file": "20260924073155_d01_document_access_and_metadata.sql",
+      "archived_sha256": "76893de43a726bf4152cb9f5b07078dcc9e90872ab3f29c28ad2c7e6b0eb4a80"
+    },
+    {
+      "archived_file": "20260924093000_d01_document_policy_recursion_fix.sql",
+      "canonical_version": "20260924075753",
+      "canonical_file": "20260924075753_d01_document_policy_recursion_fix.sql",
+      "archived_sha256": "f7103a19c6f56438047388d0a687f58a79217420a6b561c2bb02c7a5d990af5b"
+    },
+    {
+      "archived_file": "20260924093600_fix_d01_document_reminder_id_ambiguity.sql",
+      "canonical_version": "20260924093658",
+      "canonical_file": "20260924093658_fix_d01_document_reminder_id_ambiguity.sql",
+      "archived_sha256": "11b15d7883217c205c552831b6ae91bdee4b828cf1c713dcda0b2ab79fea4cf9"
+    },
+    {
+      "archived_file": "20260924143533_fix_d01_document_actor_audience_scope.sql",
+      "canonical_version": "20260924143939",
+      "canonical_file": "20260924143939_d01_document_actor_audience_scope.sql",
+      "archived_sha256": "f881be7572f46deed7aacd3309a759876f09797de6f88273c5bcafad16520c62"
+    },
+    {
+      "archived_file": "20260925091348_allow_scoped_document_expiry_reminders.sql",
+      "canonical_version": "20260925092114",
+      "canonical_file": "20260925092114_allow_scoped_document_expiry_reminders.sql",
+      "archived_sha256": "f0a8204d1a853f27ba11d2a88b9b0205f4937608ff8e1dd740a541184d646ce0"
+    },
+    {
+      "archived_file": "20260927080748_document_studio_optional_placeholders.sql",
+      "canonical_version": "20260927082836",
+      "canonical_file": "20260927082836_20260927080748_document_studio_optional_placeholders.sql",
+      "archived_sha256": "840a4bab024d97d69ed9442d9e1b13600a6a6ec89485a21b3ded5a018569eeb8"
+    },
+    {
+      "archived_file": "20260927100000_abs02_absence_hardening_wvp.sql",
+      "canonical_version": "20260927164911",
+      "canonical_file": "20260927164911_abs02_absence_hardening_wvp.sql",
+      "archived_sha256": "52672d04dc0445a87da4294feea97ec6c0b3aef66f9153f77bee54fe0338ee4e"
+    },
+    {
+      "archived_file": "20260927101500_abs02_absence_lifecycle_self_scope.sql",
+      "canonical_version": "20260927165416",
+      "canonical_file": "20260927165416_abs02_absence_lifecycle_self_scope.sql",
+      "archived_sha256": "8faebda9bd1ced09f870bfa764726a71047fa948342deba895c7838779cf9837"
+    },
+    {
+      "archived_file": "20260927103000_abs02_advisor_followup.sql",
+      "canonical_version": "20260927173517",
+      "canonical_file": "20260927173517_abs02_advisor_followup.sql",
+      "archived_sha256": "7447616e330ada0e34df634eb6c77d1f6bd5cc5bc07f47cfdb5a7e1de9b580ac"
+    },
+    {
+      "archived_file": "20260927104500_abs02_subject_fk_index.sql",
+      "canonical_version": "20260927173629",
+      "canonical_file": "20260927173629_abs02_subject_fk_index.sql",
+      "archived_sha256": "6f8a9d9b9444461f15175c9b975b1b8c5280daaef041c5c37622b6c7a8204465"
+    },
+    {
+      "archived_file": "20260927110000_abs02_self_scope_permission_fix.sql",
+      "canonical_version": "20260927175438",
+      "canonical_file": "20260927175438_abs02_self_scope_permission_fix.sql",
+      "archived_sha256": "04b5f85ef9802419720a04ea5da56cd5741fb53757abe23f5fa38626d49d2cfb"
+    },
+    {
+      "archived_file": "20260928072242_ai01_a2_durable_recovery.sql",
+      "canonical_version": "20260928095705",
+      "canonical_file": "20260928095705_ai01_a2_durable_recovery.sql",
+      "archived_sha256": "b1bce06f9ac91a61029ebf6509fb35cac5a2228b3ed3951187b984c636b4eb60"
+    },
+    {
+      "archived_file": "20260928090000_control01_first_admin_invitation_enum.sql",
+      "canonical_version": "20260928095805",
+      "canonical_file": "20260928095805_control01_first_admin_invitation_enum.sql",
+      "archived_sha256": "d582b896ad939de19d48a6581492a0410c651b4c5e0b211d109ec86dbee0210f"
+    },
+    {
+      "archived_file": "20260928090100_control01_customer_bootstrap.sql",
+      "canonical_version": "20260928095820",
+      "canonical_file": "20260928095820_control01_customer_bootstrap.sql",
+      "archived_sha256": "465faad3d9f2d6ebaca131b4cf24fd8ca977c313c4d99a5515adecf06c6fc72e"
+    },
+    {
+      "archived_file": "20260928090200_control01_payroll_import_staging.sql",
+      "canonical_version": "20260928095904",
+      "canonical_file": "20260928095904_control01_payroll_import_staging.sql",
+      "archived_sha256": "f0ccf84aeb4abcd83286e7ac7ad7decf5b1e46dbea5d22395a08aca19728d695"
+    },
+    {
+      "archived_file": "20260929184000_control01_payroll_income_relationship_read_policy.sql",
+      "canonical_version": "20260929184205",
+      "canonical_file": "20260929184205_control01_payroll_income_relationship_read_policy.sql",
+      "archived_sha256": "098c2b5c30cccebc7902cdf62c7131c0cf6cd160284b68bafa44d7dff481f8f6"
+    },
+    {
+      "archived_file": "20261005051804_apiai01_rate_limit_and_read_audit.sql",
+      "canonical_version": "20261007114524",
+      "canonical_file": "20261007114524_20261005051804_apiai01_rate_limit_and_read_audit.sql",
+      "archived_sha256": "f65feb129f41ef5cc63556bed5578f49ed988946c40d83e8d2f95aa454adafc2"
+    },
+    {
+      "archived_file": "20261011120317_secure_continuous_appraisal_attachment_storage_keys.sql",
+      "canonical_version": "20261011130922",
+      "canonical_file": "20261011130922_secure_continuous_appraisal_attachment_storage_keys.sql",
+      "archived_sha256": "e8e9ac430ca39ac0ffc4856c44072227e6a34bc171d56b72630d71c3f6807bde"
+    },
+    {
+      "archived_file": "20261014155924_core_local_payroll_persona_link.sql",
+      "canonical_version": "20261014162631",
+      "canonical_file": "20261014162631_core_local_payroll_persona_link_v1.sql",
+      "archived_sha256": "44da6332f6626e508deff5885feec0c1df9abf867eb1e04bd56865cfe7109dc2"
+    },
+    {
+      "archived_file": "20261014164200_scope_manager_employment_salary_read.sql",
+      "canonical_version": "20261014171041",
+      "canonical_file": "20261014171041_scope_manager_employment_salary_read.sql",
+      "archived_sha256": "03c525558ca9032c5fa7681d0f655df280bd47660585485dbb2efced2e0484e3"
+    },
+    {
+      "archived_file": "20261014223000_core_local_payroll_persona_tenant_scope_fix.sql",
+      "canonical_version": "20261014210655",
+      "canonical_file": "20261014210655_core_local_payroll_persona_tenant_scope_fix.sql",
+      "archived_sha256": "b2a6d271e1aafd3d976a046224aaf889ec9537c921914483a1abb603ffb2992e"
+    },
+    {
+      "archived_file": "20261014224500_core_local_payroll_persona_audit_fix.sql",
+      "canonical_version": "20261014210811",
+      "canonical_file": "20261014210811_core_local_payroll_persona_audit_fix.sql",
+      "archived_sha256": "a597266173c197f1e39796f2c63e2402de0ef78dbb4684d76ba43d44e20ccd6b"
+    },
+    {
+      "archived_file": "20261015080000_paytest_personas_employee_access_closeout.sql",
+      "canonical_version": "20261015061113",
+      "canonical_file": "20261015061113_paytest_personas_employee_access_closeout.sql",
+      "archived_sha256": "0de5e0782cf5f896468c7de1b59625077dfc07e079c8fc4d5713af945f9e1355"
+    },
+    {
+      "archived_file": "20261017135159_star_performer_manager_read_contract.sql",
+      "canonical_version": "20261017142025",
+      "canonical_file": "20261017142025_star_performer_manager_read_contract.sql",
+      "archived_sha256": "a0407fcc4a934969a73169bb3fbc1927b95637cd8bcea7aa527af51598111357"
+    },
+    {
+      "archived_file": "20261020201028_pension_arrangement_successor_permission.sql",
+      "canonical_version": "20261021054844",
+      "canonical_file": "20261021054844_pension_arrangement_successor_permission.sql",
+      "archived_sha256": "ac9eb0d0fb203683b2cf774033b3a64c1f070727eab12a7ca520eb2562ddb012"
+    },
+    {
+      "archived_file": "20261021160000_pmux03b_process_work_experience.sql",
+      "canonical_version": "20261023195803",
+      "canonical_file": "20261023195803_pmux03b_process_work_experience.sql",
+      "archived_sha256": "5c159d487313c4c05693ee729be2c7a6082d76a3823aee13833e829d1cd131e7"
+    },
+    {
+      "archived_file": "20261022203000_pmux05_form_condition_draft_save.sql",
+      "canonical_version": "20261023195824",
+      "canonical_file": "20261023195824_pmux05_form_condition_draft_save.sql",
+      "archived_sha256": "107caf8c9c4ff1181840222be2b1affe7e41bc12fbb2fd3d684c5ab57b2c1353"
+    },
+    {
+      "archived_file": "20261023054930_pmux05_step_participant_field_access.sql",
+      "canonical_version": "20261023195839",
+      "canonical_file": "20261023195839_pmux05_step_participant_field_access.sql",
+      "archived_sha256": "50ec7663bfc9824cfe98346ffdb510f8dae367224ed7e97dfdae26ffc43af866"
+    },
+    {
+      "archived_file": "20261023072351_pmux06a_materialize_process_sla_deadlines.sql",
+      "canonical_version": "20261023195900",
+      "canonical_file": "20261023195900_pmux06a_materialize_process_sla_deadlines.sql",
+      "archived_sha256": "ac60254525e1d6673eb9bf15dfe2653b3b737070cc191f518e8cd16cd0f8a085"
+    },
+    {
+      "archived_file": "20261023083349_pmux06b_process_reminders_escalations.sql",
+      "canonical_version": "20261023202553",
+      "canonical_file": "20261023202553_pmux06b_process_reminders_escalations.sql",
+      "archived_sha256": "cc9b3a2f0de3d054d6ef9d2fd456bf9ac227fe59a58794bd9f005b60b5c70863"
+    },
+    {
+      "archived_file": "20261023104819_pmux06b1_process_reminder_system_scheduler.sql",
+      "canonical_version": "20261023202621",
+      "canonical_file": "20261023202621_pmux06b1_process_reminder_system_scheduler.sql",
+      "archived_sha256": "7472d879e69c8c47b767fd8bec46c61aced715b89372b38973126cd00284b4c5"
+    },
+    {
+      "archived_file": "20261023112158_pmux06c_process_operations_workspace.sql",
+      "canonical_version": "20261023202745",
+      "canonical_file": "20261023202745_pmux06c_process_operations_workspace.sql",
+      "archived_sha256": "6588da7807950abd9968af2ff3f890da4a55e482cf7fb003db908b17d0c813f2"
+    },
+    {
+      "archived_file": "20261023131000_pmux07a_process_insights.sql",
+      "canonical_version": "20261023202850",
+      "canonical_file": "20261023202850_pmux07a_process_insights.sql",
+      "archived_sha256": "67a0988a71b67103a09124833ac19fce159c2b2a432dff31740085e43fd9cb71"
+    },
+    {
+      "archived_file": "20261024150000_employee_directory_scope_hardening.sql",
+      "canonical_version": "20261024200635",
+      "canonical_file": "20261024200635_20261024150000_employee_directory_scope_hardening.sql",
+      "archived_sha256": "f9ff3bd741c6ece3f6734708de6fbae173739ba650a124226f8b48445f1103f4"
+    },
+    {
+      "archived_file": "20261025090000_pmux_p9_deadline_definition_normalization.sql",
+      "canonical_version": "20261025061834",
+      "canonical_file": "20261025061834_20261025090000_pmux_p9_deadline_definition_normalization.sql",
+      "archived_sha256": "8fee25ec794c1476af30041b0a9cbb5f9b01d970229773435d1b2cdd38594ae1"
+    },
+    {
+      "archived_file": "20261025100000_pmux06a1_work_calendars.sql",
+      "canonical_version": "20261025131521",
+      "canonical_file": "20261025131521_20261025100000_pmux06a1_work_calendars.sql",
+      "archived_sha256": "aca7314f48662d142b5a50fe578e860e59e2b4a24d8bec18d21538704d2a3736"
+    },
+    {
+      "archived_file": "20261026055349_wvp01_absence_guidance.sql",
+      "canonical_version": "20261026131216",
+      "canonical_file": "20261026131216_20261026055349_wvp01_absence_guidance.sql",
+      "archived_sha256": "800310100f07ee7bfe4140eeb4f1b431e5caf8da77d679faf74713ab5315f6d8"
+    },
+    {
+      "archived_file": "20261026172808_wvp01_guidance_audit_case_id.sql",
+      "canonical_version": "20261026175140",
+      "canonical_file": "20261026175140_20261026172808_wvp01_guidance_audit_case_id.sql",
+      "archived_sha256": "e38c1f9c1347ba1642e50c9aeb0c2a6f36765fea48e101c3b971fc63366b5c5d"
+    },
+    {
+      "archived_file": "20261026100906_pay_w04_hr_hours_to_payroll.sql",
+      "canonical_version": "20261026181001",
+      "canonical_file": "20261026181001_pay_w04_hr_hours_to_payroll.sql",
+      "archived_sha256": "818bd786195ee0b1058c7d36372261780f135fe2b03bf03f1f8a62240634a892"
+    },
+    {
+      "archived_file": "20261026130000_pay_w04_tvt_and_payroll_period_release.sql",
+      "canonical_version": "20261026181027",
+      "canonical_file": "20261026181027_pay_w04_tvt_and_payroll_period_release.sql",
+      "archived_sha256": "6f8257b028ec018a99322ce13833c715af87aaa3b38d48507389f59600012109"
+    },
+    {
+      "archived_file": "20261026190604_pmux_security_authorization_hardening.sql",
+      "canonical_version": "20261027170458",
+      "canonical_file": "20261027170458_20261026190604_pmux_security_authorization_hardening.sql",
+      "archived_sha256": "1e5a346ff25daa8f13bac650dcae3eb7c092414503247395ddd503ab6cab316c"
+    },
+    {
+      "archived_file": "20261027163113_actual_work_payroll_revision_approval.sql",
+      "canonical_version": "20261028130821",
+      "canonical_file": "20261028130821_20261027163113_actual_work_payroll_revision_approval.sql",
+      "archived_sha256": "0080dbff47892422bd825d7d7cf372a5db204dfb861a8d110999f6a1471b2b94"
+    },
+    {
+      "archived_file": "20261028125342_pmux_work_item_claim_guard.sql",
+      "canonical_version": "20261028131456",
+      "canonical_file": "20261028131456_pmux_work_item_claim_guard.sql",
+      "archived_sha256": "86fa769491ccbf333cd10c72c156b3421d529963cf00b6c15b753f064c22129c"
+    },
+    {
+      "archived_file": "20261106150000_wvp02_sec01_start_permission_guard.sql",
+      "canonical_version": "20261109085616",
+      "canonical_file": "20261109085616_20261106150000_wvp02_sec01_start_permission_guard.sql",
+      "archived_sha256": "05bfc9120b29e7e5cb5c442e87717c69056ac977f8a06d3999c84056a34430f7"
+    },
+    {
+      "archived_file": "20261106180416_wvp05_milestone_document_links.sql",
+      "canonical_version": "20261109085632",
+      "canonical_file": "20261109085632_20261106180416_wvp05_milestone_document_links.sql",
+      "archived_sha256": "1498e4c3e31e60e275c81f2247c95e4a7b419e667b93260d338cb40af4b26f60"
+    }
+  ],
+  "final_active_version_set": {
+    "active_sql_files": 601,
+    "remote_versions_present": 600,
+    "missing_remote_versions": [],
+    "extra_local_versions": [
+      "20261116110043"
+    ],
+    "duplicate_versions": []
+  },
+  "verification": {
+    "restored_file_sha256_matches": "75/75",
+    "archived_file_sha256_preserved": "59/59",
+    "migration_contract_tests": "177/177 PASS",
+    "type_check": "PASS",
+    "staged_patch_whitespace": "WARN: 39 restored canonical SQL files have one blank line at EOF; retained unchanged because their exact hashes match the applied migration ledger.",
+    "next_env_d_ts_sha256_before": "1B59D4C6B83807DB275D43F3CF2CC8E9323F465FAB764EEA091CC5BECD5BAD37",
+    "next_env_d_ts_was_modified": false
+  },
+  "provenance_note": {
+    "independent_git_history_check": "Five historical migration paths had no exact older Git blob matching the applied SQL. For these, canonical content was recovered from the primary migration ledger and exact file hashes match that source.",
+    "database_history_modified": false
+  },
+  "official_cli_dry_run": {
+    "status": "PASS",
+    "command": "npx --yes supabase@2.122.1 db push --project-ref wnpfloqpjvaacobppbpk --dry-run --skip-vault",
+    "execution_directory": "apps/hr-suite",
+    "evidence_source": "Edwin-provided PowerShell output from the authenticated local CLI session",
+    "result": "Would push only 20261116110043_sec101_restrict_unused_keys.sql. CLI skipped .contract.test.ts files because they do not match the <timestamp>_name.sql migration pattern.",
+    "selected_migrations": [
+      "20261116110043_sec101_restrict_unused_keys.sql"
+    ],
+    "database_writes": false
+  },
+  "independent_review": {
+    "status": "PASS",
+    "reviewed": [
+      "active migration set and intended EXPAND version",
+      "75 restored and 59 archived source hashes",
+      "archive-to-canonical mappings",
+      "39 changed contract-test files with no new skip/focus markers",
+      "dry-run selection matches the sole intended EXPAND"
+    ],
+    "expand_is_additive": true,
+    "table_privileges_revoked": false
+  },
+  "vercel_environment_readback": {
+    "project_id": "prj_h3voMtzXGfqG6QTodR5d1VTcC1zP",
+    "variable": "PAYROLL_PROVENANCE_PGP_PRIVATE_KEY",
+    "present": false,
+    "decrypted_values_requested": false
+  },
+  "key_provisioning": {
+    "local_keypair_prepared": true,
+    "algorithm": "OpenPGP RSA-3072",
+    "private_key_storage": "Windows DPAPI current-user encrypted outside the repository",
+    "isolated_pgcrypto_conformance": "PASS",
+    "public_key_target": "internal_security.sec101_provenance_public_key",
+    "public_key_provisioned": false,
+    "vercel_server_only_secret_configured": false
+  },
+  "release_boundary": {
+    "central_database_writes": "GO GRANTED BY EDWIN; execution pending",
+    "public_key_provisioning": "GO GRANTED BY EDWIN; execution pending",
+    "vercel_test_secret": "GO GRANTED BY EDWIN; execution pending",
+    "deployment": "NOT PERFORMED"
+  }
+}

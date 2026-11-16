@@ -7,8 +7,8 @@ const p5FormRuntime = readFileSync(new URL("./20260808143934_process_automation_
 const p5Hardening = readFileSync(new URL("./20260808150735_process_automation_p4_p5_hardening_v2.sql", import.meta.url), "utf8")
 const p5ScopeHardening = readFileSync(new URL("./20260809065842_process_automation_p5_scope_rpc_hardening.sql", import.meta.url), "utf8")
 const documentCompatibility = readFileSync(new URL("./20260808160102_process_automation_p5_document_reference_compatibility.sql", import.meta.url), "utf8")
-const pmux05Migration = readFileSync(new URL("./20261022203000_pmux05_form_condition_draft_save.sql", import.meta.url), "utf8")
-const pmux05cMigration = readFileSync(new URL("./20261023054930_pmux05_step_participant_field_access.sql", import.meta.url), "utf8")
+const pmux05Migration = readFileSync(new URL("./20261023195824_pmux05_form_condition_draft_save.sql", import.meta.url), "utf8")
+const pmux05cMigration = readFileSync(new URL("./20261023195839_pmux05_step_participant_field_access.sql", import.meta.url), "utf8")
 
 const ids = {
   actorUser: "10000000-0000-4000-8000-000000000001",

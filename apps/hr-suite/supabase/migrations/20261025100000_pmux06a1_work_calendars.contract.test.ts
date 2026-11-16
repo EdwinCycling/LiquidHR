@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 const read = (name: string) => readFileSync(new URL(`./${name}`, import.meta.url), 'utf8')
-const migration = read('20261025100000_pmux06a1_work_calendars.sql')
+const migration = read('20261025131521_20261025100000_pmux06a1_work_calendars.sql')
 function fn(source: string, name: string) {
   const start = source.indexOf(`create or replace function internal_security.${name}(`)
   const end = source.indexOf('$$;', start)
@@ -12,7 +12,7 @@ function fn(source: string, name: string) {
 }
 const p4 = read('20260808142249_process_automation_p4_runtime_engine.sql')
 const p7 = read('20260808170647_process_automation_p7_job_schema.sql')
-const sla = read('20261023072351_pmux06a_materialize_process_sla_deadlines.sql')
+const sla = read('20261023195900_pmux06a_materialize_process_sla_deadlines.sql')
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const tenant = id(1), group = id(2), admin = id(3), manager = id(4), employee = id(5), administration = id(6), foreignGroup = id(7), foreignAdministration = id(8)
 const definition = id(9), processVersion = id(10), instance = id(11)

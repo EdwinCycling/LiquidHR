@@ -2,8 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { PGlite } from '@electric-sql/pglite'
 import { afterEach, describe, expect, it } from 'vitest'
 
-const migrationUrl = new URL('./20261023083349_pmux06b_process_reminders_escalations.sql', import.meta.url)
-const schedulerMigrationUrl = new URL('./20261023104819_pmux06b1_process_reminder_system_scheduler.sql', import.meta.url)
+const migrationUrl = new URL('./20261023202553_pmux06b_process_reminders_escalations.sql', import.meta.url)
+const schedulerMigrationUrl = new URL('./20261023202621_pmux06b1_process_reminder_system_scheduler.sql', import.meta.url)
 const tenantA = '00000000-0000-4000-8000-000000000001'
 const tenantB = '00000000-0000-4000-8000-000000000002'
 const groupA = '00000000-0000-4000-8000-000000000011'

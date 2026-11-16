@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('./20261025090000_pmux_p9_deadline_definition_normalization.sql', import.meta.url), 'utf8')
-const deadlineSource = readFileSync(new URL('./20261023072351_pmux06a_materialize_process_sla_deadlines.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('./20261025061834_20261025090000_pmux_p9_deadline_definition_normalization.sql', import.meta.url), 'utf8')
+const deadlineSource = readFileSync(new URL('./20261023195900_pmux06a_materialize_process_sla_deadlines.sql', import.meta.url), 'utf8')
 const runtimeSource = readFileSync(new URL('./20260808142249_process_automation_p4_runtime_engine.sql', import.meta.url), 'utf8')
 function extractFunction(source: string, name: string): string {
   const start = source.indexOf(`create or replace function internal_security.${name}(`)

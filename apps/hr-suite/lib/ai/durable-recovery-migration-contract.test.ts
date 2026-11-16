@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(join(process.cwd(), 'supabase', 'migrations', '20260928072242_ai01_a2_durable_recovery.sql'), 'utf8')
+const migration = readFileSync(join(process.cwd(), 'supabase', 'migrations', '20260928095705_ai01_a2_durable_recovery.sql'), 'utf8')
   .replace(/\r\n/g, '\n')
   .toLowerCase()
 const foundationMigration = readFileSync(join(process.cwd(), 'supabase', 'migrations', '20260828080428_ai_foundation_runtime.sql'), 'utf8')

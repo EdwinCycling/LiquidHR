@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { PGlite } from '@electric-sql/pglite'
 import { afterEach, describe, expect, it } from 'vitest'
 
-const migrationUrl = new URL('./20261023131000_pmux07a_process_insights.sql', import.meta.url)
+const migrationUrl = new URL('./20261023202850_pmux07a_process_insights.sql', import.meta.url)
 const tenantA = '00000000-0000-4000-8000-000000000001'
 const tenantB = '00000000-0000-4000-8000-000000000002'
 const groupA = '00000000-0000-4000-8000-000000000011'

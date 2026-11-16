@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(new URL('./20261026100906_pay_w04_hr_hours_to_payroll.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('./20261026181001_pay_w04_hr_hours_to_payroll.sql', import.meta.url), 'utf8')
 
 describe('Actual Work to Payroll release migration contract', () => {
   it('keeps release records immutable and behind the HR Admin payroll release RPC', () => {

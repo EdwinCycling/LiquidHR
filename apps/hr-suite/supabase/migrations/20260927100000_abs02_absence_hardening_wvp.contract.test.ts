@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const hardeningMigration = readFileSync(resolve(__dirname, '20260927100000_abs02_absence_hardening_wvp.sql'), 'utf8')
-const selfScopeMigration = readFileSync(resolve(__dirname, '20260927101500_abs02_absence_lifecycle_self_scope.sql'), 'utf8')
-const advisorFollowupMigration = readFileSync(resolve(__dirname, '20260927103000_abs02_advisor_followup.sql'), 'utf8')
-const subjectFkIndexMigration = readFileSync(resolve(__dirname, '20260927104500_abs02_subject_fk_index.sql'), 'utf8')
-const selfScopePermissionFixMigration = readFileSync(resolve(__dirname, '20260927110000_abs02_self_scope_permission_fix.sql'), 'utf8')
+const hardeningMigration = readFileSync(resolve(__dirname, '20260927164911_abs02_absence_hardening_wvp.sql'), 'utf8')
+const selfScopeMigration = readFileSync(resolve(__dirname, '20260927165416_abs02_absence_lifecycle_self_scope.sql'), 'utf8')
+const advisorFollowupMigration = readFileSync(resolve(__dirname, '20260927173517_abs02_advisor_followup.sql'), 'utf8')
+const subjectFkIndexMigration = readFileSync(resolve(__dirname, '20260927173629_abs02_subject_fk_index.sql'), 'utf8')
+const selfScopePermissionFixMigration = readFileSync(resolve(__dirname, '20260927175438_abs02_self_scope_permission_fix.sql'), 'utf8')
 
 describe('ABS02 absence hardening and WvP migration contract', () => {
   it('removes direct core-table mutations while keeping canonical RPC execution available', () => {
@@ -40,7 +40,8 @@ describe('ABS02 absence hardening and WvP migration contract', () => {
   })
 
   it('keeps self-service lifecycle normalization inside the same authorization boundary', () => {
-    expect(selfScopeMigration).toContain("internal_security.current_employee_has_permission('self:absence:read')")
+    expect(selfScopeMigration).toContain("internal_security.current_user_has_permission('self:absence:read')")
+    expect(selfScopeMigration).not.toContain("internal_security.current_employee_has_permission('self:absence:read')")
     expect(selfScopeMigration).toContain('absence_case.employee_id = internal_security.current_employee_id()')
     expect(selfScopeMigration).toContain("revoke all on function internal_security.normalize_expired_absence_cases(uuid, uuid) from public, anon, authenticated;")
     expect(selfScopePermissionFixMigration).toContain("internal_security.current_employee_has_permission('self:absence:read')")

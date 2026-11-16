@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const sql = readFileSync('supabase/migrations/20260908115903_payroll_p0_foundation.sql', 'utf8')
+const sql = readFileSync('supabase/migrations/20260908181859_payroll_p0_foundation.sql', 'utf8')
 
 describe('Payroll P0 foundation migration contract', () => {
   it('preserves the existing module and HR-group scope contracts', () => {

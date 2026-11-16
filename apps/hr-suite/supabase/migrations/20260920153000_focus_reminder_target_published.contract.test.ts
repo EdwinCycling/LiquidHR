@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const sql = readFileSync(resolve(__dirname, '20260920153000_focus_reminder_target_published.sql'), 'utf8')
+const sql = readFileSync(resolve(__dirname, '20260920152220_focus_reminder_target_published.sql'), 'utf8')
 
 describe('published Focus reminder target migration contract', () => {
   it('keeps reminder scope checks while accepting the canonical published insert lifecycle', () => {
