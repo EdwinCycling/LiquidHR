@@ -45,6 +45,8 @@ Na de geslaagde dry-run is uitsluitend EXPAND `20261116110043_sec101_restrict_un
 
 De read-only Supabase security advisor rapporteerde de twee SEC-101 SECURITY DEFINER-RPC's onder de algemene waarschuwing voor authenticated-aanroepbare functies. Dat is de bedoelde execute-grant voor deze RPC's; de migratie trekt `PUBLIC`/`anon` in, de functies vereisen `auth.uid()` en de profielroute controleert admin- of employee-self-scope. De onafhankelijke migratiereview controleerde deze grenzen. Er is geen SEC-101 anonymous-function finding. De volledige projectscan bevatte daarnaast 11 `rls_enabled_no_policy` INFO-, 4 anonymous SECURITY DEFINER-, 140 authenticated SECURITY DEFINER- en 1 leaked-password-protection WARN-finding(s); zonder pre-EXPAND advisorsnapshot worden die overige projectbrede meldingen niet aan deze migratie toegeschreven.
 
+Na de EXPAND-readback zijn de gerichte regressies opnieuw uitgevoerd: `vitest run lib/employment/payroll-fiscal-provenance.server.test.ts lib/employment/sec101-column-grants.test.ts` — **2 bestanden / 13 tests PASS**. Deze tests gebruiken gegenereerde testkeys en gemockte Supabase-calls; ze bewijzen geen configuratie of pariteit van de live DPAPI-keypair.
+
 Read-only Vercel-projectcontrole (`decrypt=false`) vond `PAYROLL_PROVENANCE_PGP_PRIVATE_KEY` niet in project `liquidhr` (51 bestaande variabelen gecontroleerd). De public key is nog niet in Core geplaatst. Edwin gaf expliciet GO voor:
 
 1. EXPAND `20261116110043_sec101_restrict_unused_keys.sql` op HR/Core TEST (`wnpfloqpjvaacobppbpk`).

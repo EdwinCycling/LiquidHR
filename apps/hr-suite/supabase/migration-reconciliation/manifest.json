@@ -872,6 +872,13 @@
     "anonymous_sec101_function_finding": false,
     "interpretation": "The advisor applies its generic SECURITY DEFINER warning to the two RPCs intentionally granted to authenticated. Their bodies check auth.uid(); the profile RPC enforces the existing admin-or-employee-self authorization contract. Independent migration review passed."
   },
+  "local_key_regression": {
+    "status": "PASS",
+    "command": "vitest run lib/employment/payroll-fiscal-provenance.server.test.ts lib/employment/sec101-column-grants.test.ts",
+    "test_files_passed": 2,
+    "tests_passed": 13,
+    "evidence_scope": "Local tests use generated test keys and mocked Supabase calls; they do not prove the live DPAPI keypair is provisioned or matched."
+  },
   "independent_review": {
     "status": "PASS",
     "reviewed": [
