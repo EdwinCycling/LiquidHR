@@ -43,6 +43,8 @@ Een unieke OpenPGP RSA-3072 keypair is lokaal voorbereid; een geïsoleerde pgcry
 
 Na de geslaagde dry-run is uitsluitend EXPAND `20261116110043_sec101_restrict_unused_keys.sql` op HR/Core TEST toegepast met de goedgekeurde Supabase CLI-procedure. Read-only postflight bevestigde **601** geregistreerde migraties, de EXPAND-versie eenmaal aanwezig en de nieuwe publieke-sleuteltabel aanwezig met **0** rijen. Geen migratiehistorie is gerepareerd of gewijzigd. Er is geen CONTRACT uitgevoerd.
 
+De read-only Supabase security advisor rapporteerde de twee SEC-101 SECURITY DEFINER-RPC's onder de algemene waarschuwing voor authenticated-aanroepbare functies. Dat is de bedoelde execute-grant voor deze RPC's; de migratie trekt `PUBLIC`/`anon` in, de functies vereisen `auth.uid()` en de profielroute controleert admin- of employee-self-scope. De onafhankelijke migratiereview controleerde deze grenzen. Er is geen SEC-101 anonymous-function finding. De volledige projectscan bevatte daarnaast 11 `rls_enabled_no_policy` INFO-, 4 anonymous SECURITY DEFINER-, 140 authenticated SECURITY DEFINER- en 1 leaked-password-protection WARN-finding(s); zonder pre-EXPAND advisorsnapshot worden die overige projectbrede meldingen niet aan deze migratie toegeschreven.
+
 Read-only Vercel-projectcontrole (`decrypt=false`) vond `PAYROLL_PROVENANCE_PGP_PRIVATE_KEY` niet in project `liquidhr` (51 bestaande variabelen gecontroleerd). De public key is nog niet in Core geplaatst. Edwin gaf expliciet GO voor:
 
 1. EXPAND `20261116110043_sec101_restrict_unused_keys.sql` op HR/Core TEST (`wnpfloqpjvaacobppbpk`).

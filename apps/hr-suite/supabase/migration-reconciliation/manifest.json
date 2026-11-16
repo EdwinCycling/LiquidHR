@@ -863,6 +863,15 @@
     "public_key_rows_after_apply": 0,
     "contract_migration_applied": false
   },
+  "post_expand_security_advisor": {
+    "status": "WARN_EXPECTED_SEC101_AUTHENTICATED_RPC_FINDINGS",
+    "sec101_functions_reported": [
+      "public.sec101_profile_metadata(uuid[])",
+      "public.sec101_provenance_key_fingerprint()"
+    ],
+    "anonymous_sec101_function_finding": false,
+    "interpretation": "The advisor applies its generic SECURITY DEFINER warning to the two RPCs intentionally granted to authenticated. Their bodies check auth.uid(); the profile RPC enforces the existing admin-or-employee-self authorization contract. Independent migration review passed."
+  },
   "independent_review": {
     "status": "PASS",
     "reviewed": [
