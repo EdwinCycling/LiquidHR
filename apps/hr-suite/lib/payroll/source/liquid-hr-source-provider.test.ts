@@ -1,4 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
+import { PGlite } from '@electric-sql/pglite'
+import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
+import { generateKey } from 'openpgp'
+import * as permissions from '@/lib/auth/permissions'
+import { readFiscalProvenance } from '@/lib/employment/payroll-fiscal-provenance.server'
 import {
   LiquidHrPayrollSourceProvider,
   PayrollSourceProviderError,
@@ -420,6 +425,33 @@ function completePayrollSetup(): PayrollSourceSetup {
 }
 
 describe('LiquidHR Payroll source provider', () => {
+  it('preserves the full source hash when trusted provenance is reconstructed', async () => {
+    const read = (profile: ReturnType<typeof taxProfile>) => new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(), salaries: [salary()], schedules: [schedule()],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection({ taxProfiles: [profile] }),
+        pensionAssignments: [syntheticNoPensionAssignment()],
+      })), loadPayrollSetup: vi.fn(async () => completePayrollSetup()),
+    })).getPayrollSourceSnapshot(request)
+    const oldSnapshot = await read(taxProfile())
+    const newSnapshot = await read(taxProfile({ source_reference: undefined, source_reference_hash: sha256('declaration-ref') }))
+    expect(newSnapshot.canonicalSource).toEqual(oldSnapshot.canonicalSource)
+    expect(newSnapshot.sourceHash).toBe(oldSnapshot.sourceHash)
+  })
+  it('detects the source hash change when a protected confirmer is omitted', async () => {
+    const read = async (profile: ReturnType<typeof taxProfile>) => new LiquidHrPayrollSourceProvider(dependencies({
+      loadTimeline: vi.fn(async () => ({
+        employment: employment(), salaries: [salary()], schedules: [schedule()],
+        incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
+        taxProfileProjection: taxProjection({ taxProfiles: [profile] }),
+        pensionAssignments: [syntheticNoPensionAssignment()],
+      })),
+    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+    const original = await read(taxProfile())
+    const selfProjection = await read(taxProfile({ confirmed_by_user_id: null }))
+    expect(selfProjection.sourceHash).not.toBe(original.sourceHash)
+  })
   it('preserves source fingerprints when timeline and Actual Work data are batch-read', async () => {
     const timeline: PayrollSourceTimeline = {
       employment: employment(),
@@ -755,7 +787,9 @@ describe('LiquidHR Payroll source provider', () => {
 
   it('pays an explicitly mapped regular work type without inferring its CAO class from labels', async () => {
     const setup = completePayrollSetup()
-    const snapshot = await new LiquidHrPayrollSourceProvider(dependencies({
+    let reconstructed = false
+    let reconstructedProfile = taxProfile()
+    const provider = new LiquidHrPayrollSourceProvider(dependencies({
       loadTimeline: vi.fn(async () => ({
         employment: employment(),
         salaries: [salary({
@@ -799,7 +833,7 @@ describe('LiquidHR Payroll source provider', () => {
           },
         }],
         incomeRelationships: [incomeRelationship({ reportingStatus: 'READY' })],
-        taxProfileProjection: taxProjection(),
+        taxProfileProjection: reconstructed ? taxProjection({ taxProfiles: [reconstructedProfile] }) : taxProjection(),
         pensionAssignments: [{
           id: '92000000-0000-4000-8000-000000000009', pension_arrangement_id: 'MARS-PENSION-2026',
           effective_from: '2026-01-01', effective_to: null, participation_start_date: '2026-09-01',
@@ -823,7 +857,32 @@ describe('LiquidHR Payroll source provider', () => {
         types: [actualWorkType({ family: 'WORK', code: 'SUNDAY_PREMIUM', name: 'Zondagwerk' })],
       }), { target: 'PAYMENT', factor: 0.45 })),
       loadPayrollSetup: vi.fn(async () => setup),
-    })).getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+    }))
+    const snapshot = await provider.getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+    const keys = await generateKey({ type: 'rsa', rsaBits: 2048, userIDs: [{ name: 'synthetic' }], format: 'armored' })
+    const db = new PGlite({ extensions: { pgcrypto } })
+    const previousKey = process.env.PAYROLL_PROVENANCE_PGP_PRIVATE_KEY
+    try {
+      await db.exec('CREATE SCHEMA extensions; CREATE EXTENSION pgcrypto WITH SCHEMA extensions')
+      const actor = '87000000-0000-4000-8000-000000000008'
+      const payload = JSON.stringify({ profileId: taxProfileId, actorUserId: actor, tenantId, hrGroupId, administrationId, employeeId, sourceReference: 'declaration-ref', confirmedByUserId: actor })
+      const encrypted = await db.query<{ value: string }>(`SELECT encode(extensions.pgp_pub_encrypt($1,extensions.dearmor($2),'cipher-algo=aes256,compress-algo=0'),'base64') value`, [payload, keys.publicKey])
+      process.env.PAYROLL_PROVENANCE_PGP_PRIVATE_KEY = keys.privateKey
+      vi.spyOn(permissions, 'requireAuthContext').mockResolvedValue({ userId: actor, employeeId, tenantId, hrGroupId, administrationId, activeRoles: ['EMPLOYEE'], permissions: ['self:salary:read'] })
+      vi.spyOn(permissions, 'requirePermissionInContext').mockResolvedValue({ userId: actor, employeeId, tenantId, hrGroupId, administrationId, activeRoles: ['EMPLOYEE'], permissions: ['self:salary:read'] })
+      const fingerprint = await db.query<{ value: string }>(`SELECT encode(extensions.digest(extensions.dearmor($1),'sha256'),'hex') value`, [keys.publicKey])
+      const fakeRequest = { rpc: async (name: string) => ({ data: name === 'sec101_provenance_key_fingerprint' ? fingerprint.rows[0]!.value : [{ profile_id: taxProfileId, encrypted_payload: encrypted.rows[0]!.value }], error: null }) }
+      const metadata = await readFiscalProvenance(fakeRequest as never, { tenantId, hrGroupId, administrationId }, [{ id: taxProfileId, employee_id: employeeId }])
+      reconstructedProfile = { ...taxProfile(), ...metadata[0] }
+    } finally {
+      vi.restoreAllMocks()
+      if (previousKey === undefined) delete process.env.PAYROLL_PROVENANCE_PGP_PRIVATE_KEY; else process.env.PAYROLL_PROVENANCE_PGP_PRIVATE_KEY = previousKey
+      await db.close()
+    }
+    reconstructed = true
+    const reconstructedSnapshot = await provider.getPayrollSourceSnapshot({ ...request, payrollPeriod: { year: 2026, month: 9 } })
+    expect(reconstructedSnapshot.canonicalSource).toEqual(snapshot.canonicalSource)
+    expect(reconstructedSnapshot.sourceHash).toBe(snapshot.sourceHash)
 
     const source = snapshot.canonicalSource as Record<string, unknown>
     expect(snapshot.sourceGaps).toEqual([])
@@ -850,6 +909,13 @@ describe('LiquidHR Payroll source provider', () => {
       calculationContextHash: 'a'.repeat(64),
     })
     const calculation = calculatePayroll(calculationInputs, PAYFULL02_RULE_REGISTRY)
+    const reconstructedInputs = buildCalculationInputs(reconstructedSnapshot, createPayfull02RulePackage('CUSTOMER_STANDARD', { supportCaoExactGross: true }), {
+      effectiveDate: '2026-09-01', scopeInstanceIds: { EMPLOYEE: snapshot.sourceEmployeeId, EMPLOYMENT: snapshot.sourceEmploymentId, INCOME_RELATIONSHIP: snapshot.sourceIncomeRelationshipId ?? '' }, calculationContextHash: 'a'.repeat(64),
+    })
+    const reconstructedResult = calculatePayroll(reconstructedInputs, PAYFULL02_RULE_REGISTRY)
+    expect(reconstructedInputs.inputHash).toBe(calculationInputs.inputHash)
+    expect(reconstructedResult.status).toBe('CALCULATED')
+    expect(reconstructedResult.resultHash).toBe(calculation.resultHash)
     const resultAmount = (key: string) => calculation.resultRows.find((row) => row.key === key)?.value
     expect(calculation.status).toBe('CALCULATED')
     expect(resultAmount('gross_salary')).toBe('1879.33')

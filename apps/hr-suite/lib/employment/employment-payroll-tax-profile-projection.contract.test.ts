@@ -8,7 +8,9 @@ describe('fiscal profile query projection', () => {
     expect(source).not.toMatch(/from\('employment_payroll_tax_profiles'\)\.select\('\*'\)/)
     const columns = /const TAX_PROFILE_READ_COLUMNS = '([^']+)'/.exec(source)?.[1]?.split(',') ?? []
     expect(columns).toContain('payroll_tax_credit_applies')
-    expect(columns).toContain('source_reference')
+    expect(columns).not.toContain('source_reference')
+    expect(columns).not.toContain('confirmed_by_user_id')
+    expect(source).toContain('readFiscalProvenance(db, scope, profiles)')
     expect(columns).toContain('confirmed_at')
     expect(columns).not.toContain('idempotency_key')
   })

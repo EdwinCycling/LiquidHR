@@ -7,11 +7,12 @@ import { createClient } from '@/lib/supabase/server'
 import { buildPayrollSourceIncomeRelationshipProjection } from './payroll-source-income-relationship-projection'
 import type { PayrollEmployeeSourceAuthorization } from '@/lib/payroll/scope'
 import { assertCurrentPayrollSourceAuthorization } from '@/lib/payroll/payroll-source-authorization'
+import { readFiscalProvenance } from './payroll-fiscal-provenance.server'
 
 type TaxProfileRow = Database['public']['Tables']['employment_payroll_tax_profiles']['Row']
 // Keep the read projection aligned with the fiscal source and HR dossier contracts.
 // In particular, do not fetch idempotency keys or other unconsumed row metadata.
-const TAX_PROFILE_READ_COLUMNS = 'id,employee_id,employment_id,income_relationship_id,employment_income_relationship_id,residence_country_code,wage_tax_table,herleiding_code,time_period,regular_wage_only,full_period_only,has_special_situation,payroll_tax_credit_applies,source_classification,source_reference,effective_from,effective_to,version_number,supersedes_profile_id,confirmed_by_user_id,confirmed_at,created_at' as const
+const TAX_PROFILE_READ_COLUMNS = 'id,employee_id,employment_id,income_relationship_id,employment_income_relationship_id,residence_country_code,wage_tax_table,herleiding_code,time_period,regular_wage_only,full_period_only,has_special_situation,payroll_tax_credit_applies,source_classification,effective_from,effective_to,version_number,supersedes_profile_id,confirmed_at,created_at' as const
 type TaxProfilePayrollProjectionRow = Omit<Pick<TaxProfileRow,
   | 'id' | 'employee_id' | 'employment_id' | 'income_relationship_id' | 'employment_income_relationship_id'
   | 'residence_country_code' | 'wage_tax_table' | 'herleiding_code' | 'time_period' | 'regular_wage_only'
@@ -22,6 +23,20 @@ type TaxProfilePayrollProjectionRow = Omit<Pick<TaxProfileRow,
   readonly source_reference?: string | null
   readonly source_reference_hash?: string | null
   readonly confirmed_by_user_id?: string | null
+}
+
+async function attachFiscalMetadata(
+  db: Awaited<ReturnType<typeof createClient>>,
+  profiles: readonly TaxProfilePayrollProjectionRow[],
+  scope: { tenantId: string; hrGroupId: string; administrationId: string },
+): Promise<TaxProfilePayrollProjectionRow[]> {
+  const rows = await readFiscalProvenance(db, scope, profiles)
+  const metadata = new Map(rows.map((row) => [row.id, row]))
+  return profiles.map((profile) => {
+    const row = metadata.get(profile.id)
+    if (!row) throw new EmploymentPayrollTaxProfileError('PAYROLL_TAX_PROFILE_SOURCE_UNAVAILABLE', 503)
+    return { ...profile, ...row }
+  })
 }
 
 export type EmploymentPayrollTaxSourceProjection = {
@@ -350,7 +365,7 @@ export async function getEmploymentPayrollTaxSourceProjection(
     incomeRelationships: incomeResult.data ?? [],
     links: linkResult.data ?? [],
     employments: employmentResult.data ?? [],
-    taxProfiles: profileResult.data ?? [],
+    taxProfiles: await attachFiscalMetadata(supabase, profileResult.data ?? [], { tenantId: salaryContext.tenantId, hrGroupId, administrationId }),
   })
 }
 
@@ -451,7 +466,7 @@ export async function getEmploymentPayrollTaxSourceProjectionsBatch(
     const incomeRows = incomeResult.data ?? []
     const linkRows = linksResult.data ?? []
     const employmentRows = employmentsResult.data ?? []
-    const profileRows = profilesResult.data ?? []
+    const profileRows = await attachFiscalMetadata(supabase, profilesResult.data ?? [], first)
     const overReadLimit = employees.length > employeeIds.length
       || incomeRows.length > queryLimits.incomeRelationships * employeeIds.length
       || linkRows.length > queryLimits.links * employeeIds.length
@@ -562,7 +577,7 @@ export async function getEmploymentPayrollTaxDossier(
       validUntil: link.valid_until,
     }]
   })
-  const taxProfiles = (profileResult.data ?? []) as EmploymentPayrollTaxDossier['taxProfiles']
+  const taxProfiles = await attachFiscalMetadata(supabase, profileResult.data ?? [], { tenantId: salaryContext.tenantId, hrGroupId: salaryContext.hrGroupId, administrationId: salaryContext.administrationId })
   const profilesById = new Map(taxProfiles.map((profile) => [profile.id, profile]))
   const auditHistory = (auditResult.data ?? []).map((audit) => {
     const payload = audit.audit_payload

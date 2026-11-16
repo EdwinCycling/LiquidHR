@@ -22518,6 +22518,14 @@ export type Database = {
         Args: { p_input: Json }
         Returns: Json
       }
+      sec101_profile_metadata: {
+        Args: { p_ids: string[] }
+        Returns: { profile_id: string; encrypted_payload: string }[]
+      }
+      sec101_provenance_key_fingerprint: {
+        Args: Record<PropertyKey, never>
+        Returns: string | null
+      }
       confirm_employment_payroll_tax_profile_v2: {
         Args: { p_input: Json }
         Returns: Json

@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createHash } from 'node:crypto'
 
-const { requirePermission, createClient } = vi.hoisted(() => ({
+const { requirePermission, createClient, readFiscalProvenance } = vi.hoisted(() => ({
   requirePermission: vi.fn(),
   createClient: vi.fn(),
+  readFiscalProvenance: vi.fn(),
 }))
 
 vi.mock('@/lib/auth/permissions', () => ({
@@ -10,6 +12,7 @@ vi.mock('@/lib/auth/permissions', () => ({
   requirePermission,
 }))
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
+vi.mock('./payroll-fiscal-provenance.server', () => ({ readFiscalProvenance }))
 
 import {
   getEmploymentPayrollTaxSourceProjection,
@@ -17,7 +20,7 @@ import {
 } from './employment-payroll-tax-profile-service'
 
 type Row = Record<string, unknown>
-type TestClient = { readonly from: (table: string) => Record<string, unknown> }
+type TestClient = { readonly from: (table: string) => Record<string, unknown>; readonly rpc: (name: string, input: { p_ids: string[] }) => Promise<unknown> }
 
 const tenantId = '10000000-0000-4000-8000-000000000010'
 const hrGroupId = '20000000-0000-4000-8000-000000000020'
@@ -161,13 +164,26 @@ function testClient(fixtures: Record<string, readonly Row[]>): { readonly client
     ) => Promise.resolve().then(execute).then(resolve, reject)
     return builder
   })
-  return { client: { from }, from }
+  const rpc = async (_name: string, input: { p_ids: string[] }) => ({
+    data: (fixtures.employment_payroll_tax_profiles ?? []).filter((row) => input.p_ids.includes(String(row.id))).map((row) => ({
+      profile_id: row.id,
+      source_reference_hash: createHash('sha256').update(String(row.source_reference)).digest('hex'),
+      source_reference: row.source_reference,
+      confirmed_by_user_id: row.confirmed_by_user_id,
+    })), error: null,
+  })
+  return { client: { from, rpc }, from }
 }
 
 describe('employment payroll tax source batch read', () => {
   beforeEach(() => {
     requirePermission.mockReset()
     createClient.mockReset()
+    readFiscalProvenance.mockReset()
+    readFiscalProvenance.mockImplementation(async (_db, _scope, profiles: Row[]) => profiles.map((row) => {
+      if (!row.confirmed_by_user_id) throw new Error('Payroll-bronmetadata ontbreekt.')
+      return row
+    }))
     requirePermission.mockImplementation(async (_permission: string, employeeId: string) => ({
       tenantId,
       hrGroupId,
@@ -225,6 +241,15 @@ describe('employment payroll tax source batch read', () => {
 
     expect(createClient).not.toHaveBeenCalled()
     expect(db.from).not.toHaveBeenCalled()
+  })
+
+  it('fails closed when the protected confirmer is absent from the metadata response', async () => {
+    const fixtures = payrollRows()
+    fixtures.employment_payroll_tax_profiles = (fixtures.employment_payroll_tax_profiles ?? []).map((row) => ({ ...row, confirmed_by_user_id: null }))
+    const db = testClient(fixtures)
+    createClient.mockResolvedValue(db.client)
+    await expect(getEmploymentPayrollTaxSourceProjection(employeeIds[0], employmentIds[0], { year: 2026, month: 9 }))
+      .rejects.toThrow('Payroll-bronmetadata ontbreekt.')
   })
 
   it('rejects mixed payroll periods before authorization or database reads', async () => {

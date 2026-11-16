@@ -59,6 +59,7 @@ describe('read-only Employee Payroll pro-forma service', () => {
     expect(first.hashes).toEqual(second.hashes)
     expect(first.sourceHash).toBe(second.sourceHash)
     expect(first.hashes.scenarioResult).toMatch(/^[0-9a-f]{64}$/)
+    expect(JSON.stringify(first)).not.toMatch(/confirmedByUserId|confirmed_by_user_id|source_reference|sourceReference/i)
     expect(first.traceSteps).toBeGreaterThan(0)
     expect(readSource).toHaveBeenCalledTimes(2)
     expect(readSource).toHaveBeenCalledWith(

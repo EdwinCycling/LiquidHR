@@ -1,0 +1,11 @@
+# SEC101 — concept voor gecontroleerde overgang
+
+Status: **NIET VRIJGEGEVEN**. De centrale database en Vercel-configuratie zijn niet gewijzigd.
+
+- EXPAND `20261116110043_sec101_restrict_unused_keys.sql` voegt de afgeschermde functie en een lege private public-keytabel toe. Bestaande tabel- en kolomrechten blijven gelijk.
+- CONTRACT `supabase/contract-pending/20261116120304_sec101_contract_column_access.sql` staat buiten de automatische migratiemap en is pas na de gezamenlijke appacceptatie uitvoerbaar.
+- De server verwacht `PAYROLL_PROVENANCE_PGP_PRIVATE_KEY`; de bijbehorende publieke sleutel moet vooraf veilig in de private Core-tabel worden ingericht. De private sleutel wordt nooit naar Core, logs, Git of de client gestuurd.
+- De geauthenticeerde fingerprintfunctie levert SHA-256 van de binaire publieke sleutel; de server vergelijkt die met de publieke component van de private sleutel. Ontbrekende of niet-overeenkomende sleutels geven een gesloten fout. Controleer vóór appcutover bovendien met een geauthenticeerde synthetische bron en uitsluitend tellingen/hashes dat encryptie en decryptie werken en dat de oude app na EXPAND blijft functioneren.
+- De officiële dry-run voor HR/Core eindigde met `DbPushMissingLocalError`: centrale migratieversies ontbreken lokaal. Herstel deze bronintegriteitsblokkade zonder migratiehistorie te wijzigen en bewijs dat uitsluitend de exacte EXPAND wordt geselecteerd. De CLI-suggestie om historie te repareren is geen goedgekeurde handeling.
+- Rollback vóór CONTRACT: rol de nieuwe app terug voordat EXPAND wordt verwijderd; verwijder pas daarna functie en sleutelobject. Rollback na CONTRACT: herstel de vooraf vastgelegde exacte tabel- en kolom-ACL's vóór een oude app wordt gestart. Dit kan de eerdere metadatazichtbaarheid herstellen. `SEC101-CUTOVER-ROLLBACK-DRAFT.sql` is uitsluitend geschikt als de actuele ACL's exact met de daarin beschreven uitgangssituatie overeenkomen.
+- De geïsoleerde test gebruikt synthetische policyhulpfuncties; echte JWT/RLS-controles en Employee-/Admin-browseracceptatie na EXPAND en CONTRACT blijven verplicht. De sleutelvoorziening, de officiële migratiepreflight en de onafhankelijke eindreview zijn nog niet afgerond.
