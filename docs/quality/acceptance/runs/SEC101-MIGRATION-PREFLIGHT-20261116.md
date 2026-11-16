@@ -33,7 +33,7 @@ Would push these migrations:
 Finished supabase db push.
 ```
 
-**PASS:** uitsluitend de bedoelde EXPAND-migratie `20261116110043_sec101_restrict_unused_keys.sql` is geselecteerd. De CLI sloeg `.contract.test.ts`-bestanden over volgens het verwachte SQL-migratiebestandsnaam patroon. Er is niets naar de centrale database geschreven. De eerdere dry-run vanuit de repository-root vond geen migratiemap; er is geen `migration repair` of `db pull` uitgevoerd.
+**PASS:** uitsluitend de bedoelde EXPAND-migratie `20261116110043_sec101_restrict_unused_keys.sql` is geselecteerd. De CLI sloeg `.contract.test.ts`-bestanden over volgens het verwachte SQL-migratiebestandsnaampatroon. De eerdere dry-run vanuit de repositoryroot vond geen migratiemap; er is geen `migration repair` of `db pull` uitgevoerd.
 
 De onafhankelijke lokale reconciliatiereview en de dry-run-addendumreview zijn **PASS**. De laatste controle bevestigde de set- en hashintegriteit, alle archiefdoelen, de testinventaris, de additive EXPAND-inhoud zonder tabelrechten in te trekken en de selectie van precies deze migratie.
 
@@ -41,12 +41,14 @@ De onafhankelijke lokale reconciliatiereview en de dry-run-addendumreview zijn *
 
 Een unieke OpenPGP RSA-3072 keypair is lokaal voorbereid; een geïsoleerde pgcrypto fingerprint- en encrypt/decrypt-conformiteitstest slaagde. De private key staat alleen in Windows DPAPI current-user-encrypted opslag buiten de repository. Er zijn geen sleutelwaarden in logs of Git gezet.
 
-De GO voor de drie afgesproken TEST-writes is ontvangen. Op dit moment zijn public key en Vercel server-only secret nog niet geprovisioneerd; de uitvoering moet nog plaatsvinden. Er is nog geen databasewrite, deployment of wijziging van migratiehistorie uitgevoerd.
+Na de geslaagde dry-run is uitsluitend EXPAND `20261116110043_sec101_restrict_unused_keys.sql` op HR/Core TEST toegepast met de goedgekeurde Supabase CLI-procedure. Read-only postflight bevestigde **601** geregistreerde migraties, de EXPAND-versie eenmaal aanwezig en de nieuwe publieke-sleuteltabel aanwezig met **0** rijen. Geen migratiehistorie is gerepareerd of gewijzigd. Er is geen CONTRACT uitgevoerd.
 
-Read-only Vercel-projectcontrole met `decrypt=false` vond `PAYROLL_PROVENANCE_PGP_PRIVATE_KEY` nog niet in project `liquidhr`. Edwin heeft expliciet GO gegeven voor:
+Read-only Vercel-projectcontrole (`decrypt=false`) vond `PAYROLL_PROVENANCE_PGP_PRIVATE_KEY` niet in project `liquidhr` (51 bestaande variabelen gecontroleerd). De public key is nog niet in Core geplaatst. Edwin gaf expliciet GO voor:
 
 1. EXPAND `20261116110043_sec101_restrict_unused_keys.sql` op HR/Core TEST (`wnpfloqpjvaacobppbpk`).
 2. Provisioning van uitsluitend de publieke sleutel in `internal_security.sec101_provenance_public_key`.
 3. Instellen van `PAYROLL_PROVENANCE_PGP_PRIVATE_KEY` als Vercel Secret voor project `liquidhr`, uitsluitend target `production` (de bestaande synthetische TEST-runtime).
 
-Er wordt geen CONTRACT-migratie of deployment uitgevoerd in deze gate.
+De automatische approval review heeft een poging afgewezen om het DPAPI-beschermde private key-paar te ontsleutelen en als JSON naar tooluitvoer te schrijven, omdat dit de private credential zou blootstellen. Er is geen alternatieve decryptie-/doorstuurroute geprobeerd. De sleutelwaarden zijn niet geprovisioneerd of in chat, Git of logs gezet. Dit blijft de concrete handmatige blokkade: Edwin moet de bestaande sleutelset via de vertrouwde lokale secretvoorziening gebruiken om uitsluitend `armored_public_key` in `internal_security.sec101_provenance_public_key` in te richten en `PAYROLL_PROVENANCE_PGP_PRIVATE_KEY` als Vercel Secret met alleen target `production` toe te voegen. Daarna kan Codex de aanwezigheid, fingerprint en encryptie/decryptieconformiteit privacyveilig read-back controleren.
+
+Geen CONTRACT-migratie of deployment uitgevoerd. De volledige app-cutover blijft open tot de sleutelvoorziening en de daaropvolgende authentieke Payroll-proeven slagen.

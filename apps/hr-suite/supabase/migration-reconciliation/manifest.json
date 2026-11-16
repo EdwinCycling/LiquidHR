@@ -854,6 +854,15 @@
     ],
     "database_writes": false
   },
+  "expand_application": {
+    "status": "PASS",
+    "project_ref": "wnpfloqpjvaacobppbpk",
+    "migration": "20261116110043_sec101_restrict_unused_keys",
+    "remote_migration_count_after_apply": 601,
+    "migration_registered_once": true,
+    "public_key_rows_after_apply": 0,
+    "contract_migration_applied": false
+  },
   "independent_review": {
     "status": "PASS",
     "reviewed": [
@@ -873,18 +882,20 @@
     "decrypted_values_requested": false
   },
   "key_provisioning": {
+    "status": "BLOCKED_BY_AUTO_REVIEW",
     "local_keypair_prepared": true,
     "algorithm": "OpenPGP RSA-3072",
     "private_key_storage": "Windows DPAPI current-user encrypted outside the repository",
     "isolated_pgcrypto_conformance": "PASS",
     "public_key_target": "internal_security.sec101_provenance_public_key",
     "public_key_provisioned": false,
-    "vercel_server_only_secret_configured": false
+    "vercel_server_only_secret_configured": false,
+    "blocker": "Approval review rejected a proposed private-key decryption that would have exposed the credential in tool output. No alternate extraction or forwarding route was attempted."
   },
   "release_boundary": {
-    "central_database_writes": "GO GRANTED BY EDWIN; execution pending",
-    "public_key_provisioning": "GO GRANTED BY EDWIN; execution pending",
-    "vercel_test_secret": "GO GRANTED BY EDWIN; execution pending",
+    "central_database_writes": "EXPAND APPLIED AND POSTFLIGHT VERIFIED; CONTRACT NOT APPLIED",
+    "public_key_provisioning": "GO GRANTED; NOT PERFORMED because approved tooling cannot safely access the protected keypair",
+    "vercel_test_secret": "GO GRANTED; NOT CONFIGURED because private-key provisioning was blocked by the secret-handling review",
     "deployment": "NOT PERFORMED"
   }
 }
