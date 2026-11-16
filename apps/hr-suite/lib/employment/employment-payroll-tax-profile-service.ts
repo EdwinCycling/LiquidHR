@@ -9,6 +9,9 @@ import type { PayrollEmployeeSourceAuthorization } from '@/lib/payroll/scope'
 import { assertCurrentPayrollSourceAuthorization } from '@/lib/payroll/payroll-source-authorization'
 
 type TaxProfileRow = Database['public']['Tables']['employment_payroll_tax_profiles']['Row']
+// Keep the read projection aligned with the fiscal source and HR dossier contracts.
+// In particular, do not fetch idempotency keys or other unconsumed row metadata.
+const TAX_PROFILE_READ_COLUMNS = 'id,employee_id,employment_id,income_relationship_id,employment_income_relationship_id,residence_country_code,wage_tax_table,herleiding_code,time_period,regular_wage_only,full_period_only,has_special_situation,payroll_tax_credit_applies,source_classification,source_reference,effective_from,effective_to,version_number,supersedes_profile_id,confirmed_by_user_id,confirmed_at,created_at' as const
 type TaxProfilePayrollProjectionRow = Omit<Pick<TaxProfileRow,
   | 'id' | 'employee_id' | 'employment_id' | 'income_relationship_id' | 'employment_income_relationship_id'
   | 'residence_country_code' | 'wage_tax_table' | 'herleiding_code' | 'time_period' | 'regular_wage_only'
@@ -315,7 +318,7 @@ export async function getEmploymentPayrollTaxSourceProjection(
       .eq('administration_id', administrationId).eq('employee_id', employeeId).eq('id', employmentId)
       .eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', end)
       .or(`ends_on.is.null,ends_on.gte.${start}`).limit(100),
-    () => supabase.from('employment_payroll_tax_profiles').select('*')
+    () => supabase.from('employment_payroll_tax_profiles').select(TAX_PROFILE_READ_COLUMNS)
       .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', hrGroupId)
       .eq('administration_id', administrationId).eq('employee_id', employeeId).eq('employment_id', employmentId)
       .lte('effective_from', end).or(`effective_to.is.null,effective_to.gte.${start}`)
@@ -420,7 +423,7 @@ export async function getEmploymentPayrollTaxSourceProjectionsBatch(
         .eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', payrollPeriodEnd(period))
         .or(`ends_on.is.null,ends_on.gte.${payrollPeriodStart(period)}`)
         .range(0, queryLimits.employments * employeeIds.length),
-      () => supabase.from('employment_payroll_tax_profiles').select('*')
+      () => supabase.from('employment_payroll_tax_profiles').select(TAX_PROFILE_READ_COLUMNS)
         .eq('tenant_id', first.tenantId).eq('hr_group_id', first.hrGroupId)
         .eq('administration_id', first.administrationId).in('employee_id', employeeIds)
         .lte('effective_from', payrollPeriodEnd(period))
@@ -521,7 +524,7 @@ export async function getEmploymentPayrollTaxDossier(
       .eq('tenant_id', salaryContext.tenantId).eq('administration_id', salaryContext.administrationId)
       .eq('employee_id', employeeId).eq('employment_id', employmentId)
       .order('valid_from').limit(500),
-    supabase.from('employment_payroll_tax_profiles').select('*')
+    supabase.from('employment_payroll_tax_profiles').select(TAX_PROFILE_READ_COLUMNS)
       .eq('tenant_id', salaryContext.tenantId).eq('hr_group_id', salaryContext.hrGroupId)
       .eq('administration_id', salaryContext.administrationId).eq('employee_id', employeeId)
       .eq('employment_id', employmentId).order('version_number', { ascending: false }).limit(500),
