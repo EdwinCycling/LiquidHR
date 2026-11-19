@@ -18,18 +18,19 @@ type ProFormaResult = {
   readonly sourceStatus: 'READY' | 'SOURCE_GAP' | 'INCOMPLETE'
   readonly scenarioType: ScenarioType
   readonly period: { readonly year: number; readonly month: number }
-  readonly sourceHash: string | null
+  readonly sourceHash?: string | null
   readonly baseline: Amounts | null
   readonly scenario: Amounts | null
   readonly difference: Amounts | null
-  readonly hashes: {
+  readonly hashes?: {
     readonly baselineInput: string | null
     readonly baselineResult: string | null
     readonly scenarioInput: string | null
     readonly scenarioResult: string | null
   }
-  readonly traceSteps: number
-  readonly gaps: readonly { readonly field: string; readonly status: string; readonly reasonCode: string }[]
+  readonly traceSteps?: number
+  readonly gaps?: readonly { readonly field: string; readonly status: string; readonly reasonCode: string }[]
+  readonly hasGaps?: boolean
 }
 
 export type Labels = {
@@ -118,10 +119,11 @@ function scenarioPayload(type: ScenarioType, value: string): Record<string, stri
   return { type, hoursPerWeek: value }
 }
 
-export function PayrollProForma({ locale, labels, endpoint = '/api/my-salary/pro-forma' }: {
+export function PayrollProForma({ locale, labels, endpoint = '/api/my-salary/pro-forma', showProvenance = true }: {
   readonly locale: string
   readonly labels: Labels
   readonly endpoint?: string
+  readonly showProvenance?: boolean
 }) {
   const [type, setType] = useState<ScenarioType>('EXTRA_PAID_HOURS')
   const [values, setValues] = useState<ScenarioInputs>({
@@ -253,23 +255,23 @@ export function PayrollProForma({ locale, labels, endpoint = '/api/my-salary/pro
         </div>
       </Surface> : <Surface className="p-4 text-sm" role="status">{labels.noResult}</Surface>}
 
-      {result.gaps.length > 0 ? <Surface className="p-4 text-sm" role="status">
+      {(result.hasGaps ?? (result.gaps?.length ?? 0) > 0) ? <Surface className="p-4 text-sm" role="status">
         <p>{result.status === 'SOURCE_GAP' ? labels.sourceGap : labels.scenarioUnsupported}</p>
       </Surface> : null}
 
-      <Surface className="p-4 sm:p-5">
+      {showProvenance && result.sourceHash !== undefined && result.hashes ? <Surface className="p-4 sm:p-5">
         <details>
           <summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-focus">{labels.explanation}</summary>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div className="min-w-0"><dt className="text-muted-foreground">{labels.sourceHash}</dt><dd className="mt-1 break-all font-mono text-xs">{result.sourceHash ?? '—'}</dd></div>
-            <div className="min-w-0"><dt className="text-muted-foreground">{labels.traceSteps}</dt><dd className="mt-1 tabular-nums">{result.traceSteps}</dd></div>
+            <div className="min-w-0"><dt className="text-muted-foreground">{labels.traceSteps}</dt><dd className="mt-1 tabular-nums">{result.traceSteps ?? 0}</dd></div>
             <div className="min-w-0"><dt className="text-muted-foreground">{labels.inputHash} · {labels.baseline}</dt><dd className="mt-1 break-all font-mono text-xs">{result.hashes.baselineInput ?? '—'}</dd></div>
             <div className="min-w-0"><dt className="text-muted-foreground">{labels.resultHash} · {labels.baseline}</dt><dd className="mt-1 break-all font-mono text-xs">{result.hashes.baselineResult ?? '—'}</dd></div>
             <div className="min-w-0"><dt className="text-muted-foreground">{labels.inputHash} · {labels.scenario}</dt><dd className="mt-1 break-all font-mono text-xs">{result.hashes.scenarioInput ?? '—'}</dd></div>
             <div className="min-w-0"><dt className="text-muted-foreground">{labels.resultHash} · {labels.scenario}</dt><dd className="mt-1 break-all font-mono text-xs">{result.hashes.scenarioResult ?? '—'}</dd></div>
           </dl>
         </details>
-      </Surface>
+      </Surface> : null}
     </section> : <Surface className="border-dashed p-4 text-sm text-muted-foreground" role="status">{labels.noResult}</Surface>}
   </div>
 }

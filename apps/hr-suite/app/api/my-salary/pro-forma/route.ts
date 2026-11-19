@@ -4,6 +4,19 @@ import { PayrollProFormaError, calculateMySalaryProForma, payrollProFormaScenari
 
 export const dynamic = 'force-dynamic'
 
+function employeeResponse(result: Awaited<ReturnType<typeof calculateMySalaryProForma>>) {
+  return {
+    status: result.status,
+    sourceStatus: result.sourceStatus,
+    scenarioType: result.scenarioType,
+    period: result.period,
+    baseline: result.baseline,
+    scenario: result.scenario,
+    difference: result.difference,
+    hasGaps: result.gaps.length > 0,
+  }
+}
+
 function json(body: unknown, status = 200): Response {
   return Response.json(body, { status, headers: {
     'Cache-Control': 'no-store, max-age=0',
@@ -31,7 +44,7 @@ export async function POST(request: Request): Promise<Response> {
   if (!parsed.success) return json({ error: 'INVALID_SCENARIO' }, 400)
 
   try {
-    return json(await calculateMySalaryProForma(parsed.data))
+    return json(employeeResponse(await calculateMySalaryProForma(parsed.data)))
   } catch (error) {
     if (error instanceof AuthenticationError) return json({ error: 'AUTHENTICATION_REQUIRED' }, 401)
     if (error instanceof AuthorizationError) return json({ error: 'SALARY_ACCESS_DENIED' }, 403)

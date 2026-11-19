@@ -3,7 +3,10 @@ import { PageShell } from '@/components/layout/page-shell'
 import { PayrollProForma } from '@/components/payroll/payroll-pro-forma'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 
-export async function PayrollProFormaView({ endpoint }: { readonly endpoint: string }) {
+export async function PayrollProFormaView({ endpoint, showProvenance = true }: {
+  readonly endpoint: string
+  readonly showProvenance?: boolean
+}) {
   const [locale, t] = await Promise.all([getLocale(), getTranslator('payrollProfessional')])
   return <PageShell className="space-y-6 py-6 sm:py-8">
     <PageHeader description={t('proFormaDescription')} title={t('proFormaTitle')} />
@@ -22,6 +25,6 @@ export async function PayrollProFormaView({ endpoint }: { readonly endpoint: str
       sourceHash: t('proFormaSourceHash'),
       inputHash: t('proFormaInputHash'), resultHash: t('proFormaResultHash'), traceSteps: t('proFormaTraceSteps'),
       serviceUnavailable: t('proFormaServiceUnavailable'), period: t('period'),
-    }} />
+    }} showProvenance={showProvenance} />
   </PageShell>
 }

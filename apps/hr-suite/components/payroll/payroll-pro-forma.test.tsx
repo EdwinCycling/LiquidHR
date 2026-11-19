@@ -54,11 +54,11 @@ const resultBody = {
   gaps: [],
 }
 
-function mount(endpoint: string, locale = 'nl', activeLabels: Labels = labels) {
+function mount(endpoint: string, locale = 'nl', activeLabels: Labels = labels, showProvenance = true) {
   const host = document.createElement('div')
   document.body.append(host)
   const root = createRoot(host)
-  act(() => root.render(createElement(PayrollProForma, { endpoint, labels: activeLabels, locale })))
+  act(() => root.render(createElement(PayrollProForma, { endpoint, labels: activeLabels, locale, showProvenance })))
   return { host, unmount: () => act(() => root.unmount()) }
 }
 
@@ -132,6 +132,30 @@ describe('PayrollProForma editable preview payslip', () => {
     expect(mounted.host.textContent).toContain(labels.netDifference)
     expect(mounted.host.querySelector('[data-testid="pro-forma-net-difference"]')?.textContent).toContain('+')
     expect(mounted.host.textContent).toContain('scenario-result')
+
+    mounted.unmount()
+  })
+
+  it('does not render server provenance in Employee self-service', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(resultBody), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const mounted = mount('/api/my-salary/pro-forma', 'nl', labels, false)
+    const input = mounted.host.querySelector<HTMLInputElement>('#pro-forma-input-extra_paid_hours')
+    const button = mounted.host.querySelector<HTMLButtonElement>('button[type="submit"]')
+    if (!input || !button) throw new Error('Missing Employee pro-forma controls')
+    setInputValue(input, '2')
+
+    await act(async () => button.click())
+
+    expect(mounted.host.textContent).toContain(labels.paySlip)
+    expect(mounted.host.textContent).not.toContain(labels.sourceHash)
+    expect(mounted.host.textContent).not.toContain(labels.inputHash)
+    expect(mounted.host.textContent).not.toContain(labels.resultHash)
+    expect(mounted.host.textContent).not.toContain('source-hash')
+    expect(mounted.host.textContent).not.toContain('scenario-result')
 
     mounted.unmount()
   })

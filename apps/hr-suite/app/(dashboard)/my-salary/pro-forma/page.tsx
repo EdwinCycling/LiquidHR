@@ -14,5 +14,5 @@ export default async function MySalaryProFormaPage() {
     if (error instanceof AuthorizationError || error instanceof ContextAccessError) redirect('/geen-toegang')
     throw error
   }
-  return <PayrollProFormaView endpoint="/api/my-salary/pro-forma" />
+  return <PayrollProFormaView endpoint="/api/my-salary/pro-forma" showProvenance={false} />
 }
