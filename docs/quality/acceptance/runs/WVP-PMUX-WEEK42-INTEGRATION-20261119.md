@@ -26,8 +26,10 @@ The full suite emitted Happy DOM console warnings for synthetic blob URLs in PAY
 
 ## Separate gates
 
-The new forward-only migration is present as code at apps/hr-suite/supabase/migrations/20261119120000_wvp_week42_pmux_deadline_contract.sql. **It was not applied to Core TEST. Separate explicit GO is required before that write.** The earlier WVP02 SEC01 and WVP05 migrations were not rerun; their earlier Core TEST evidence was reused.
+The forward-only migration 20261119120000_wvp_week42_pmux_deadline_contract.sql was applied once to Core TEST project wnpfloqpjvaacobppbpk after the separate GO, using the official Supabase apply_migration tool. File SHA-256: 49B45C3334BE74D5824A952821EABD0EF1724A51B66E575BE4F1FDE5430DB510. Remote history registers it once as version 20261119160230 with the approved migration name. WVP02 SEC01 and WVP05 were already registered and were not rerun.
 
-Live HR Admin, Manager and Employee acceptance, including negative API/scope/RLS checks, remains **NOT RUN / OPEN** pending the joint TEST release and its persona window. No individual WVP deployment, Vercel deployment, database write, push, PR or merge to main occurred in this run. The full joint release remains separate.
+Postflight readback confirms one internal_security.wvp_materialize_deadline() owned by postgres, SECURITY DEFINER, empty search_path, and only postgres:EXECUTE; anon/authenticated cannot execute it directly. The trigger remains attached once to public.process_step_instances. The table remains at 32 rows, including its one WVP step, before and after; the migration contains no process-row DML. Security, performance and health advisors returned 0 findings each.
+
+Live HR Admin, Manager and Employee acceptance, including negative API/scope/RLS checks, remains NOT RUN / OPEN pending the joint TEST release and its persona window. No individual WVP deployment or Vercel deployment, push, PR or merge to main occurred in this run. The full joint release remains separate.
 
 The existing Payroll work, both stashes, WVP01 note, and protected local next-env.d.ts remain intact.
