@@ -37,70 +37,19 @@ export function addCalendarDays(value: string, days: number): string {
   return result.toISOString().slice(0, 10)
 }
 
-function easterSunday(year: number): string {
-  const a = year % 19
-  const b = Math.floor(year / 100)
-  const c = year % 100
-  const d = Math.floor(b / 4)
-  const e = b % 4
-  const f = Math.floor((b + 8) / 25)
-  const g = Math.floor((b - f + 1) / 3)
-  const h = (19 * a + b - d - g + 15) % 30
-  const i = Math.floor(c / 4)
-  const k = c % 4
-  const l = (32 + 2 * e + 2 * i - h - k) % 7
-  const m = Math.floor((a + 11 * h + 22 * l) / 451)
-  const month = Math.floor((h + l - 7 * m + 114) / 31)
-  const day = ((h + l - 7 * m + 114) % 31) + 1
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function dutchRecognizedHolidays(year: number): Set<string> {
-  const easter = easterSunday(year)
-  const kingsDay = new Date(Date.UTC(year, 3, 27))
-  if (kingsDay.getUTCDay() === 0) kingsDay.setUTCDate(26)
-  return new Set([
-    `${year}-01-01`,
-    kingsDay.toISOString().slice(0, 10),
-    `${year}-05-05`,
-    `${year}-12-25`,
-    `${year}-12-26`,
-    addCalendarDays(easter, -2), // Goede Vrijdag
-    addCalendarDays(easter, 1), // tweede Paasdag
-    addCalendarDays(easter, 39), // Hemelvaartsdag
-    addCalendarDays(easter, 50), // tweede Pinksterdag
-  ])
-}
-
-function isDutchWorkingDay(value: string): boolean {
-  const weekday = date(value).getUTCDay()
-  if (weekday === 0 || weekday === 6) return false
-  const year = date(value).getUTCFullYear()
-  return !dutchRecognizedHolidays(year).has(value)
-}
-
-function nextDutchWorkingDayOnOrAfter(value: string): string {
-  let candidate = value
-  for (let offset = 0; offset < 7; offset++) {
-    if (isDutchWorkingDay(candidate)) return candidate
-    candidate = addCalendarDays(candidate, 1)
-  }
-  throw new RangeError('No Dutch working day found within one week')
-}
-
 export interface WvpWeek42Timing {
   /** A two-week operational preparation reminder; it is not the statutory due date. */
   readonly preparationSignalOn: string
   /** Calendar day after 42 complete weeks, counted from the effective clock start. */
   readonly week42BoundaryOn: string
-  /** First Dutch working day on or after the 42-week boundary, per UWV employer guidance. */
+  /** Eerste kalenderdag na 42 volledige weken; de lange termijn schuift niet op bij weekend of feestdag. */
   readonly statutoryDeadlineOn: string
 }
 
 export function wvpWeek42Timing(clockStart: string): WvpWeek42Timing {
   date(clockStart)
   const week42BoundaryOn = addCalendarDays(clockStart, 42 * 7)
-  const statutoryDeadlineOn = nextDutchWorkingDayOnOrAfter(week42BoundaryOn)
+  const statutoryDeadlineOn = week42BoundaryOn
   return {
     preparationSignalOn: addCalendarDays(statutoryDeadlineOn, -14),
     week42BoundaryOn,

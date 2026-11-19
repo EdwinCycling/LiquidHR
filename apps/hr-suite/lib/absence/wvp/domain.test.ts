@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { calculateEffectiveClockStartOn } from '../engine'
 import { addCalendarDays, nextWvpTask, projectWvpMilestones, summarizeWvpDossierEvidence, wvpCommandSchema, wvpTaskSignalOn, wvpTaskStatutoryDeadlineOn, wvpUrgency, wvpWeek42Timing } from './domain'
 
 describe('WVP wettelijke kalender en privacycontract', () => {
@@ -20,9 +21,28 @@ describe('WVP wettelijke kalender en privacycontract', () => {
     expect(wvpTaskSignalOn(task, '2026-01-01')).toBe(timing.preparationSignalOn)
     expect(wvpTaskStatutoryDeadlineOn(task, '2026-01-01')).toBe(timing.statutoryDeadlineOn)
   })
-  it('verplaatst de standaard meldtermijn naar de eerstvolgende werkdag na weekend en erkende feestdag', () => {
-    expect(wvpWeek42Timing('2026-01-03')).toMatchObject({ week42BoundaryOn: '2026-10-24', statutoryDeadlineOn: '2026-10-26', preparationSignalOn: '2026-10-12' })
-    expect(wvpWeek42Timing('2025-06-13')).toMatchObject({ week42BoundaryOn: '2026-04-03', statutoryDeadlineOn: '2026-04-07', preparationSignalOn: '2026-03-24' })
+  it.each([
+    ['Saturday', '2026-01-03', '2026-10-24'],
+    ['Sunday', '2026-01-04', '2026-10-25'],
+    ['Christmas Day', '2026-03-06', '2026-12-25'],
+  ])('keeps the statutory calendar deadline on %s without a weekend or holiday extension', (_label, clockStart, deadline) => {
+    expect(wvpWeek42Timing(clockStart)).toMatchObject({
+      week42BoundaryOn: deadline,
+      statutoryDeadlineOn: deadline,
+      preparationSignalOn: addCalendarDays(deadline, -14),
+    })
+  })
+  it('bases the week-42 projection on the effective clock after a recovery gap', () => {
+    const effectiveClockStart = calculateEffectiveClockStartOn({
+      rootStartOn: '2026-01-01',
+      recoveryGaps: [{ recoveredOn: '2026-01-10', nextStartedOn: '2026-01-20' }],
+    })
+    expect(effectiveClockStart).toBe('2026-01-10')
+    expect(wvpWeek42Timing(effectiveClockStart)).toMatchObject({
+      week42BoundaryOn: '2026-10-31',
+      statutoryDeadlineOn: '2026-10-31',
+      preparationSignalOn: '2026-10-17',
+    })
   })
   it('koppelt mijlpaalgebeurtenissen aan de juiste taak en toont ontbrekende registratie', () => {
     const evidence = summarizeWvpDossierEvidence([
