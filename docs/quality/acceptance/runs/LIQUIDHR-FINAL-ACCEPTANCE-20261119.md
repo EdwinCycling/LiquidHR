@@ -2,6 +2,7 @@
 
 **Opdrachtgever:** Edwin
 **Lokale integratiebranch:** `work/liquidhr-final-acceptance-20261119`
+**Verified application source SHA:** `70948c5c80f75a79ed3b1e71366595af7eeaf209`
 **Code-inputs:** WVP/Talent joint integration `a6b5337c78ae672b3a1139a8ad5c9ac3fc0a285a` (descendant of `f72c48576110127141cc96a6e703d14a636eed8d`), Talent completion `ffbea0dbb06e911778f10ae7f2cb141472821e7b`, WVP source `e90bd178842554e84838657811442068aad2be9a`
 **Verdict:** local code candidate prepared; hosted acceptance OPEN; joint TEST release **NO-GO pending hosted gates and separate release mandate**.
 
@@ -44,9 +45,10 @@ Hosted controls above are historical smoke on SHA `69d29bbe`, not acceptance evi
 | HR Suite type-check | PASS (`tsc --noEmit`) |
 | HR Suite ESLint | PASS — zero errors; nine existing warnings in unrelated test files |
 | NL/EN i18n | PASS — 43 namespaces, matching keys |
-| Root type-check / lint | PARTIAL — Control dependencies `next` and `eslint-config-next` are present in the lockfile but absent locally. Control type-check/lint consequently fail before useful source diagnostics. A lockfile-based workspace install stopped at Windows `EPERM` creating the workspace symlink; no tracked dependency files changed. |
-| HR Suite production build | NOT RUN yet — its prebuild gate requires the final candidate to be committed and clean. |
-| Diff check | PASS on the local candidate changes |
+| Root type-check | PASS — HR Suite, Control, Payroll engine, CAO bench, and Payroll rules |
+| Root ESLint | PASS — zero errors; nine existing warnings in unrelated tests |
+| HR Suite production build | PASS — clean source SHA `70948c5c80f75a79ed3b1e71366595af7eeaf209`; compile/type phase, 359 static pages, Payroll client-boundary scanner, five PDF renderer traces, and function-trace policy passed |
+| Diff check / generated files | PASS — no source diff after build; generated Focus widget restored; protected `next-env.d.ts` hash unchanged |
 
 The default-timeout full-suite run had two tests exceed 5 seconds while running concurrently; each passed in isolation, and the complete HR Suite passed with a 15-second test timeout. Happy DOM emitted existing unsupported synthetic `blob:` iframe warnings. No assertions were suppressed or changed for these results.
 
@@ -57,4 +59,4 @@ The default-timeout full-suite run had two tests exceed 5 seconds while running 
 3. If live Talent positive cases are required, request one bundled TEST-data mandate to add verified sufficient/insufficient evidence and an active/completed employee+capability-linked plan using existing personas/product flows. Keep the wrong-employee/wrong-capability cases negative and non-persistent. Do not create accounts or bypass product services.
 4. The supplied Vercel runtime is older than the integrated source. If hosted acceptance requires a new candidate deployment, include it in the central release plan. Confirm effective automatic Git/Preview trigger settings before any push. Actual TEST deployment requires the separate exact mandate `RELEASE LIQUIDHR TEST`.
 
-**Decision:** **NO-GO** for the joint TEST release now. No known critical regression was confirmed, but hosted acceptance is on an older SHA, SEC-101 remains OPEN, and the candidate build has not yet run on its clean committed source.
+**Decision:** **NO-GO** for the joint TEST release now. No known critical regression was confirmed; the local suite, type-check, lint, i18n, and production build are green. Hosted acceptance is on an older SHA and SEC-101 remains OPEN.
