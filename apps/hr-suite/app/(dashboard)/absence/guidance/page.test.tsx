@@ -38,3 +38,11 @@ it('sorts deadlines, supports urgency filters and identifies missing source data
   expect(filtered).toContain('Eerder')
   expect(filtered).not.toContain('Later')
 })
+
+it('shows the separate preparation signal and statutory date for week 42', async () => {
+  mocks.list.mockResolvedValue([{ id: 'week42', name: 'Week 42', status: 'ACTIVE', closedAt: null, currentMilestone: 'WVP_WEEK_42', clockStartOn: '2026-01-03', tasks: [{ id: 'week42-task', code: 'WVP_WEEK_42', dueOn: '2026-10-24', status: 'OPEN' }] }])
+  const html = renderToStaticMarkup(await GuidancePage({ searchParams: Promise.resolve({}) }))
+  expect(html).toContain('wvp.week42Preparation')
+  expect(html).toContain('wvp.week42Deadline')
+  expect(html).toContain('wvp.week42ReviewNote')
+})

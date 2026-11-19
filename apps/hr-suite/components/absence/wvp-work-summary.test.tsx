@@ -49,3 +49,18 @@ it('toont een medewerker alleen eigen open kennisname en geen casusmijlpalen', a
   expect(html).toContain('wvp.acknowledge')
   expect(html).not.toContain('wvp.WVP_WEEK_8')
 })
+
+it('toont bij week 42 een apart voorbereidingssignaal en de UWV-meldtermijn', async () => {
+  const week42: WvpCase = {
+    ...base,
+    clockStartOn: '2026-01-03',
+    currentMilestone: 'WVP_WEEK_42',
+    tasks: [{ id, code: 'WVP_WEEK_42', dueOn: '2026-10-24', status: 'OPEN', completedAt: null }],
+  }
+  mocks.list.mockResolvedValue([week42])
+  const html = renderToStaticMarkup(await WvpWorkSummary())
+  expect(html).toContain('wvp.week42Preparation')
+  expect(html).toContain('wvp.week42Deadline')
+  expect(html).toContain('wvp.week42ReviewNote')
+  expect(html).toContain('wvp.OVERDUE')
+})

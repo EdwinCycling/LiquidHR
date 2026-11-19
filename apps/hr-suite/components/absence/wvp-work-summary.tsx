@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { listWvpCases, WvpError } from '@/lib/absence/wvp/service'
-import { nextWvpTask, wvpUrgency } from '@/lib/absence/wvp/domain'
+import { nextWvpTask, wvpTaskSignalOn, wvpTaskStatutoryDeadlineOn, wvpUrgency } from '@/lib/absence/wvp/domain'
 import { wvpLabelKeys, milestoneLabel } from '@/components/absence/wvp-labels'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 
@@ -22,10 +22,12 @@ export async function WvpWorkSummary() {
   return <section className="mx-4 mt-4 border-y border-border-subtle py-4 sm:mx-6 lg:mx-8" aria-label={t('wvp.title')}>
     <h2 className="font-semibold">{t('wvp.title')}</h2>
     <ul className="mt-2 space-y-3">{items.map(dossier => {
-      const task = dossier.canManage ? nextWvpTask(dossier.tasks, dossier.currentMilestone) : null
+      const task = dossier.canManage ? nextWvpTask(dossier.tasks, dossier.currentMilestone, dossier.clockStartOn) : null
+      const signalOn = task ? wvpTaskSignalOn(task, dossier.clockStartOn) : null
       return <li key={dossier.id} className="flex flex-col gap-1 text-sm">
         <Link href={`/absence/guidance/${dossier.id}`} className="w-fit text-primary underline">{dossier.name} · {t(dossier.isSelf ? 'wvp.acknowledge' : 'wvp.nextAction')}</Link>
-        {task ? <span className="text-muted-foreground">{milestoneLabel(task.code, labels)} · {new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${task.dueOn}T00:00:00Z`))} · {labels[wvpUrgency(task.dueOn, today)]}</span> : null}
+        {task && signalOn ? <span className="text-muted-foreground">{milestoneLabel(task.code, labels)} · {task.code === 'WVP_WEEK_42' ? `${labels.week42Preparation}: ${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${signalOn}T00:00:00Z`))} · ${labels.week42Deadline}: ${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${wvpTaskStatutoryDeadlineOn(task, dossier.clockStartOn) ?? task.dueOn}T00:00:00Z`))}` : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${task.dueOn}T00:00:00Z`))} · {labels[wvpUrgency(signalOn, today)]}</span> : null}
+        {task?.code === 'WVP_WEEK_42' && <span className="text-xs text-muted-foreground">{labels.week42ReviewNote}</span>}
       </li>
     })}</ul>
   </section>

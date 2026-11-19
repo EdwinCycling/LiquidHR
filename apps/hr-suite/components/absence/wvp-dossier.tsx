@@ -11,7 +11,7 @@ import { FormField } from '@/components/patterns/form-field'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import type { WvpCase, WvpDocumentLink } from '@/lib/absence/wvp/service'
 import type { EmployeeDocumentLinkOption } from '@/lib/documents/document-service'
-import { agreementCodes, nextWvpTask, summarizeWvpDossierEvidence, wvpUrgency, type WvpCommand } from '@/lib/absence/wvp/domain'
+import { agreementCodes, nextWvpTask, summarizeWvpDossierEvidence, wvpTaskSignalOn, wvpTaskStatutoryDeadlineOn, wvpUrgency, type WvpCommand } from '@/lib/absence/wvp/domain'
 import { milestoneLabel, processStatusLabel, type WvpLabels } from '@/components/absence/wvp-labels'
 
 export type { WvpLabels } from '@/components/absence/wvp-labels'
@@ -37,13 +37,16 @@ export function WvpDossier({ dossier, documentLinks, documentOptions, canManageD
   const [occurredOn, setOccurredOn] = useState(today)
   const [agreement, setAgreement] = useState<(typeof agreementCodes)[number]>('UNCHANGED')
   const [reviewOn, setReviewOn] = useState(today)
-  const nextTask = nextWvpTask(dossier.tasks, dossier.currentMilestone)
+  const nextTask = nextWvpTask(dossier.tasks, dossier.currentMilestone, dossier.clockStartOn)
   const actionableTasks = nextTask && nextTask.code === dossier.currentMilestone ? [nextTask] : []
   const evidence = summarizeWvpDossierEvidence(dossier.tasks, dossier.events, dossier.clockStartOn)
   const openTasks = dossier.tasks.filter(task => task.status === 'OPEN')
   const completedTasks = dossier.tasks.filter(task => task.status === 'COMPLETED')
-  const overdueTasks = openTasks.filter(task => wvpUrgency(task.dueOn, today) === 'OVERDUE')
-  const soonTasks = openTasks.filter(task => wvpUrgency(task.dueOn, today) === 'SOON')
+  const cancelledTasks = dossier.tasks.filter(task => task.status === 'CANCELLED')
+  const signalOn = (task: Pick<(typeof dossier.tasks)[number], 'code' | 'dueOn'>) => wvpTaskSignalOn(task, dossier.clockStartOn)
+  const urgencyFor = (task: Pick<(typeof dossier.tasks)[number], 'code' | 'dueOn'>) => wvpUrgency(signalOn(task), today)
+  const overdueTasks = openTasks.filter(task => urgencyFor(task) === 'OVERDUE')
+  const soonTasks = openTasks.filter(task => urgencyFor(task) === 'SOON')
   const evidenceById = new Map(evidence.map(item => [item.id, item]))
   const ownerLabelKeys: Record<string, string> = {
     OCCUPATIONAL_PHYSICIAN: 'dossierOwnerPhysician',
@@ -67,7 +70,8 @@ export function WvpDossier({ dossier, documentLinks, documentOptions, canManageD
       const response = await fetch('/api/absence/wvp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(command) })
       if (!response.ok) {
         const body: unknown = await response.json()
-        setError(typeof body === 'object' && body !== null && 'error' in body && body.error === 'WVP_SCHEMA_REQUIRED' ? labels.schemaRequired : labels.failed)
+        const code = typeof body === 'object' && body !== null && 'error' in body && typeof body.error === 'string' ? body.error : ''
+        setError(code === 'WVP_SCHEMA_REQUIRED' ? labels.schemaRequired : labels[code] ?? labels.failed)
         return
       }
       setSelectedTask('')
@@ -80,7 +84,12 @@ export function WvpDossier({ dossier, documentLinks, documentOptions, canManageD
     setBusy(true); setError('')
     try {
       const response = await fetch('/api/absence/wvp/document-links', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      if (!response.ok) { setError(labels.failed); return }
+      if (!response.ok) {
+        const body: unknown = await response.json()
+        const code = typeof body === 'object' && body !== null && 'error' in body && typeof body.error === 'string' ? body.error : ''
+        setError(labels[code] ?? labels.failed)
+        return
+      }
       if (method === 'DELETE') setRemoveCandidate(null)
       const taskId = body.taskId
       if (method === 'POST' && taskId) setSelectedDocuments(current => ({ ...current, [taskId]: '' }))
@@ -101,16 +110,17 @@ export function WvpDossier({ dossier, documentLinks, documentOptions, canManageD
     </div>
     <section aria-labelledby="wvp-progress" className="space-y-3 border-y border-border-subtle py-4">
       <h2 id="wvp-progress" className="text-lg font-semibold">{labels.progressTitle}</h2>
-      {dossier.processInstanceId && dossier.tasks.length > 0 && <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-sm">
+      {dossier.processInstanceId && dossier.tasks.length > 0 && <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5 text-sm">
         <div><dt>{labels.OPEN}</dt><dd className="font-semibold">{openTasks.length}</dd></div>
         <div><dt>{labels.COMPLETED}</dt><dd className="font-semibold">{completedTasks.length}</dd></div>
+        <div><dt>{labels.CANCELLED}</dt><dd className="font-semibold">{cancelledTasks.length}</dd></div>
         <div><dt>{labels.OVERDUE}</dt><dd className="font-semibold">{overdueTasks.length}</dd></div>
         <div><dt>{labels.SOON}</dt><dd className="font-semibold">{soonTasks.length}</dd></div>
       </dl>}
       {(!dossier.processInstanceId || dossier.tasks.length === 0) && <p role="status" className="text-sm text-muted-foreground">{labels.progressSourceMissing}</p>}
       {evidence.some(item => item.readiness === 'MISSING_EVENT') && <p role="status" className="text-sm text-muted-foreground">{labels.progressEventMissing}</p>}
       <p className="text-sm text-muted-foreground">{labels.progressLegalNote}</p>
-      {nextTask && <a className="text-sm text-primary underline" href={`#milestone-${nextTask.id}`}>{labels.nextAction}: {milestoneLabel(nextTask.code, labels)} · {date(nextTask.dueOn)}</a>}
+      {nextTask && <a className="text-sm text-primary underline" href={`#milestone-${nextTask.id}`}>{labels.nextAction}: {milestoneLabel(nextTask.code, labels)} · {nextTask.code === 'WVP_WEEK_42' ? `${labels.week42Preparation}: ${date(signalOn(nextTask))} · ${labels.week42Deadline}: ${date(wvpTaskStatutoryDeadlineOn(nextTask, dossier.clockStartOn) ?? nextTask.dueOn)}` : date(nextTask.dueOn)}</a>}
     </section>
     <DetailColumns main={<div className="min-w-0 space-y-6">
       <section aria-label={labels.milestones}>
@@ -126,7 +136,11 @@ export function WvpDossier({ dossier, documentLinks, documentOptions, canManageD
           return <li id={`milestone-${task.id}`} key={task.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
             <div className="min-w-0 grow">
               <p className="break-words font-medium">{milestoneLabel(task.code, labels)}</p>
-              <p className="text-muted-foreground">{date(task.dueOn)} · {task.code === 'WVP_WEEK_42' || task.code === 'WVP_WIA_APPLICATION' ? labels.signal : task.code.startsWith('WVP_EVALUATION') ? labels.review : labels.statutory}</p>
+              {task.code === 'WVP_WEEK_42' ? <>
+                <p className="text-muted-foreground">{labels.week42Preparation}: {date(signalOn(task))}</p>
+                <p className="text-muted-foreground">{labels.week42Deadline}: {date(wvpTaskStatutoryDeadlineOn(task, dossier.clockStartOn) ?? task.dueOn)}</p>
+                <p className="text-muted-foreground">{labels.week42ReviewNote}</p>
+              </> : <p className="text-muted-foreground">{date(task.dueOn)} · {task.code === 'WVP_WIA_APPLICATION' ? labels.signal : task.code.startsWith('WVP_EVALUATION') ? labels.review : labels.statutory}</p>}
               <p className="text-muted-foreground">{labels.dossierOwner}: {labels[ownerKey]}</p>
               <p className="text-muted-foreground">{labels.progressTaskStatus}: {labels[task.status] ?? labels.dossierReadinessUnknown}</p>
               {item?.event && <p className="text-muted-foreground">{labels.dossierEvent}: {date(item.event.occurredOn)}</p>}
@@ -149,7 +163,7 @@ export function WvpDossier({ dossier, documentLinks, documentOptions, canManageD
             </div>
             <div className="flex flex-col items-end gap-1">
               <span>{labels[readinessKey]}</span>
-              {task.status === 'OPEN' && !dossier.closedAt && <span className="text-muted-foreground">{labels[wvpUrgency(task.dueOn, today)]}</span>}
+              {task.status === 'OPEN' && !dossier.closedAt && <span className="text-muted-foreground">{labels[urgencyFor(task)]}</span>}
             </div>
           </li>
         })}</ol> : <p className="text-sm text-muted-foreground">{labels.noTasks}</p>}
@@ -174,7 +188,7 @@ export function WvpDossier({ dossier, documentLinks, documentOptions, canManageD
         </li>)}</ol>{!dossier.events.length && <p className="text-sm text-muted-foreground">{labels.noHistory}</p>}
       </section>
     </div>} aside={<div className="min-w-0 space-y-6">
-      <Surface className="p-4"><h2 className="font-semibold">{labels.nextAction}</h2>{nextTask ? <><p className="mt-2 text-sm">{milestoneLabel(nextTask.code, labels)} · {date(nextTask.dueOn)}</p><p className="mt-1 text-sm font-medium">{labels[wvpUrgency(nextTask.dueOn, today)]}</p></> : <p className="mt-2 text-sm">{labels.noTasks}</p>}<h3 className="mt-4 text-sm font-semibold">{labels.responsibility}</h3><p className="mt-1 text-sm">{labels.hrOwner}</p><p className="mt-2 text-sm text-muted-foreground">{labels.physicianOwner}</p><p className="mt-2 text-sm text-muted-foreground">{labels.jointOwner}</p></Surface>
+      <Surface className="p-4"><h2 className="font-semibold">{labels.nextAction}</h2>{nextTask ? <><p className="mt-2 text-sm">{milestoneLabel(nextTask.code, labels)} · {nextTask.code === 'WVP_WEEK_42' ? `${labels.week42Preparation}: ${date(signalOn(nextTask))} · ${labels.week42Deadline}: ${date(wvpTaskStatutoryDeadlineOn(nextTask, dossier.clockStartOn) ?? nextTask.dueOn)}` : date(nextTask.dueOn)}</p><p className="mt-1 text-sm font-medium">{labels[urgencyFor(nextTask)]}</p></> : <p className="mt-2 text-sm">{labels.noTasks}</p>}<h3 className="mt-4 text-sm font-semibold">{labels.responsibility}</h3><p className="mt-1 text-sm">{labels.hrOwner}</p><p className="mt-2 text-sm text-muted-foreground">{labels.physicianOwner}</p><p className="mt-2 text-sm text-muted-foreground">{labels.jointOwner}</p></Surface>
       <section><h2 className="font-semibold">{labels.capacity}</h2><ol className="mt-2 space-y-2 text-sm">{dossier.capacity.map((change, index) => <li key={`${change.effectiveOn}-${index}`}>{date(change.effectiveOn)} · {100 - change.absencePercentage}%</li>)}{dossier.spells.filter(s => s.recoveredOn).map(s => <li key={s.startedOn}>{date(s.recoveredOn!)} · 100%</li>)}</ol><p className="mt-2 text-sm text-muted-foreground">{labels.recoveryHelp}</p></section>
       {canAct && <form className="grid gap-3" onSubmit={event => { event.preventDefault(); void send({ action: 'AGREEMENT', caseId: dossier.id, agreement, occurredOn, reviewOn, idempotencyKey: crypto.randomUUID() }) }}>
         <h2 className="font-semibold">{labels.recordAgreement}</h2>

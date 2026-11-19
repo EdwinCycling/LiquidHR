@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { AuthenticationError, AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { listWvpCases, WvpError } from '@/lib/absence/wvp/service'
-import { nextWvpTask, wvpUrgency } from '@/lib/absence/wvp/domain'
+import type { WvpCase } from '@/lib/absence/wvp/service'
+import { nextWvpTask, wvpTaskSignalOn, wvpTaskStatutoryDeadlineOn, wvpUrgency } from '@/lib/absence/wvp/domain'
 import { milestoneLabel, wvpLabelKeys } from '@/components/absence/wvp-labels'
 
 export default async function AbsenceGuidancePage({ searchParams }: { searchParams: Promise<{ urgency?: string; status?: string }> }) {
@@ -26,17 +27,18 @@ export default async function AbsenceGuidancePage({ searchParams }: { searchPara
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam' }).format(new Date())
   const labels = Object.fromEntries(wvpLabelKeys.map(key => [key, t(`wvp.${key}`)]))
   const rows = cases.map(dossier => {
-    const task = nextWvpTask(dossier.tasks, dossier.currentMilestone)
+    const task = nextWvpTask(dossier.tasks, dossier.currentMilestone, dossier.clockStartOn)
     const status = dossier.closedAt ? 'CLOSED' : dossier.status
-    return { dossier, task, status, urgency: task ? wvpUrgency(task.dueOn, today) : 'UNKNOWN' }
+    return { dossier, task, status, urgency: task ? wvpUrgency(wvpTaskSignalOn(task, dossier.clockStartOn), today) : 'UNKNOWN' }
   })
   const active = rows.filter(row => row.status !== 'CLOSED')
-  const overdue = active.flatMap(row => row.dossier.tasks.filter(task => task.status === 'OPEN' && wvpUrgency(task.dueOn, today) === 'OVERDUE')).length
-  const soon = active.flatMap(row => row.dossier.tasks.filter(task => task.status === 'OPEN' && wvpUrgency(task.dueOn, today) === 'SOON')).length
+  const urgencyFor = (dossier: WvpCase, task: WvpCase['tasks'][number]) => wvpUrgency(wvpTaskSignalOn(task, dossier.clockStartOn), today)
+  const overdue = active.flatMap(row => row.dossier.tasks.filter(task => task.status === 'OPEN' && urgencyFor(row.dossier, task) === 'OVERDUE')).length
+  const soon = active.flatMap(row => row.dossier.tasks.filter(task => task.status === 'OPEN' && urgencyFor(row.dossier, task) === 'SOON')).length
   const urgency = ['OVERDUE', 'SOON', 'PLANNED', 'UNKNOWN'].includes(filters.urgency ?? '') ? filters.urgency : ''
   const status = ['ACTIVE', 'RECOVERY_WINDOW', 'CLOSED'].includes(filters.status ?? '') ? filters.status : ''
   const visible = rows.filter(row => (!urgency || row.urgency === urgency) && (!status || row.status === status))
-    .sort((a, b) => (a.task?.dueOn ?? '9999-12-31').localeCompare(b.task?.dueOn ?? '9999-12-31') || a.dossier.id.localeCompare(b.dossier.id))
+    .sort((a, b) => (a.task ? wvpTaskSignalOn(a.task, a.dossier.clockStartOn) : '9999-12-31').localeCompare(b.task ? wvpTaskSignalOn(b.task, b.dossier.clockStartOn) : '9999-12-31') || a.dossier.id.localeCompare(b.dossier.id))
   const date = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
   return <PageShell className="py-7">
     <PageHeader title={t('wvp.title')} description={t('wvp.description')} />
@@ -59,7 +61,7 @@ export default async function AbsenceGuidancePage({ searchParams }: { searchPara
         <Button type="submit">{t('wvp.controlFilter')}</Button>
       </form>
       <h2 className="font-semibold">{t('wvp.controlPriorities')}</h2>
-      <ul className="divide-y divide-border-subtle border-y border-border-subtle">{visible.map(({ dossier, task, status: rowStatus, urgency: rowUrgency }) => <li key={dossier.id}><Link className="flex flex-col gap-1 py-4 focus-visible:outline-2 focus-visible:outline-focus sm:flex-row sm:justify-between" href={`/absence/guidance/${dossier.id}`}><span className="min-w-0 break-words font-semibold">{dossier.name} · {t(`wvp.${rowStatus}`)}</span><span className="text-sm">{task ? `${milestoneLabel(task.code, labels)} · ${date(task.dueOn)} · ${t(`wvp.${rowUrgency}`)}` : t('wvp.controlUnknown')}</span></Link></li>)}</ul>
+      <ul className="divide-y divide-border-subtle border-y border-border-subtle">{visible.map(({ dossier, task, status: rowStatus, urgency: rowUrgency }) => <li key={dossier.id}><Link className="flex flex-col gap-1 py-4 focus-visible:outline-2 focus-visible:outline-focus sm:flex-row sm:justify-between" href={`/absence/guidance/${dossier.id}`}><span className="min-w-0 break-words font-semibold">{dossier.name} · {t(`wvp.${rowStatus}`)}</span><span className="text-sm">{task ? `${milestoneLabel(task.code, labels)} · ${task.code === 'WVP_WEEK_42' ? `${labels.week42Preparation}: ${date(wvpTaskSignalOn(task, dossier.clockStartOn))} · ${labels.week42Deadline}: ${date(wvpTaskStatutoryDeadlineOn(task, dossier.clockStartOn) ?? task.dueOn)}` : date(task.dueOn)} · ${t(`wvp.${rowUrgency}`)}` : t('wvp.controlUnknown')}{task?.code === 'WVP_WEEK_42' && <span className="block text-xs text-muted-foreground">{labels.week42ReviewNote}</span>}</span></Link></li>)}</ul>
       {!visible.length && <p className="mt-4">{cases.length ? t('wvp.controlNoResults') : t('wvp.empty')}</p>}
     </>}
   </PageShell>

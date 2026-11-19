@@ -127,12 +127,19 @@ PMUX-01 tot en met PMUX-03 en de individuele PMUX-05A/B/C-labels zijn historisch
 - Statische autorisatiereview, NL/EN-pariteit en diff-check zijn PASS; SQL/PGlite, Vitest, TypeScript, lint en browserpersonaacceptatie zijn NOT RUN. Security-integratie blijft HOLD tot de verplichte checks slagen.
 - **OPEN:** contract-/UI-regressies, type/lint, HR Admin/Manager/Employee- en negatieve scopeacceptatie; daarna apart migratiemandaat, migraties in bovenstaande volgorde, advisors, gegenereerde types en readback. Valideer de wettelijke RIV-requirements voordat volledigheid wordt geclaimd.
 - De onderstaande volledige domeinroadmap blijft breder dan deze eerste systeemset; custom-templateorkestratie, RIV-readiness en afwijkende individuele routes zijn niet als voltooid gemarkeerd.
+
 - hergebruik bestaande `absence_tasks`, milestone-/generator- en casemanagerfoundation;
 - volledige caseworkspace: Overzicht / Tijdlijn / Acties / Dossier / Re-integratie / Historie;
 - versieerbare SYSTEM-milestones, custom/recurring taken en toekomstprojectie;
 - expliciete casemanagerautorisatie, HR-groepoptie en veilige backfill voor actieve cases;
 - RIV-readiness, werkvoorraad, reminders en inzichten;
 - verifieer de actuele wettelijke bronset vóór de eerste implementatieslice.
+
+### WvP / Verzuim — WVP-FUNCTIONAL-COMPLETION (19-11-2026)
+- Lokale codechecks PASS vanaf `69d29bbe80a5791cf31c1d4966347f756cd10130`; end-to-end functionele acceptatie PARTIAL/OPEN: week-42-voorbereidingssignaal staat los van de UWV-meldwerkdag; dossier- en regieoverzicht tellen OPEN/COMPLETED/CANCELLED apart; NL/EN-foutmeldingen zijn specifieker.
+- PGlite-contractdekking is gericht uitgebreid voor transactionele rollback bij falende PMUX-act en document verwijderen/opnieuw koppelen/audit. Exacte testuitkomst en commit staan in [WVP-FUNCTIONAL-COMPLETION](../quality/acceptance/runs/WVP-FUNCTIONAL-COMPLETION-20261119.md).
+- WVP02 SEC01 en WVP05 zijn volgens de 13-11 Core TEST-readback al toegepast; geen nieuwe migratie is uitgevoerd. Hosted persona-/API-negatives, andere administratie/HR-groep/tenant en documentrechten blijven voor deze lokale branch niet opnieuw bewezen.
+- Week-42-PMUX-werkitems houden bij weekend/feestdag de bestaande deadline-snapshot op de kalendergrens, terwijl de schermprojectie naar een werkdag doorschuift. Dit gedeelde PMUX-contract is aan de centrale thread overgedragen; wijziging vereist een afzonderlijk migratie-GO. Geen push, merge of release.
 
 ### Workforce Insights — INS02, na WVP01
 - Report Consistency Contract voor filters, definities, KPI/chart/tabel/drilldown/export en scopes;

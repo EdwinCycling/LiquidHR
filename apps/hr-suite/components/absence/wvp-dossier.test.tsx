@@ -32,6 +32,15 @@ it('toont voortgang, de volgende mijlpaal en onderscheidt ontbrekende broninform
   expect(html).toContain('label-progressLegalNote')
   expect(render({processInstanceId:null,tasks:[]})).toContain('label-progressSourceMissing')
 })
+it('toont geannuleerde taken apart en scheidt week-42-voorbereiding van meldtermijn',()=> {
+  const week42={id:'44444444-4444-4444-8444-444444444444',code:'WVP_WEEK_42',dueOn:'2026-10-22',status:'OPEN',completedAt:null}
+  const cancelled={id:'55555555-5555-4555-8555-555555555555',code:'WVP_WEEK_8',dueOn:'2026-02-26',status:'CANCELLED',completedAt:null}
+  const html=render({tasks:[...dossier.tasks,week42,cancelled]})
+  expect(html).toContain('<dt>label-CANCELLED</dt><dd class="font-semibold">1</dd>')
+  expect(html).toContain('label-week42Preparation')
+  expect(html).toContain('label-week42Deadline')
+  expect(html).toContain('label-week42ReviewNote')
+})
 it('toont PMUX-processtatus wanneer de bestaande projection actor-read toestaat',()=> {
   const html=render({}, {processStatus:'RUNNING'})
   expect(html).toContain('label-processStatus')

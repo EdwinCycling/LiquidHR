@@ -97,6 +97,7 @@ describe('WVP01/WVP02 uitvoerbaar databasecontract', () => {
       create function public.perform_process_work_item_action(uuid,text,bigint,bigint,text,uuid) returns jsonb language plpgsql as $$ declare i uuid; s uuid; next_key text; begin
         if not internal_security.test_task_act_allowed($1) then raise exception 'WVP_FORBIDDEN' using errcode='42501'; end if;
         insert into internal_security.test_pmux_calls values($2,$1,auth.uid());
+        if coalesce(current_setting('test.fail_pmux_action',true),'false')='true' then raise exception 'TEST_PMUX_FAILURE'; end if;
         select process_instance_id into i from public.process_work_items where id=$1;
         if $2='CANCEL' then update public.process_instances set status='COMPLETED' where id=(select process_instance_id from public.process_work_items where id=$1); end if;
         update public.process_step_instances set status=case when $2='CANCEL' then 'CANCELLED' else 'COMPLETED' end where id=(select step_instance_id from public.process_work_items where id=$1);
@@ -284,6 +285,17 @@ describe('WVP01/WVP02 uitvoerbaar databasecontract', () => {
     expect((await list(hr,caseId))[0].events).toHaveLength(2)
     expect((await db.query<{action:string}>('select action from internal_security.test_pmux_calls order by action')).rows.map(row=>row.action)).toEqual(['CLAIM','SUBMIT'])
   })
+  it('rolt taak, event, audit en PMUX-claim transactioneel terug als de PMUX-kernel faalt',async () => {
+    const task=(await list(hr,caseId))[0].tasks.find(t=>t.code==='WVP_WEEK_8')!
+    const today=(await db.query<{date_value:string}>('select current_date::text date_value')).rows[0].date_value
+    const before=await mutationCounts()
+    await db.query("select set_config('test.fail_pmux_action','true',false)")
+    await actor(manager)
+    await expect(command({action:'MILESTONE',taskId:task.id,occurredOn:today,confirmed:true,idempotencyKey:id(91)})).rejects.toThrow('TEST_PMUX_FAILURE')
+    await db.query("select set_config('test.fail_pmux_action','false',false)")
+    expect(await mutationCounts()).toEqual(before)
+    expect((await db.query<{status:string;completed_at:string|null}>('select status,completed_at from public.absence_tasks where id=$1',[task.id])).rows[0]).toEqual({status:'OPEN',completed_at:null})
+  })
   it('registreert niet-medische werkafspraak en self-only kennisname',async () => {
     const today=(await db.query<{date_value:string}>('select current_date::text date_value')).rows[0].date_value
     await actor(manager)
@@ -351,6 +363,7 @@ describe('WVP01/WVP02 uitvoerbaar databasecontract', () => {
     expect((await db.query<{closed_at:Date}>('select closed_at from public.absence_guidance')).rows[0].closed_at).toBeTruthy()
     expect((await db.query<{status:string}>('select status from public.process_instances')).rows[0].status).toBe('COMPLETED')
     expect((await db.query<{status:string}>("select status from public.absence_tasks where case_id=$1 and status='OPEN'",[caseId])).rows).toHaveLength(0)
+    expect((await db.query<{status:string; count:number}>('select status,count(*)::int count from public.absence_tasks where case_id=$1 group by status',[caseId])).rows).toEqual([{status:'CANCELLED',count:20},{status:'COMPLETED',count:2}])
     await expect(command({action:'AGREEMENT',agreement:'UNCHANGED',occurredOn:today,reviewOn:today,idempotencyKey:id(84)})).rejects.toThrow('WVP_CLOSED')
   })
   it('hergebruikt een bestaande legacy-afronding zonder datum, actor of bron te herschrijven',async () => {

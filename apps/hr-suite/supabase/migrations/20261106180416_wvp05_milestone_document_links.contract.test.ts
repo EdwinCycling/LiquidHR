@@ -150,15 +150,19 @@ describe('WVP05 documentkoppelingen databasecontract', () => {
     await expectDenied(() => list(), 'WVP_FORBIDDEN')
   })
 
-  it('verwijdert uitsluitend de koppeling, houdt het document intact en auditeert zonder inhoud of vrije tekst', async () => {
+  it('verwijdert en opnieuw koppelt alleen de relatie, behoudt het document en auditeert elke transitie', async () => {
     await setActor(hr)
     const linkId = await add(caseId, taskId, documentId)
     expect(await remove(linkId)).toBe(true)
     expect(await remove(linkId)).toBe(false)
     expect(await list()).toEqual([])
     expect((await db.query('select id from public.employee_documents where id=$1 and deleted_at is null', [documentId])).rows).toHaveLength(1)
+    const relinkedId = await add(caseId, taskId, documentId)
+    expect(relinkedId).not.toBe(linkId)
+    expect(await add(caseId, taskId, documentId)).toBe(relinkedId)
+    expect(await list()).toEqual([{ id: relinkedId, taskId, documentId, createdAt: expect.any(String) }])
     const audit = await db.query<{ action: string; changes: unknown }>("select action,changes from public.audit_logs where entity_name='wvp_document_link' order by created_at")
-    expect(audit.rows.map(row => row.action)).toEqual(['CREATE', 'DELETE'])
+    expect(audit.rows.map(row => row.action)).toEqual(['CREATE', 'DELETE', 'CREATE'])
     expect(JSON.stringify(audit.rows)).not.toMatch(/title|filename|diagnosis|treatment|medical|description/i)
     expect((await db.query<{ column_name: string }>("select column_name from information_schema.columns where table_name='wvp_document_links'")).rows.map(row => row.column_name)).not.toContain('metadata')
   })

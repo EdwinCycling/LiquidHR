@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addCalendarDays, nextWvpTask, projectWvpMilestones, summarizeWvpDossierEvidence, wvpCommandSchema, wvpUrgency } from './domain'
+import { addCalendarDays, nextWvpTask, projectWvpMilestones, summarizeWvpDossierEvidence, wvpCommandSchema, wvpTaskSignalOn, wvpTaskStatutoryDeadlineOn, wvpUrgency, wvpWeek42Timing } from './domain'
 
 describe('WVP wettelijke kalender en privacycontract', () => {
   it('rekent kalenderweken over DST en schrikkeldag, zonder werkkalender', () => {
@@ -10,8 +10,19 @@ describe('WVP wettelijke kalender en privacycontract', () => {
     expect(projectWvpMilestones('2026-01-01', '2026-01-20').find(x => x.code === 'WVP_WEEK_8')?.dueOn).toBe('2026-02-03')
     expect(projectWvpMilestones('2026-01-01', '2026-03-01').find(x => x.code === 'WVP_WEEK_8')?.dueOn).toBe('2026-02-26')
   })
-  it('behoudt de 42-weekse signalering los van de meldwerkdag', () => {
+  it('houdt de opgeslagen 42-wekenmijlpaal op de kalendergrens', () => {
     expect(projectWvpMilestones('2026-01-01').find(x => x.code === 'WVP_WEEK_42')).toMatchObject({ kind: 'SIGNAL', dueOn: '2026-10-22' })
+  })
+  it('scheidt het voorbereidingssignaal van de uiterste UWV-meldwerkdag', () => {
+    const timing = wvpWeek42Timing('2026-01-01')
+    expect(timing).toEqual({ preparationSignalOn: '2026-10-08', week42BoundaryOn: '2026-10-22', statutoryDeadlineOn: '2026-10-22' })
+    const task = { code: 'WVP_WEEK_42', dueOn: '2026-10-22', status: 'OPEN' }
+    expect(wvpTaskSignalOn(task, '2026-01-01')).toBe(timing.preparationSignalOn)
+    expect(wvpTaskStatutoryDeadlineOn(task, '2026-01-01')).toBe(timing.statutoryDeadlineOn)
+  })
+  it('verplaatst de standaard meldtermijn naar de eerstvolgende werkdag na weekend en erkende feestdag', () => {
+    expect(wvpWeek42Timing('2026-01-03')).toMatchObject({ week42BoundaryOn: '2026-10-24', statutoryDeadlineOn: '2026-10-26', preparationSignalOn: '2026-10-12' })
+    expect(wvpWeek42Timing('2025-06-13')).toMatchObject({ week42BoundaryOn: '2026-04-03', statutoryDeadlineOn: '2026-04-07', preparationSignalOn: '2026-03-24' })
   })
   it('koppelt mijlpaalgebeurtenissen aan de juiste taak en toont ontbrekende registratie', () => {
     const evidence = summarizeWvpDossierEvidence([
@@ -41,6 +52,13 @@ describe('WVP wettelijke kalender en privacycontract', () => {
     expect(nextWvpTask(tasks, 'WVP_WEEK_8')?.code).toBe('WVP_WEEK_8')
     expect(nextWvpTask(tasks, 'WVP_WEEK_42')?.code).toBe('WVP_WEEK_6')
     expect(nextWvpTask(tasks.slice(2), null)).toBeNull()
+  })
+  it('prioriteert het week-42-voorbereidingssignaal in plaats van de latere meldtermijn', () => {
+    const tasks = [
+      { code: 'WVP_WEEK_42', dueOn: '2026-10-22', status: 'OPEN' },
+      { code: 'CUSTOM_REVIEW', dueOn: '2026-10-10', status: 'OPEN' },
+    ]
+    expect(nextWvpTask(tasks, null, '2026-01-01')?.code).toBe('WVP_WEEK_42')
   })
   it.each(['diagnosis', 'medicalCause', 'treatment', 'note', 'completionNote'])('weigert extra gezondheids-/vrije tekstveld %s', (field) => {
     expect(wvpCommandSchema.safeParse({ action: 'START', caseId: '11111111-1111-4111-8111-111111111111', [field]: 'niet opslaan' }).success).toBe(false)
