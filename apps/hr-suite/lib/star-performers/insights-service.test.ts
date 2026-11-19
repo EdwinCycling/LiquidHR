@@ -174,6 +174,26 @@ describe('Star Performers insights aggregations', () => {
     expect(report.plans).toHaveLength(0)
   })
 
+  it('keeps development plan detail links and capability provenance in the filtered export', () => {
+    const report = buildDevelopmentInsight({
+      asOf: '2026-10-18',
+      population: [{ employeeId: 'employee-1', departmentId: 'department-1', departmentName: 'People' }],
+      plans: [{ id: 'plan-1', employeeId: 'employee-1', capabilityId: 'capability-1', capabilityLabel: 'Communicatie (COMM)', employeeLabel: 'Ada Admin', title: 'Communicatie oefenen', status: 'ACTIVE', progressPercent: 25, periodStart: '2026-10-01', periodEnd: null, completedAt: null }],
+      actions: [{ id: 'action-1', employeeId: 'employee-1', employeeLabel: 'Ada Admin', title: 'Volgend gesprek', status: 'OPEN', dueOn: null, nextMeetingOn: '2026-11-01' }],
+      goalHrefBase: '/settings/talent/goals',
+    })
+
+    expect(report.plans[0]?.href).toBe('/settings/talent/goals?employeeId=employee-1&goalId=plan-1#goal-plan-1')
+    const [headerLine, planLine, actionLine] = developmentInsightCsv(report).trimEnd().split('\r\n')
+    expect(headerLine?.split(',')).toContain('"capability_id"')
+    expect(headerLine?.split(',')).toContain('"source_href"')
+    expect(planLine).toContain('capability-1')
+    expect(planLine).toContain(report.plans[0]?.href)
+    expect(actionLine).toContain('action-1')
+    expect(actionLine).toContain(report.actions[0]?.href)
+    expect(developmentInsightCsv(report).trimEnd().split('\r\n')).toHaveLength(report.plans.length + report.actions.length + 1)
+  })
+
   it('keeps Continuous Appraisal coverage unique, status-aware, and separate from POP actions', () => {
     const population = [
       { departmentId: 'department-1', employee: { employeeId: 'employee-1', employeeNumber: 'E001', label: 'Ada Admin', departmentName: 'People', jobName: 'HR adviseur', jobGroupName: 'Service', href: '/employees/employee-1' } },

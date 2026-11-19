@@ -50,14 +50,14 @@ describe('listTalentGoals delegated self-read dependencies', () => {
       select: vi.fn(),
       eq: vi.fn(),
       order: vi.fn(),
-      limit: vi.fn(),
+      range: vi.fn(),
       then: (resolve: (value: { data: readonly unknown[]; error: null }) => unknown) =>
         Promise.resolve({ data: [], error: null }).then(resolve),
     }
     goalQuery.select.mockReturnValue(goalQuery)
     goalQuery.eq.mockReturnValue(goalQuery)
     goalQuery.order.mockReturnValue(goalQuery)
-    goalQuery.limit.mockReturnValue(goalQuery)
+    goalQuery.range.mockReturnValue(goalQuery)
     const rls = createRls()
     const from = vi.spyOn(rls.client, 'from').mockImplementation((() => goalQuery) as never)
     requirePermissionInContext.mockImplementation(async (_client, context) => context)
@@ -138,14 +138,14 @@ describe('listTalentGoals delegated self-read dependencies', () => {
       select: vi.fn(),
       eq: vi.fn(),
       order: vi.fn(),
-      limit: vi.fn(),
+      range: vi.fn(),
       then: (resolve: (value: { data: readonly unknown[]; error: null }) => unknown) =>
         Promise.resolve({ data: [], error: null }).then(resolve),
     }
     goalQuery.select.mockReturnValue(goalQuery)
     goalQuery.eq.mockReturnValue(goalQuery)
     goalQuery.order.mockReturnValue(goalQuery)
-    goalQuery.limit.mockReturnValue(goalQuery)
+    goalQuery.range.mockReturnValue(goalQuery)
     const rls = createRls()
     const from = vi.spyOn(rls.client, 'from').mockImplementation((() => goalQuery) as never)
     requirePermissionInContext.mockImplementation(async (_client, context) => context)

@@ -24,6 +24,9 @@ type TalentEmployeeCapabilityReadDependencies = {
 }
 type RecordReadRow = Pick<RecordRow, 'id' | 'employee_id' | 'capability_id' | 'talent_level_id' | 'language_level' | 'language_is_native' | 'certificate_status' | 'certificate_issuing_body' | 'certificate_code' | 'certificate_validity_months' | 'certificate_is_permanent' | 'certificate_renewal_required' | 'evidence_status' | 'qualification_responsible_user_id' | 'source_type' | 'status' | 'valid_from' | 'valid_until' | 'evidence_document_id' | 'version' | 'updated_at'>
 
+const RECORD_READ_PAGE_SIZE = 1_000
+const RECORD_READ_MAX_ROWS = 20_000
+
 export type TalentEmployeeCapabilityRecord = {
   id: string
   employeeId: string
@@ -197,22 +200,38 @@ async function readRecordRows(
   const targetEmployeeId = selfBound ? context.employeeId : query.employeeId
   if (selfBound && !targetEmployeeId) throw new TalentServiceError('EMPLOYEE_CONTEXT_REQUIRED', 403)
 
-  let recordsQuery = supabase
-    .from('talent_employee_capability_records')
-    .select('id,employee_id,capability_id,talent_level_id,language_level,language_is_native,certificate_status,certificate_issuing_body,certificate_code,certificate_validity_months,certificate_is_permanent,certificate_renewal_required,evidence_status,qualification_responsible_user_id,source_type,status,valid_from,valid_until,evidence_document_id,version,updated_at')
-    .eq('tenant_id', context.tenantId)
-    .order('valid_from', { ascending: false })
-    .order('updated_at', { ascending: false })
-    .limit(1000)
-  if (targetEmployeeId) recordsQuery = recordsQuery.eq('employee_id', targetEmployeeId)
-  if (query.sourceType) recordsQuery = recordsQuery.eq('source_type', query.sourceType)
-  const { data: records, error: recordsError } = await recordsQuery
-  if (recordsError) {
-    logDatabaseReadFailure(recordsError, 'talent.employeeCapabilities.records')
-    throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
+  const readRecordPage = (from: number, to: number) => {
+    let recordsQuery = supabase
+      .from('talent_employee_capability_records')
+      .select('id,employee_id,capability_id,talent_level_id,language_level,language_is_native,certificate_status,certificate_issuing_body,certificate_code,certificate_validity_months,certificate_is_permanent,certificate_renewal_required,evidence_status,qualification_responsible_user_id,source_type,status,valid_from,valid_until,evidence_document_id,version,updated_at')
+      .eq('tenant_id', context.tenantId)
+      .order('valid_from', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .order('id')
+    if (targetEmployeeId) recordsQuery = recordsQuery.eq('employee_id', targetEmployeeId)
+    if (query.sourceType) recordsQuery = recordsQuery.eq('source_type', query.sourceType)
+    return recordsQuery.range(from, to)
   }
-
-  const rows = records ?? []
+  const rows: RecordReadRow[] = []
+  for (let from = 0; ; from += RECORD_READ_PAGE_SIZE) {
+    const { data, error } = await readRecordPage(from, from + RECORD_READ_PAGE_SIZE - 1)
+    if (error) {
+      logDatabaseReadFailure(error, 'talent.employeeCapabilities.records')
+      throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
+    }
+    const page = data ?? []
+    rows.push(...page)
+    if (page.length < RECORD_READ_PAGE_SIZE) break
+    if (rows.length >= RECORD_READ_MAX_ROWS) {
+      const { data: overflow, error: overflowError } = await readRecordPage(from + RECORD_READ_PAGE_SIZE, from + RECORD_READ_PAGE_SIZE)
+      if (overflowError) {
+        logDatabaseReadFailure(overflowError, 'talent.employeeCapabilities.records')
+        throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')
+      }
+      if (overflow?.length) throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_SOURCE_LIMIT_EXCEEDED', 503)
+      break
+    }
+  }
   const capabilityIds = [...new Set(rows.map((row) => row.capability_id))]
   const levelIds = [...new Set(rows.map((row) => row.talent_level_id).filter((id): id is string => Boolean(id)))]
   const employeeIds = [...new Set(rows.map((row) => row.employee_id))]

@@ -147,21 +147,22 @@ export async function listTalentProfilesForWorkforce(options: TalentWorkforcePro
   if (!canReadTenant) {
     if (!context.employeeId) throw new TalentServiceError('EMPLOYEE_CONTEXT_REQUIRED', 403)
     const today = new Date().toISOString().slice(0, 10)
-    const { data: organizations, error } = await supabase
+    const { data: organizations, error, count: organizationCount } = await supabase
       .from('employee_organizations')
-      .select('job_id')
+      .select('job_id', { count: 'exact' })
       .eq('tenant_id', context.tenantId)
       .eq('direct_manager_id', context.employeeId)
       .lte('effective_from', today)
       .or(`effective_to.is.null,effective_to.gt.${today}`)
     if (error) throw new TalentServiceError('TALENT_MANAGER_SCOPE_READ_FAILED')
+    if ((organizations ?? []).length < (organizationCount ?? Number.POSITIVE_INFINITY)) throw new TalentServiceError('TALENT_MANAGER_SCOPE_SOURCE_LIMIT_EXCEEDED', 503)
     scopedJobIds = [...new Set((organizations ?? []).map((organization) => organization.job_id).filter((jobId): jobId is string => Boolean(jobId)))]
     if (scopedJobIds.length === 0) return []
   }
 
   let profilesQuery = supabase
     .from('talent_job_profile_readmodel')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('tenant_id', context.tenantId)
     .eq('job_is_active', true)
     .eq('status', 'ACTIVE')
@@ -170,8 +171,9 @@ export async function listTalentProfilesForWorkforce(options: TalentWorkforcePro
     .limit(500)
   if (options.profileVersionId) profilesQuery = profilesQuery.eq('profile_version_id', options.profileVersionId)
   if (scopedJobIds) profilesQuery = profilesQuery.in('job_id', scopedJobIds)
-  const { data: profiles, error: profileError } = await profilesQuery
+  const { data: profiles, error: profileError, count: profileCount } = await profilesQuery
   if (profileError) throw new TalentServiceError('TALENT_WORKFORCE_READ_FAILED')
+  if ((profiles ?? []).length < (profileCount ?? Number.POSITIVE_INFINITY)) throw new TalentServiceError('TALENT_WORKFORCE_PROFILE_SOURCE_LIMIT_EXCEEDED', 503)
   const profileRows = (profiles ?? []).filter((profile) => Boolean(profile.profile_version_id))
   if (profileRows.length === 0) return []
 
@@ -179,34 +181,39 @@ export async function listTalentProfilesForWorkforce(options: TalentWorkforcePro
   const profileJobIds = [...new Set(profileRows.flatMap((profile) => profile.job_id ? [profile.job_id] : []))]
   const today = new Date().toISOString().slice(0, 10)
   const [requirementsResult, organizationsResult] = await Promise.all([
-    options.includeRequirements === false ? Promise.resolve({ data: [], error: null }) : supabase
+    options.includeRequirements === false ? Promise.resolve({ data: [], error: null, count: 0 }) : supabase
       .from('job_profile_capability_requirements')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('tenant_id', context.tenantId)
       .in('profile_version_id', profileVersionIds)
       .order('sort_order'),
     supabase
       .from('employee_organizations')
-      .select('employee_id,job_id')
+      .select('employee_id,job_id', { count: 'exact' })
       .eq('tenant_id', context.tenantId)
       .in('job_id', profileJobIds)
       .lte('effective_from', today)
       .or(`effective_to.is.null,effective_to.gt.${today}`),
   ])
   if (requirementsResult.error || organizationsResult.error) throw new TalentServiceError('TALENT_WORKFORCE_READ_FAILED')
+  if ((requirementsResult.data ?? []).length < (requirementsResult.count ?? Number.POSITIVE_INFINITY)
+    || (organizationsResult.data ?? []).length < (organizationsResult.count ?? Number.POSITIVE_INFINITY)) {
+    throw new TalentServiceError('TALENT_WORKFORCE_SOURCE_LIMIT_EXCEEDED', 503)
+  }
   const requirements = requirementsResult.data
   const organizations = organizationsResult.data ?? []
   const employeeIds = [...new Set(organizations.map((organization) => organization.employee_id))]
   const employeesResult = employeeIds.length > 0
     ? await supabase
       .from('employees')
-      .select('id,first_name,birth_name,employee_number')
+      .select('id,first_name,birth_name,employee_number', { count: 'exact' })
       .eq('tenant_id', context.tenantId)
       .eq('is_active', true)
       .is('deleted_at', null)
       .in('id', employeeIds)
-    : { data: [], error: null }
+    : { data: [], error: null, count: 0 }
   if (employeesResult.error) throw new TalentServiceError('TALENT_WORKFORCE_READ_FAILED')
+  if ((employeesResult.data ?? []).length < (employeesResult.count ?? Number.POSITIVE_INFINITY)) throw new TalentServiceError('TALENT_WORKFORCE_SOURCE_LIMIT_EXCEEDED', 503)
   const employeesById = new Map((employeesResult.data ?? []).map((employee) => [employee.id, employee]))
   const employeesByJob = new Map<string, TalentWorkforceEmployee[]>()
   for (const organization of organizations) {
@@ -228,13 +235,15 @@ export async function listTalentProfilesForWorkforce(options: TalentWorkforcePro
   const levelIds = [...new Set((requirements ?? []).map((requirement) => requirement.target_level_id).filter((levelId): levelId is string => Boolean(levelId)))]
   const [capabilities, levels] = await Promise.all([
     capabilityIds.length > 0
-      ? supabase.from('talent_capabilities').select('id, code, name, capability_type').eq('tenant_id', context.tenantId).in('id', capabilityIds)
-      : Promise.resolve({ data: [], error: null }),
+      ? supabase.from('talent_capabilities').select('id, code, name, capability_type', { count: 'exact' }).eq('tenant_id', context.tenantId).in('id', capabilityIds)
+      : Promise.resolve({ data: [], error: null, count: 0 }),
     levelIds.length > 0
-      ? supabase.from('talent_levels').select('id, code, name').eq('tenant_id', context.tenantId).in('id', levelIds)
-      : Promise.resolve({ data: [], error: null }),
+      ? supabase.from('talent_levels').select('id, code, name', { count: 'exact' }).eq('tenant_id', context.tenantId).in('id', levelIds)
+      : Promise.resolve({ data: [], error: null, count: 0 }),
   ])
   if (capabilities.error || levels.error) throw new TalentServiceError('TALENT_WORKFORCE_READ_FAILED')
+  if ((capabilities.data ?? []).length < (capabilities.count ?? Number.POSITIVE_INFINITY)
+    || (levels.data ?? []).length < (levels.count ?? Number.POSITIVE_INFINITY)) throw new TalentServiceError('TALENT_WORKFORCE_SOURCE_LIMIT_EXCEEDED', 503)
   const capabilitiesById = new Map((capabilities.data ?? []).map((capability) => [capability.id, capability]))
   const levelsById = new Map((levels.data ?? []).map((level) => [level.id, level]))
   const requirementsByVersion = new Map<string, TalentReadRequirement[]>()

@@ -18,7 +18,7 @@ vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
 import type { createClient as createServerClient } from '@/lib/supabase/server'
 import { requirePermission } from '@/lib/auth/permissions'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
-import { addContinuousAppraisalComment, createContinuousAppraisalAttachment, getContinuousAppraisalAttachmentDownload, softDeleteContinuousAppraisalItem, transitionContinuousAppraisalItemStatus } from './service'
+import { addContinuousAppraisalComment, createContinuousAppraisalAttachment, getContinuousAppraisalAttachmentDownload, listContinuousAppraisalEmployeeOptions, listContinuousAppraisalItemsForEmployees, softDeleteContinuousAppraisalItem, transitionContinuousAppraisalItemStatus } from './service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createServerClient>>
 
@@ -91,6 +91,83 @@ describe('continuous appraisal attachment download security', () => {
 
     await expect(getContinuousAppraisalAttachmentDownload(attachmentId)).resolves.toBe(signedUrl)
     expect(createSignedUrl).toHaveBeenCalledWith(storageKey, 60)
+  })
+})
+
+describe('continuous appraisal direct-team source completeness', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  type QueryResult = { data: Array<Record<string, unknown>>; error: null; count: number }
+  type QueryBuilder = {
+    select: (...args: unknown[]) => QueryBuilder
+    eq: (...args: unknown[]) => QueryBuilder
+    lte: (...args: unknown[]) => QueryBuilder
+    or: (...args: unknown[]) => QueryBuilder
+    is: (...args: unknown[]) => QueryBuilder
+    in: (...args: unknown[]) => QueryBuilder
+    order: (...args: unknown[]) => QueryBuilder
+    limit: (...args: unknown[]) => QueryBuilder
+    then: (resolve: (value: QueryResult) => unknown) => Promise<unknown>
+  }
+  const query = (data: QueryResult['data'], count: number): QueryBuilder => {
+    const result: QueryResult = { data, error: null, count }
+    const builder = {} as QueryBuilder
+    builder.select = vi.fn(() => builder)
+    builder.eq = vi.fn(() => builder)
+    builder.lte = vi.fn(() => builder)
+    builder.or = vi.fn(() => builder)
+    builder.is = vi.fn(() => builder)
+    builder.in = vi.fn(() => builder)
+    builder.order = vi.fn(() => builder)
+    builder.limit = vi.fn(() => builder)
+    builder.then = (resolve) => Promise.resolve(result).then(resolve)
+    return builder
+  }
+
+  const setManagerReadContext = () => vi.mocked(requirePermission).mockResolvedValue({ ...actor, permissions: ['continuous-appraisal:read'] })
+
+  it('fails closed when the direct-team assignment read is truncated', async () => {
+    createClient.mockResolvedValue({ from: vi.fn(() => query([], 1)) } as unknown as SupabaseServerClient)
+    setManagerReadContext()
+
+    await expect(listContinuousAppraisalEmployeeOptions()).rejects.toMatchObject({
+      code: 'CONTINUOUS_APPRAISAL_SCOPE_SOURCE_LIMIT_EXCEEDED',
+      status: 503,
+    })
+  })
+
+  it('fails closed when the employee options read reaches its row limit', async () => {
+    const assignments = query([{ employee_id: 'employee-target' }], 1)
+    const employees = query([], 1)
+    createClient.mockResolvedValue({
+      from: vi.fn((table: string) => table === 'employee_organizations' ? assignments : employees),
+    } as unknown as SupabaseServerClient)
+    setManagerReadContext()
+
+    await expect(listContinuousAppraisalEmployeeOptions()).rejects.toMatchObject({
+      code: 'CONTINUOUS_APPRAISAL_EMPLOYEE_OPTIONS_SOURCE_LIMIT_EXCEEDED',
+      status: 503,
+    })
+  })
+
+  it('fails closed when the direct-team scope is truncated for appraisal insights', async () => {
+    createClient.mockResolvedValue({ from: vi.fn(() => query([], 1)) } as unknown as SupabaseServerClient)
+    setManagerReadContext()
+
+    await expect(listContinuousAppraisalItemsForEmployees(['employee-target'])).rejects.toMatchObject({
+      code: 'CONTINUOUS_APPRAISAL_SCOPE_SOURCE_LIMIT_EXCEEDED',
+      status: 503,
+    })
+  })
+
+  it('fails closed when appraisal insight items exceed the report row limit', async () => {
+    createClient.mockResolvedValue({ from: vi.fn(() => query([], 1)) } as unknown as SupabaseServerClient)
+    vi.mocked(requirePermission).mockResolvedValue({ ...actor, permissions: ['continuous-appraisal:manage'] })
+
+    await expect(listContinuousAppraisalItemsForEmployees(['employee-target'])).rejects.toMatchObject({
+      code: 'CONTINUOUS_APPRAISAL_SOURCE_LIMIT_EXCEEDED',
+      status: 503,
+    })
   })
 })
 

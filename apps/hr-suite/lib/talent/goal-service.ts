@@ -12,6 +12,11 @@ type GoalRow = Database['public']['Tables']['talent_development_goals']['Row']
 type GoalInsert = Database['public']['Tables']['talent_development_goals']['Insert']
 type GoalUpdate = Database['public']['Tables']['talent_development_goals']['Update']
 
+const GOAL_READ_PAGE_SIZE = 1_000
+const GOAL_READ_MAX_ROWS = 20_000
+
+type SelfCapabilityReference = { id: string; code: string; name: string }
+
 export class TalentGoalError extends Error {
   constructor(public readonly code: string, public readonly status = 500) {
     super(code)
@@ -120,9 +125,49 @@ async function authorizeDelegatedSelfGoalRead(
 
 async function loadEmployees(supabase: Awaited<ReturnType<typeof createClient>>, tenantId: string, employeeIds: string[]): Promise<Map<string, string | null>> {
   if (employeeIds.length === 0) return new Map()
-  const { data, error } = await supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', tenantId).in('id', employeeIds).is('deleted_at', null)
+  const { data, error, count } = await supabase.from('employees').select('id,first_name,birth_name,employee_number', { count: 'exact' }).eq('tenant_id', tenantId).in('id', employeeIds).is('deleted_at', null)
   if (error) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_READ_FAILED')
+  if ((data ?? []).length < (count ?? Number.POSITIVE_INFINITY)) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_SOURCE_LIMIT_EXCEEDED', 503)
   return new Map((data ?? []).map((employee) => [employee.id, employeeLabel(employee.first_name, employee.birth_name, employee.employee_number)]))
+}
+
+async function readSelfCapabilityReferences(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+): Promise<SelfCapabilityReference[]> {
+  const { data: profile, error: profileError } = await supabase
+    .rpc('get_my_talent_profile', { requested_tenant_id: tenantId })
+    .maybeSingle()
+  if (profileError) throw new TalentGoalError('TALENT_GOAL_CAPABILITY_READ_FAILED')
+  if (!profile?.profile_version_id) return []
+
+  const { data, error } = await supabase.rpc('get_my_talent_profile_requirements', {
+    requested_tenant_id: tenantId,
+    requested_profile_version_id: profile.profile_version_id,
+  })
+  if (error) throw new TalentGoalError('TALENT_GOAL_CAPABILITY_READ_FAILED')
+
+  const unique = new Map<string, SelfCapabilityReference>()
+  for (const requirement of data ?? []) {
+    if (!requirement.capability_id || !requirement.capability_code || !requirement.capability_name) continue
+    unique.set(requirement.capability_id, {
+      id: requirement.capability_id,
+      code: requirement.capability_code,
+      name: requirement.capability_name,
+    })
+  }
+  return [...unique.values()]
+}
+
+async function assertSelfCapabilityAllowed(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  capabilityId: string,
+): Promise<void> {
+  const allowed = await readSelfCapabilityReferences(supabase, tenantId)
+  if (!allowed.some((capability) => capability.id === capabilityId)) {
+    throw new TalentGoalError('TALENT_GOAL_CAPABILITY_FORBIDDEN', 403)
+  }
 }
 
 async function loadEmployeeOptions(supabase: Awaited<ReturnType<typeof createClient>>, context: AuthContext, mode: 'admin' | 'manager'): Promise<Array<{ id: string; label: string }>> {
@@ -130,14 +175,16 @@ async function loadEmployeeOptions(supabase: Awaited<ReturnType<typeof createCli
   if (mode === 'manager') {
     if (!context.employeeId) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_REQUIRED', 403)
     const today = new Date().toISOString().slice(0, 10)
-    const { data: placements, error: placementError } = await supabase.from('employee_organizations').select('employee_id').eq('tenant_id', context.tenantId).eq('direct_manager_id', context.employeeId).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).limit(1000)
+    const { data: placements, error: placementError, count: placementCount } = await supabase.from('employee_organizations').select('employee_id', { count: 'exact' }).eq('tenant_id', context.tenantId).eq('direct_manager_id', context.employeeId).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).limit(1000)
     if (placementError) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_OPTIONS_FAILED')
+    if ((placements ?? []).length < (placementCount ?? Number.POSITIVE_INFINITY)) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_OPTIONS_SOURCE_LIMIT_EXCEEDED', 503)
     employeeIds = [...new Set((placements ?? []).map((placement) => placement.employee_id))]
   }
-  let employeeQuery = supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).is('deleted_at', null).eq('is_active', true).order('birth_name').limit(1000)
+  let employeeQuery = supabase.from('employees').select('id,first_name,birth_name,employee_number', { count: 'exact' }).eq('tenant_id', context.tenantId).is('deleted_at', null).eq('is_active', true).order('birth_name').limit(1000)
   if (employeeIds) employeeQuery = employeeQuery.in('id', employeeIds)
-  const { data, error } = await employeeQuery
+  const { data, error, count } = await employeeQuery
   if (error) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_OPTIONS_FAILED')
+  if ((data ?? []).length < (count ?? Number.POSITIVE_INFINITY)) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_OPTIONS_SOURCE_LIMIT_EXCEEDED', 503)
   return (data ?? []).map((employee) => ({ id: employee.id, label: employeeLabel(employee.first_name, employee.birth_name, employee.employee_number) ?? employee.employee_number }))
 }
 
@@ -157,36 +204,57 @@ export async function listTalentGoals(
   const includeEmployeeOptions = options.includeEmployeeOptions ?? includeOptions
   const includeCapabilityOptions = options.includeCapabilityOptions ?? includeOptions
 
-  let goalsQuery = supabase.from('talent_development_goals').select('*').eq('tenant_id', context.tenantId).order('period_start', { ascending: false }).order('created_at', { ascending: false }).limit(1000)
-  if (mode === 'self') {
-    if (!context.employeeId) return { goals: [], employees: [], capabilities: [] }
-    goalsQuery = goalsQuery.eq('employee_id', context.employeeId)
-  } else if (query.employeeId) {
-    goalsQuery = goalsQuery.eq('employee_id', query.employeeId)
+  if (mode === 'self' && !context.employeeId) return { goals: [], employees: [], capabilities: [] }
+  const readGoalPage = async (from: number, to: number) => {
+    let goalsQuery = supabase.from('talent_development_goals').select('*').eq('tenant_id', context.tenantId)
+      .order('period_start', { ascending: false }).order('created_at', { ascending: false }).order('id')
+    if (mode === 'self') goalsQuery = goalsQuery.eq('employee_id', context.employeeId!)
+    else if (query.employeeId) goalsQuery = goalsQuery.eq('employee_id', query.employeeId)
+    if (query.goalId) goalsQuery = goalsQuery.eq('id', query.goalId)
+    if (query.status) goalsQuery = goalsQuery.eq('status', query.status)
+    return goalsQuery.range(from, to)
   }
-  if (query.goalId) goalsQuery = goalsQuery.eq('id', query.goalId)
-  if (query.status) goalsQuery = goalsQuery.eq('status', query.status)
 
-  const { data: rows, error } = await goalsQuery
-  if (error) throw new TalentGoalError('TALENT_GOAL_READ_FAILED')
-  const goalRows = rows ?? []
+  const goalRows: GoalRow[] = []
+  for (let from = 0; ; from += GOAL_READ_PAGE_SIZE) {
+    const { data, error } = await readGoalPage(from, from + GOAL_READ_PAGE_SIZE - 1)
+    if (error) throw new TalentGoalError('TALENT_GOAL_READ_FAILED')
+    const page = data ?? []
+    goalRows.push(...page)
+    if (page.length < GOAL_READ_PAGE_SIZE) break
+    if (goalRows.length >= GOAL_READ_MAX_ROWS) {
+      const { data: overflow, error: overflowError } = await readGoalPage(from + GOAL_READ_PAGE_SIZE, from + GOAL_READ_PAGE_SIZE)
+      if (overflowError) throw new TalentGoalError('TALENT_GOAL_READ_FAILED')
+      if (overflow?.length) throw new TalentGoalError('TALENT_GOAL_SOURCE_LIMIT_EXCEEDED', 503)
+      break
+    }
+  }
   const goalCapabilityIds = [...new Set(goalRows.map((goal) => goal.capability_id).filter((id): id is string => Boolean(id)))]
-  const [employeesResult, goalCapabilitiesResult, capabilitiesResult] = await Promise.all([
+  const needsSelfCapabilityReferences = mode === 'self' && (includeCapabilityOptions || goalCapabilityIds.length > 0)
+  const [employeesResult, goalCapabilitiesResult, capabilitiesResult, selfCapabilityReferences] = await Promise.all([
     mode === 'self' ? Promise.resolve(new Map<string, string | null>()) : loadEmployees(supabase, context.tenantId, goalRows.map((goal) => goal.employee_id)),
-    goalCapabilityIds.length === 0 ? Promise.resolve([] as Array<{ id: string; code: string; name: string }>) : supabase.from('talent_capabilities').select('id,code,name').eq('tenant_id', context.tenantId).in('id', goalCapabilityIds).then((result) => {
+    mode === 'self' || goalCapabilityIds.length === 0 ? Promise.resolve([] as Array<{ id: string; code: string; name: string }>) : supabase.from('talent_capabilities').select('id,code,name', { count: 'exact' }).eq('tenant_id', context.tenantId).in('id', goalCapabilityIds).then((result) => {
       if (result.error) throw new TalentGoalError('TALENT_GOAL_CAPABILITY_READ_FAILED')
+      if ((result.data ?? []).length < (result.count ?? Number.POSITIVE_INFINITY)) throw new TalentGoalError('TALENT_GOAL_CAPABILITY_SOURCE_LIMIT_EXCEEDED', 503)
       return result.data ?? []
     }),
-    mode === 'self' || !includeCapabilityOptions ? Promise.resolve([] as Array<{ id: string; label: string }>) : supabase.from('talent_capabilities').select('id,code,name').eq('tenant_id', context.tenantId).eq('status', 'ACTIVE').order('name').limit(500).then((result) => {
+    mode === 'self' || !includeCapabilityOptions ? Promise.resolve([] as Array<{ id: string; label: string }>) : supabase.from('talent_capabilities').select('id,code,name', { count: 'exact' }).eq('tenant_id', context.tenantId).eq('status', 'ACTIVE').order('name').limit(500).then((result) => {
       if (result.error) throw new TalentGoalError('TALENT_GOAL_CAPABILITY_READ_FAILED')
+      if ((result.data ?? []).length < (result.count ?? Number.POSITIVE_INFINITY)) throw new TalentGoalError('TALENT_GOAL_CAPABILITY_SOURCE_LIMIT_EXCEEDED', 503)
       return (result.data ?? []).map((capability) => ({ id: capability.id, label: `${capability.name} (${capability.code})` }))
     }),
+    needsSelfCapabilityReferences ? readSelfCapabilityReferences(supabase, context.tenantId) : Promise.resolve([] as SelfCapabilityReference[]),
   ])
-  const capabilityLabels = new Map(goalCapabilitiesResult.map((capability) => [capability.id, `${capability.name} (${capability.code})`]))
-  const capabilityOptions = [
-    ...goalCapabilitiesResult.map((capability) => ({ id: capability.id, label: `${capability.name} (${capability.code})` })),
-    ...capabilitiesResult.filter((capability) => !capabilityLabels.has(capability.id)),
-  ]
+  const visibleGoalCapabilities = mode === 'self'
+    ? selfCapabilityReferences.filter((capability) => goalCapabilityIds.includes(capability.id))
+    : goalCapabilitiesResult
+  const capabilityLabels = new Map(visibleGoalCapabilities.map((capability) => [capability.id, `${capability.name} (${capability.code})`]))
+  const capabilityOptions = mode === 'self'
+    ? includeCapabilityOptions ? selfCapabilityReferences.map((capability) => ({ id: capability.id, label: `${capability.name} (${capability.code})` })) : []
+    : [
+        ...goalCapabilitiesResult.map((capability) => ({ id: capability.id, label: `${capability.name} (${capability.code})` })),
+        ...capabilitiesResult.filter((capability) => !capabilityLabels.has(capability.id)),
+      ]
 
   return {
     goals: goalRows.map((goal) => ({
@@ -225,17 +293,37 @@ export async function listSelfDevelopmentPlans(
   await requireTenantModule('TALENT', { auth: context, supabase })
   if (!context.employeeId) throw new TalentGoalError('TALENT_GOAL_EMPLOYEE_REQUIRED', 403)
 
-  const { data, error } = await supabase
-    .from('talent_development_goals')
-    .select('tenant_id,employee_id,period_start,period_end,progress_percent,status,completed_at')
-    .eq('tenant_id', context.tenantId)
-    .eq('employee_id', context.employeeId)
-    .order('period_start', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(1000)
+  const plans: TalentSelfDevelopmentPlan[] = []
+  for (let from = 0; ; from += GOAL_READ_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('talent_development_goals')
+      .select('tenant_id,employee_id,period_start,period_end,progress_percent,status,completed_at')
+      .eq('tenant_id', context.tenantId)
+      .eq('employee_id', context.employeeId)
+      .order('period_start', { ascending: false })
+      .order('created_at', { ascending: false })
+      .order('id')
+      .range(from, from + GOAL_READ_PAGE_SIZE - 1)
 
-  if (error) throw new TalentGoalError('TALENT_GOAL_READ_FAILED')
-  return data ?? []
+    if (error) throw new TalentGoalError('TALENT_GOAL_READ_FAILED')
+    const page = data ?? []
+    plans.push(...page)
+    if (page.length < GOAL_READ_PAGE_SIZE) return plans
+    if (plans.length >= GOAL_READ_MAX_ROWS) {
+      const { data: overflow, error: overflowError } = await supabase
+        .from('talent_development_goals')
+        .select('id')
+        .eq('tenant_id', context.tenantId)
+        .eq('employee_id', context.employeeId)
+        .order('period_start', { ascending: false })
+        .order('created_at', { ascending: false })
+        .order('id')
+        .range(from + GOAL_READ_PAGE_SIZE, from + GOAL_READ_PAGE_SIZE)
+      if (overflowError) throw new TalentGoalError('TALENT_GOAL_READ_FAILED')
+      if (overflow?.length) throw new TalentGoalError('TALENT_GOAL_SOURCE_LIMIT_EXCEEDED', 503)
+      return plans
+    }
+  }
 }
 
 function managerEmployeeName(firstName: string | null, birthName: string | null): string {
@@ -396,6 +484,9 @@ export async function createTalentGoal(input: TalentGoalCreateInput): Promise<st
   await requireTenantModule('TALENT')
   const { context, targetEmployeeId, sourceType } = await goalMutationContext(input.employeeId)
   const supabase = await createClient()
+  if (sourceType === 'SELF_ENTERED' && input.capabilityId) {
+    await assertSelfCapabilityAllowed(supabase, context.tenantId, input.capabilityId)
+  }
   const insert: GoalInsert = {
     tenant_id: context.tenantId,
     employee_id: targetEmployeeId,
@@ -445,6 +536,12 @@ export async function updateTalentGoal(goalId: string, input: TalentGoalUpdateIn
   const nextPeriodEnd = input.periodEnd === undefined ? existing.period_end : input.periodEnd
   if (nextPeriodEnd && nextPeriodEnd <= nextPeriodStart) throw new TalentGoalError('TALENT_GOAL_PERIOD_INVALID', 400)
   if (existing.status !== 'DRAFT' && existing.status !== 'ACTIVE' && nextStatus === existing.status && Object.keys(input).some((key) => !['version', 'status'].includes(key))) throw new TalentGoalError('TALENT_GOAL_STATUS_LOCKED', 409)
+
+  if (existing.employee_id === context.employeeId
+    && input.capabilityId
+    && input.capabilityId !== existing.capability_id) {
+    await assertSelfCapabilityAllowed(supabase, context.tenantId, input.capabilityId)
+  }
 
   const update: GoalUpdate = { version: input.version + 1, updated_by_user_id: context.userId }
   if (input.capabilityId !== undefined) update.capability_id = input.capabilityId
