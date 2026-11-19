@@ -36,6 +36,7 @@ export type GoalLabels = {
   chooseEmployee: string
   capability: string
   noCapability: string
+  capabilityUnavailable: string
   noEmployees: string
   notAvailable: string
   goalTitle: string
@@ -208,7 +209,15 @@ export function TalentGoalWorkspace({ locale, mode, initial, labels }: { locale:
   async function refresh(): Promise<void> {
     setRefreshing(true)
     try {
-      const response = await fetch(`/api/talent/goals?mode=${mode}&includeEmployeeOptions=true&includeCapabilityOptions=false`, { cache: 'no-store' })
+      const params = new URLSearchParams()
+      params.set('mode', mode)
+      params.set('includeEmployeeOptions', 'true')
+      params.set('includeCapabilityOptions', 'true')
+      for (const key of ['goalId', 'employeeId', 'status'] as const) {
+        const value = new URLSearchParams(window.location.search).get(key)
+        if (value) params.set(key, value)
+      }
+      const response = await fetch(`/api/talent/goals?${params.toString()}`, { cache: 'no-store' })
       if (!await responseIsSuccessful(response)) throw new Error('read')
       const payload = await response.json() as { data: TalentGoalWorkspaceData }
       setWorkspace(payload.data)
@@ -307,10 +316,10 @@ export function TalentGoalWorkspace({ locale, mode, initial, labels }: { locale:
         if (editable && status === 'ACTIVE') actions.push({ id: 'complete', label: labels.complete, onSelect: () => setCommandCandidate({ goal, status: 'COMPLETED' }), icon: <CheckCircle2 aria-hidden="true" /> })
         if (editable && (status === 'DRAFT' || status === 'ACTIVE')) actions.push({ id: 'cancel', label: labels.cancelGoal, onSelect: () => setCommandCandidate({ goal, status: 'CANCELLED' }), destructive: true, icon: <Ban aria-hidden="true" /> })
         if (mode === 'admin' && status !== 'ARCHIVED') actions.push({ id: 'archive', label: labels.archive, onSelect: () => setCommandCandidate({ goal, status: 'ARCHIVED' }), destructive: true, icon: <Archive aria-hidden="true" /> })
-        return <Surface className="min-w-0 p-5" key={goal.id}>
+        return <Surface className="min-w-0 p-5" id={`goal-${goal.id}`} key={goal.id}>
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-primary">{mode === 'self' ? labels.own : goal.employeeLabel ?? labels.employee}</p><h3 className="mt-1 break-words text-lg font-semibold text-foreground">{goal.title}</h3></div><div className="flex shrink-0 items-start gap-2"><Badge tone={statusTone(status)}>{statusLabel(status, labels)}</Badge>{actions.length ? <ActionMenu items={actions} label={labels.status} /> : null}</div></div>
           {goal.description ? <p className="mt-3 whitespace-pre-wrap break-words text-sm text-muted-foreground">{goal.description}</p> : null}
-          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm"><div><dt className="text-muted-foreground">{labels.periodStart}</dt><dd className="text-foreground"><time dateTime={goal.period_start}>{goal.period_start}</time></dd></div><div><dt className="text-muted-foreground">{labels.periodEnd}</dt><dd className="text-foreground">{goal.period_end ? <time dateTime={goal.period_end}>{goal.period_end}</time> : labels.notAvailable}</dd></div><div><dt className="text-muted-foreground">{labels.progress}</dt><dd className="text-foreground">{goal.progress_percent}%</dd></div><div><dt className="text-muted-foreground">{labels.capability}</dt><dd className="break-words text-foreground">{goal.capabilityLabel ?? labels.noCapability}</dd></div></dl>
+          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm"><div><dt className="text-muted-foreground">{labels.periodStart}</dt><dd className="text-foreground"><time dateTime={goal.period_start}>{goal.period_start}</time></dd></div><div><dt className="text-muted-foreground">{labels.periodEnd}</dt><dd className="text-foreground">{goal.period_end ? <time dateTime={goal.period_end}>{goal.period_end}</time> : labels.notAvailable}</dd></div><div><dt className="text-muted-foreground">{labels.progress}</dt><dd className="text-foreground">{goal.progress_percent}%</dd></div><div><dt className="text-muted-foreground">{labels.capability}</dt><dd className="break-words text-foreground">{goal.capabilityLabel ?? (goal.capability_id ? labels.capabilityUnavailable : labels.noCapability)}</dd></div></dl>
           {!editable && status !== 'ARCHIVED' ? <p className="mt-4 text-xs text-muted-foreground">{labels.notEditable}</p> : null}
           <TalentGoalCheckIns goalId={goal.id} goalStatus={status} mode={mode} labels={labels.checkIns} />
         </Surface>

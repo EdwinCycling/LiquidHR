@@ -13,7 +13,7 @@ function modeFromRequest(request: Request): GoalMode {
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
-    const parsed = talentGoalListQuerySchema.safeParse({ goalId: undefined, employeeId: url.searchParams.get('employeeId') ?? undefined, status: url.searchParams.get('status') ?? undefined })
+    const parsed = talentGoalListQuerySchema.safeParse({ goalId: url.searchParams.get('goalId') ?? undefined, employeeId: url.searchParams.get('employeeId') ?? undefined, status: url.searchParams.get('status') ?? undefined })
     if (!parsed.success) return NextResponse.json({ error: 'TALENT_GOAL_INPUT_INVALID' }, { status: 400 })
     const includeEmployeeOptions = url.searchParams.get('includeEmployeeOptions') !== 'false'
     const includeCapabilityOptions = url.searchParams.get('includeCapabilityOptions') === 'true'

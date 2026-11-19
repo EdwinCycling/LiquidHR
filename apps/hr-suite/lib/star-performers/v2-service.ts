@@ -8,7 +8,7 @@ import { listTalentGoals } from '@/lib/talent/goal-service'
 import { evaluateTalentRoleExplorerOutcome, listTalentRoleExplorerWorkspace, type TalentRoleExplorerComparison } from '@/lib/talent/role-explorer-service'
 import { listTalentProfilesForWorkforce } from '@/lib/talent/service'
 import { movementDirection, type GridCell } from '@/lib/talent-review/rules'
-import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
+import { listDirectTeamEmployeeScope } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
 import type { StarPerformerAssessment, StarPerformerTag } from './service'
 import type { StarPerformerWorkspaceQuery } from './schemas'
@@ -261,9 +261,14 @@ export async function resolveStarPerformersReadAccess(
     throw new AuthorizationError('Je hebt geen toegang tot Star Performers-inzichten.')
   }
   await requirePermissionInContext(supabase, auth, 'star-performer:manager-read')
-  const employeeIds = dependencies?.scopeEmployeeIds === undefined
-    ? await listDirectTeamEmployeeIds(auth, supabase)
-    : [...(dependencies.scopeEmployeeIds ?? [])]
+  let employeeIds: string[]
+  if (dependencies?.scopeEmployeeIds === undefined) {
+    const scope = await listDirectTeamEmployeeScope(auth, supabase, MAX_SCOPE_EMPLOYEES)
+    if (scope.sourceTruncated) throw new StarPerformerError('STAR_PERFORMER_SCOPE_SOURCE_LIMIT_EXCEEDED', 503)
+    employeeIds = [...scope.employeeIds]
+  } else {
+    employeeIds = [...(dependencies.scopeEmployeeIds ?? [])]
+  }
   return { auth, supabase, employeeIds, isManager: true, isAdmin: false }
 }
 
@@ -377,18 +382,22 @@ export function selectLatestApprovedGridSignals(
 
 async function readReferenceData(supabase: SupabaseServerClient, tenantId: string, today: string, includeTags = true) {
   const [departmentsResult, jobsResult, jobGroupsResult, revisionsResult] = await Promise.all([
-    supabase.from('departments').select('id, name').eq('tenant_id', tenantId).eq('is_active', true).order('name').limit(500),
-    supabase.from('jobs').select('id, code, job_group_id').eq('tenant_id', tenantId).eq('is_active', true).order('code').limit(2000),
-    supabase.from('job_groups').select('id, name').eq('tenant_id', tenantId).eq('is_active', true).order('name').limit(500),
-    supabase.from('job_revisions').select('job_id, name, valid_from').eq('tenant_id', tenantId).lte('valid_from', today).or(`valid_until.is.null,valid_until.gt.${today}`).order('valid_from', { ascending: false }).limit(4000),
+    supabase.from('departments').select('id, name', { count: 'exact' }).eq('tenant_id', tenantId).eq('is_active', true).order('name').limit(500),
+    supabase.from('jobs').select('id, code, job_group_id', { count: 'exact' }).eq('tenant_id', tenantId).eq('is_active', true).order('code').limit(2000),
+    supabase.from('job_groups').select('id, name', { count: 'exact' }).eq('tenant_id', tenantId).eq('is_active', true).order('name').limit(500),
+    supabase.from('job_revisions').select('job_id, name, valid_from', { count: 'exact' }).eq('tenant_id', tenantId).lte('valid_from', today).or(`valid_until.is.null,valid_until.gt.${today}`).order('valid_from', { ascending: false }).limit(4000),
   ])
   const failed = [departmentsResult, jobsResult, jobGroupsResult, revisionsResult].find((result) => result.error)
   if (failed?.error) databaseError(failed.error.message)
+  if ([departmentsResult, jobsResult, jobGroupsResult, revisionsResult].some((result) => (result.data ?? []).length < (result.count ?? Number.POSITIVE_INFINITY))) {
+    throw new StarPerformerError('STAR_PERFORMER_REFERENCE_SOURCE_LIMIT_EXCEEDED', 503)
+  }
 
   const tagsResult = includeTags
-    ? await supabase.from('star_performer_tags').select('id, name, is_active').eq('tenant_id', tenantId).order('name').limit(500)
-    : { data: [], error: null }
+    ? await supabase.from('star_performer_tags').select('id, name, is_active', { count: 'exact' }).eq('tenant_id', tenantId).order('name').limit(500)
+    : { data: [], error: null, count: 0 }
   if (tagsResult.error) databaseError(tagsResult.error.message)
+  if ((tagsResult.data ?? []).length < (tagsResult.count ?? Number.POSITIVE_INFINITY)) throw new StarPerformerError('STAR_PERFORMER_REFERENCE_SOURCE_LIMIT_EXCEEDED', 503)
 
   const departmentById = new Map((departmentsResult.data ?? []).map((department) => [department.id, department.name]))
   const jobById = new Map((jobsResult.data ?? []).map((job) => [job.id, job]))
@@ -465,9 +474,9 @@ async function searchEmployeeIds(
 ): Promise<string[] | null> {
   const needle = query.trim().replace(/[%,]/g, ' ')
   if (!needle) return null
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from('employees')
-    .select('id')
+    .select('id', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('is_archived', false)
@@ -475,6 +484,7 @@ async function searchEmployeeIds(
     .or(`first_name.ilike.%${needle}%,birth_name.ilike.%${needle}%,employee_number.ilike.%${needle}%`)
     .limit(MAX_SCOPE_EMPLOYEES)
   if (error) databaseError(error.message)
+  if ((data ?? []).length < (count ?? Number.POSITIVE_INFINITY)) throw new StarPerformerError('STAR_PERFORMER_SCOPE_SOURCE_LIMIT_EXCEEDED', 503)
   return (data ?? []).map((employee) => employee.id)
 }
 
@@ -488,7 +498,7 @@ async function readPlacements(
 ): Promise<PlacementRow[]> {
   let placementsQuery = supabase
     .from('employee_organizations')
-    .select('employee_id, department_id, job_id, job_title, effective_from')
+    .select('employee_id, department_id, job_id, job_title, effective_from', { count: 'exact' })
     .eq('administration_id', administrationId)
     .lte('effective_from', today)
     .or(`effective_to.is.null,effective_to.gte.${today}`)
@@ -507,8 +517,9 @@ async function readPlacements(
   }
 
   placementsQuery = placementsQuery.limit(MAX_SCOPE_EMPLOYEES)
-  const { data, error } = await placementsQuery
+  const { data, error, count } = await placementsQuery
   if (error) databaseError(error.message)
+  if ((data ?? []).length < (count ?? Number.POSITIVE_INFINITY)) throw new StarPerformerError('STAR_PERFORMER_SCOPE_SOURCE_LIMIT_EXCEEDED', 503)
   return data ?? []
 }
 
@@ -518,9 +529,9 @@ async function readPageEmployees(
   employeeIds: string[],
 ) {
   if (!employeeIds.length) return []
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from('employees')
-    .select('id, employee_number, first_name, birth_name, work_email, avatar_url')
+    .select('id, employee_number, first_name, birth_name, work_email, avatar_url', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .in('id', employeeIds)
     .eq('is_active', true)
@@ -528,6 +539,7 @@ async function readPageEmployees(
     .is('deleted_at', null)
     .limit(employeeIds.length)
   if (error) databaseError(error.message)
+  if ((data ?? []).length < (count ?? Number.POSITIVE_INFINITY)) throw new StarPerformerError('STAR_PERFORMER_SCOPE_SOURCE_LIMIT_EXCEEDED', 503)
   return data ?? []
 }
 
@@ -982,15 +994,16 @@ function skillGapRecordPriority(record: SkillGapRecord, today: string): number {
   return 0
 }
 
-function skillGapStatus(
+export function classifySkillGapStatus(
   requirement: { capability: { capability_type: string } | null; target_level_id: string | null; language_level: string | null },
-  record: SkillGapRecord | undefined,
+  record: Pick<SkillGapRecord, 'status' | 'validFrom' | 'validUntil' | 'talentLevelId' | 'languageLevel' | 'evidenceStatus'> | undefined,
   levelRankById: ReadonlyMap<string, number>,
   today: string,
 ): import('./insights-service').SkillGapStatus {
-  if (record?.status === 'EXPIRED' || (record?.validUntil !== null && record?.validUntil !== undefined && record.validUntil <= today)) return 'EXPIRED_EVIDENCE'
+  if (record && (record.status === 'EXPIRED' || record.evidenceStatus === 'EXPIRED' || (record.validUntil !== null && record.validUntil <= today))) return 'EXPIRED_EVIDENCE'
   const isCurrentRecord = Boolean(record && record.status === 'RELEASED' && record.validFrom <= today && (record.validUntil === null || record.validUntil > today))
   if (!record || !isCurrentRecord) return 'NOT_ASSESSED'
+  if (record.evidenceStatus !== 'VERIFIED') return 'MISSING_EVIDENCE'
   const targetLevelRank = requirement.target_level_id ? levelRankById.get(requirement.target_level_id) ?? null : null
   const currentLevelRank = record.talentLevelId ? levelRankById.get(record.talentLevelId) ?? null : null
   const outcome = evaluateTalentRoleExplorerOutcome({
@@ -1020,14 +1033,15 @@ function legacySkillStatus(status: import('./insights-service').SkillGapStatus):
 
 async function readTalentLevelRanks(access: StarPerformersReadAccess) {
   await requirePermissionInContext(access.supabase, access.auth, access.isAdmin ? 'talent:manage' : 'talent:manager-read')
-  const { data, error } = await access.supabase
+  const { data, error, count } = await access.supabase
     .from('talent_levels')
-    .select('id,sort_order')
+    .select('id,sort_order', { count: 'exact' })
     .eq('tenant_id', access.auth.tenantId)
     .order('sort_order')
     .order('code')
     .limit(100)
   if (error) throw new StarPerformerError('STAR_PERFORMER_SKILL_LEVEL_READ_FAILED', 503)
+  if ((data ?? []).length < (count ?? Number.POSITIVE_INFINITY)) throw new StarPerformerError('STAR_PERFORMER_SKILL_LEVEL_SOURCE_LIMIT_EXCEEDED', 503)
   return data ?? []
 }
 
@@ -1078,7 +1092,7 @@ async function readInsightSkills(
       const roleLabel = refs.jobNameById.get(scopeRow.jobId) ?? profile.profile.job_code ?? roleId
       const detailedAxes = profile.requirements.map((requirement) => {
         const record = recordByEmployeeCapability.get(`${employeeId}:${requirement.capability_id}`)
-        const status = skillGapStatus(requirement, record, levelRankById, asOf)
+        const status = classifySkillGapStatus(requirement, record, levelRankById, asOf)
         return {
           requirementId: requirement.id,
           capabilityId: requirement.capability_id,
@@ -1154,6 +1168,7 @@ async function readInsightDevelopment(
     id: goal.id,
     employeeId: goal.employee_id,
     capabilityId: goal.capability_id,
+    capabilityLabel: goal.capabilityLabel,
     employeeLabel: employeeLabels.get(goal.employee_id) ?? goal.employee_id,
     title: goal.title,
     status: goal.status,
@@ -1168,6 +1183,7 @@ async function readInsightDevelopment(
     plans,
     actions: appraisalItems,
     sources: { plans: goalsAvailable, actions: appraisalAvailable },
+    goalHrefBase: mode === 'admin' ? '/settings/talent/goals' : '/workforce/talent/goals',
   })
 }
 
@@ -1238,15 +1254,16 @@ async function readStarPerformersInsights(
   for (const placement of placements) if (!placementByEmployee.has(placement.employee_id)) placementByEmployee.set(placement.employee_id, placement)
   const baseEmployeeIds = [...placementByEmployee.keys()]
   if (!baseEmployeeIds.length) return emptyInsights(query)
-  const { data: activeEmployees, error: activeEmployeesError } = await supabase
+  const { data: activeEmployees, error: activeEmployeesError, count: activeEmployeeCount } = await supabase
     .from('employees')
-    .select('id')
+    .select('id', { count: 'exact' })
     .eq('tenant_id', auth.tenantId)
     .in('id', baseEmployeeIds)
     .eq('is_active', true)
     .eq('is_archived', false)
     .is('deleted_at', null)
   if (activeEmployeesError) databaseError(activeEmployeesError.message)
+  if ((activeEmployees ?? []).length < (activeEmployeeCount ?? Number.POSITIVE_INFINITY)) throw new StarPerformerError('STAR_PERFORMER_SCOPE_SOURCE_LIMIT_EXCEEDED', 503)
   const activeIds = new Set((activeEmployees ?? []).map((employee) => employee.id))
   const scopeEmployeeIds = baseEmployeeIds.filter((employeeId) => activeIds.has(employeeId))
   if (!scopeEmployeeIds.length) return emptyInsights(query)

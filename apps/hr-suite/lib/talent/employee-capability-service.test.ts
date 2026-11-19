@@ -20,7 +20,7 @@ function queryResult(data: unknown, error: { code: string; message: string } | n
     eq: () => builder,
     in: () => builder,
     order: () => builder,
-    limit: () => Promise.resolve(result),
+    range: () => Promise.resolve(result),
     then: (resolve: (value: typeof result) => unknown, reject?: (reason: unknown) => unknown) =>
       Promise.resolve(result).then(resolve, reject),
   }
@@ -81,5 +81,45 @@ describe('listTalentEmployeeCapabilityRecords database reads', () => {
       operation: 'talent.employeeCapabilities.capabilities',
       sqlstate: '57014',
     })
+  })
+
+  it('reads all capability records across the PostgREST page boundary', async () => {
+    const record = {
+      employee_id: 'employee-1', capability_id: 'capability-1', talent_level_id: null,
+      language_level: null, language_is_native: false, certificate_status: null,
+      certificate_issuing_body: null, certificate_code: null, certificate_validity_months: null,
+      certificate_is_permanent: false, certificate_renewal_required: false, evidence_status: 'VERIFIED',
+      qualification_responsible_user_id: null, source_type: 'ADMIN_ENTERED', status: 'RELEASED',
+      valid_from: '2026-01-01', valid_until: null, evidence_document_id: null, version: 1,
+      updated_at: '2026-01-01T00:00:00.000Z',
+    }
+    const recordRanges: Array<[number, number]> = []
+    const client = {
+      from(table: string) {
+        if (table === 'talent_employee_capability_records') {
+          const builder = {
+            select: () => builder,
+            eq: () => builder,
+            in: () => builder,
+            order: () => builder,
+            range: (from: number, to: number) => {
+              recordRanges.push([from, to])
+              const data = from === 0
+                ? Array.from({ length: 1_000 }, (_, index) => ({ ...record, id: `record-${index}` }))
+                : [{ ...record, id: 'record-1000' }]
+              return Promise.resolve({ data, error: null })
+            },
+          }
+          return builder
+        }
+        return queryResult([])
+      },
+    }
+    createClient.mockResolvedValue(client)
+
+    const result = await listTalentEmployeeCapabilityRecords({})
+
+    expect(result).toHaveLength(1_001)
+    expect(recordRanges).toEqual([[0, 999], [1_000, 1_999]])
   })
 })

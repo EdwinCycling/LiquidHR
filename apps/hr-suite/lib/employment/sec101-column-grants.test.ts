@@ -40,7 +40,7 @@ describe('SEC-101 fiscal column grants', () => {
       await db.exec(migration)
       const keys = await generateKey({ type: 'rsa', rsaBits: 2048, userIDs: [{ name: 'synthetic' }], format: 'armored' })
       await db.query('INSERT INTO internal_security.sec101_provenance_public_key(armored_public_key) VALUES ($1)', [keys.publicKey])
-      const contract = readFileSync(new URL('../../supabase/contract-pending/20261116120304_sec101_contract_column_access.sql', import.meta.url), 'utf8')
+      const contract = readFileSync(new URL('../../supabase/migrations/20261119161917_sec101_contract_column_access.sql', import.meta.url), 'utf8')
       await db.exec(contract)
       const result = await db.query<{ allowed: boolean; blocked: boolean; anon: boolean }>(`SELECT has_column_privilege('authenticated','public.employment_payroll_tax_profiles','payroll_tax_credit_applies','SELECT') allowed, NOT has_column_privilege('authenticated','public.employment_payroll_tax_profiles','idempotency_key','SELECT') AND NOT has_column_privilege('authenticated','public.employment_payroll_tax_profiles','source_reference','SELECT') AND NOT has_column_privilege('authenticated','public.employment_payroll_tax_profiles','confirmed_by_user_id','SELECT') blocked, has_column_privilege('anon','public.employment_payroll_tax_profiles','id','SELECT') anon`)
       expect(result.rows[0]).toEqual({ allowed: true, blocked: true, anon: false })

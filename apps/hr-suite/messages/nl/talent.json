@@ -450,6 +450,7 @@
   "goalChooseEmployee": "Kies een medewerker",
   "goalCapability": "Gekoppelde capability",
   "goalNoCapability": "Geen capability",
+  "goalCapabilityUnavailable": "Gekoppelde capability niet beschikbaar",
   "goalNoEmployees": "Geen medewerkers beschikbaar binnen je scope.",
   "goalName": "Doel",
   "goalDescription": "Omschrijving",

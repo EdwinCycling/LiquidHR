@@ -47,6 +47,7 @@ export type DevelopmentPlanInput = {
   id: string
   employeeId: string
   capabilityId?: string | null
+  capabilityLabel?: string | null
   employeeLabel: string
   title: string
   status: string
@@ -98,6 +99,7 @@ export type DevelopmentInsight = {
     id: string
     employeeId: string
     capabilityId?: string | null
+    capabilityLabel?: string | null
     employeeLabel: string
     title: string
     status: string
@@ -467,6 +469,7 @@ export function buildDevelopmentInsight(input: {
   plans: readonly DevelopmentPlanInput[]
   actions: readonly DevelopmentActionInput[]
   sources?: { plans: boolean; actions: boolean }
+  goalHrefBase?: '/settings/talent/goals' | '/workforce/talent/goals'
 }): DevelopmentInsight {
   const sources = input.sources ?? { plans: true, actions: true }
   const populationByEmployee = new Map<string, DevelopmentPopulationInput>()
@@ -479,6 +482,7 @@ export function buildDevelopmentInsight(input: {
   const actionsById = new Map(input.actions.filter((action) => sources.actions && employeeIds.has(action.employeeId)).map((action) => [action.id, action]))
   const plans = [...plansById.values()]
   const actions = [...actionsById.values()]
+  const goalHrefBase = input.goalHrefBase ?? '/workforce/talent/goals'
   const activePlans = plans.filter((plan) => plan.status === 'ACTIVE')
   const activePlanEmployees = new Set(activePlans.map((plan) => plan.employeeId))
   const openActions = actions.filter((action) => DEVELOPMENT_OPEN_ACTION_STATUSES.includes(action.status as (typeof DEVELOPMENT_OPEN_ACTION_STATUSES)[number]))
@@ -559,6 +563,7 @@ export function buildDevelopmentInsight(input: {
       id: plan.id,
       employeeId: plan.employeeId,
       capabilityId: plan.capabilityId ?? null,
+      capabilityLabel: plan.capabilityLabel ?? null,
       employeeLabel: plan.employeeLabel,
       title: plan.title,
       status: plan.status,
@@ -566,7 +571,7 @@ export function buildDevelopmentInsight(input: {
       periodStart: plan.periodStart,
       periodEnd: plan.periodEnd,
       completedAt: plan.completedAt,
-      href: `/workforce/talent/goals?employeeId=${encodeURIComponent(plan.employeeId)}`,
+      href: `${goalHrefBase}?employeeId=${encodeURIComponent(plan.employeeId)}&goalId=${encodeURIComponent(plan.id)}#goal-${encodeURIComponent(plan.id)}`,
     })),
     actions: actions.map((action) => ({
       id: action.id,
@@ -1198,9 +1203,9 @@ export function functionSkillGapReportCsv(report: FunctionSkillGapReport): strin
 }
 
 export function developmentInsightCsv(report: DevelopmentInsight): string {
-  const header = ['as_of', 'record_type', 'employee_id', 'employee', 'title', 'status', 'progress_percent', 'period_start', 'period_end', 'due_on', 'next_meeting_on', 'follow_up_on', 'follow_up_status', 'relevant_employees', 'active_plan_coverage_percent']
-  const planRows = report.plans.map((plan) => [report.asOf, 'development_plan', plan.employeeId, plan.employeeLabel, plan.title, plan.status, plan.progressPercent, plan.periodStart, plan.periodEnd, null, null, null, null, report.relevantEmployees, report.coveragePercent])
-  const actionRows = report.actions.map((action) => [report.asOf, 'follow_up_action', action.employeeId, action.employeeLabel, action.title, action.status, null, null, null, action.dueOn, action.nextMeetingOn, action.followUpOn, action.followUpStatus, report.relevantEmployees, report.coveragePercent])
+  const header = ['as_of', 'record_type', 'record_id', 'employee_id', 'employee', 'capability_id', 'capability', 'title', 'status', 'progress_percent', 'period_start', 'period_end', 'due_on', 'next_meeting_on', 'follow_up_on', 'follow_up_status', 'relevant_employees', 'active_plan_coverage_percent', 'source_href']
+  const planRows = report.plans.map((plan) => [report.asOf, 'development_plan', plan.id, plan.employeeId, plan.employeeLabel, plan.capabilityId ?? null, plan.capabilityLabel ?? null, plan.title, plan.status, plan.progressPercent, plan.periodStart, plan.periodEnd, null, null, null, null, report.relevantEmployees, report.coveragePercent, plan.href])
+  const actionRows = report.actions.map((action) => [report.asOf, 'follow_up_action', action.id, action.employeeId, action.employeeLabel, null, null, action.title, action.status, null, null, null, action.dueOn, action.nextMeetingOn, action.followUpOn, action.followUpStatus, report.relevantEmployees, report.coveragePercent, action.href])
   return [header, ...planRows, ...actionRows].map((row) => row.map((value) => csvCell(value)).join(',')).join('\r\n') + '\r\n'
 }
 
