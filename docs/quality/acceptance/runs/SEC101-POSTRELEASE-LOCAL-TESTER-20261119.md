@@ -1,5 +1,17 @@
 # SEC-101 post-release lokale regressietestvoorziening — 19-11-2026
 
+## Follow-up — 20-11-2026
+
+De eerste live-launchpoging eindigde met:
+
+```text
+RUNNER_EXIT=1; no credentials or response bodies were logged.
+```
+
+De oorzaak was een Node ESM named import van CommonJS `@next/env`; dit is hersteld naar de default export. Ook ontbrak de `.env.local`-hardlink in de integratieworktree. De ontbrekende link is hersteld vanaf de bestaande canonieke TEST-configuratie, uitsluitend op basis van pad-/linkmetadata; de configuratiewaarden zijn niet bekeken of gelogd. Een no-credential-smoke bereikt nu de bedoelde credentialgate. Dat bewijst alleen de lokale bootstrap, niet de Auth-login of Data API-acceptatie.
+
+De Jaap-reset en de authentieke Data API-regressies zijn nog niet met een PASS-regel bevestigd. HR Admin Payroll 3/3 na CONTRACT blijft NOT RUN. Voer eerst de lokale password-resethelper uit als Jaap nog niet kan aanmelden; daarna kan dezelfde verborgen loginflow de runner uitvoeren. Manager- en Tenant Admin-wachtwoorden zijn niet door de helper gewijzigd.
+
 ## Doel en scope
 
 De lokale runner gebruikt de officiële Supabase SDK via `@supabase/ssr` voor normale `signInWithPassword`-authenticatie op HR/Core TEST (`wnpfloqpjvaacobppbpk`). De SDK beheert de sessiecookies in een in-memory cookie-opslag die ook voor de Vercel-routes wordt gebruikt. De runner maakt geen testaccounts, records of schemawijzigingen aan.

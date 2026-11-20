@@ -1,10 +1,11 @@
 import { createServerClient } from '@supabase/ssr'
-import { loadEnvConfig } from '@next/env'
+import nextEnv from '@next/env'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url))
+const { loadEnvConfig } = nextEnv
 const appRoot = path.resolve(scriptDirectory, '../..')
 const repoRoot = path.resolve(appRoot, '../..')
 const projectRef = 'wnpfloqpjvaacobppbpk'
