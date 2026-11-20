@@ -10,7 +10,23 @@ RUNNER_EXIT=1; no credentials or response bodies were logged.
 
 De oorzaak was een Node ESM named import van CommonJS `@next/env`; dit is hersteld naar de default export. Ook ontbrak de `.env.local`-hardlink in de integratieworktree. De ontbrekende link is hersteld vanaf de bestaande canonieke TEST-configuratie, uitsluitend op basis van pad-/linkmetadata; de configuratiewaarden zijn niet bekeken of gelogd. Een no-credential-smoke bereikt nu de bedoelde credentialgate. Dat bewijst alleen de lokale bootstrap, niet de Auth-login of Data API-acceptatie.
 
-De Jaap-reset en de authentieke Data API-regressies zijn nog niet met een PASS-regel bevestigd. HR Admin Payroll 3/3 na CONTRACT blijft NOT RUN. Voer eerst de lokale password-resethelper uit als Jaap nog niet kan aanmelden; daarna kan dezelfde verborgen loginflow de runner uitvoeren. Manager- en Tenant Admin-wachtwoorden zijn niet door de helper gewijzigd.
+De eerste runnerpoging stopte vóór authenticatie. De import- en configuratielinkfout zijn hersteld. Daarna is de Jaap-passwordreset met de officiële Auth Admin API bevestigd: bestaande user-ID, app metadata en user metadata behouden; normale SDK-login PASS. De Manager- en Tenant Admin-wachtwoorden zijn niet gewijzigd.
+
+## Authentieke post-CONTRACT-run — 20-11-2026
+
+| Controle | Status | Privacyveilig bewijs |
+|---|---|---|
+| Employee-only / Manager / Tenant Admin persona en sessie | PASS | 3/3 role gates en app-session checks, HTTP 200 |
+| Bestaande targetrecords | PASS | 72 profielen/auditrijen binnen Tenant Admin-scope; Manager-team 6 medewerkers |
+| Employee | PASS | Eigen profiel 1 rij; ander profiel 0; eigen en andere audit 0 |
+| Manager | PASS | Eigen profiel 1 rij; direct team, peer en andere administratie profiel/audit 0; peer en andere administratie employee-route HTTP 404 |
+| Tenant Admin | PASS | Binnen scope profiel 1/audit 2; andere administratie in dezelfde tenant profiel 1/audit 1 |
+| Beschermde kolommen | PASS | 15/15 directe Data API-projecties geweigerd met HTTP 403 voor Employee-only, Manager en Tenant Admin |
+| HR Admin Payroll na CONTRACT | PASS | 3/3: +2 betaalde uren, +5% salaris en 32 contracturen; HTTP 200, `CALCULATED` en `READY` |
+| Andere-tenant negatieve proef | NOT TESTED | Geen passende bestaande TEST-fixture beschikbaar |
+| Rollbackprocedure | PASS, read-only | Pre-CONTRACT-app niet veilig na CONTRACT; alleen CONTRACT-compatibele deployment of fix-forward; geen rollback uitgevoerd |
+
+Runnerresultaat: **44 PASS / 0 FAIL / 1 NOT TESTED; OVERALL=PARTIAL**. De ene ontbrekende proef is Tenant Admin-toegang naar een andere tenant. De runner geeft geen namen, record-ID's, fiscale inhoud, bedragen, hashes, wachtwoorden of tokens weer.
 
 ## Doel en scope
 
@@ -23,7 +39,7 @@ De verborgen PowerShell-prompts sturen de wachtwoorden via standaardinvoer naar 
 Start vanuit de repository-root in een interactieve PowerShell:
 
 ```powershell
-pwsh -NoProfile -File .\scripts\run-sec101-postrelease-acceptance.ps1
+.\scripts\run-sec101-postrelease-acceptance.ps1
 ```
 
 Gebruik de bestaande Jaap-TEST-identiteit voor Employee-only, `manager.fixture@liquidhr.test` voor Manager en `hradmin.fixture@liquidhr.test` voor Tenant Admin, of voer de bestaande gelijkwaardige TEST-identiteiten in. De wachtwoorden worden afzonderlijk verborgen gevraagd. De runner controleert de effectieve rolcodes vóór de API-proeven en stopt als de persona niet ondubbelzinnig bij het opgegeven roltype past.
@@ -51,4 +67,4 @@ De rollbackprocedure is read-only beoordeeld aan de hand van de uitgevoerde CONT
 
 ## Status
 
-De voorziening is lokaal gereed, maar de live beveiligingsacceptatie is nog niet uitgevoerd. Security #101 blijft OPEN totdat de verborgen lokale loginprompts zijn gebruikt en de gerapporteerde statuscodes en rijtellingen zijn beoordeeld. Manager-MSS en BONUS blijven PARKED.
+De lokale voorziening en beschikbare authentieke post-CONTRACT-controles zijn uitgevoerd: 44 PASS, 0 FAIL en 1 expliciete NOT TESTED voor de ontbrekende andere-tenantfixture. GitHub #101 is bijgewerkt en blijft OPEN; Manager-MSS en BONUS blijven PARKED.
