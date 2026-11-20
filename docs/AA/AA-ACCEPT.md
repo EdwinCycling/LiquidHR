@@ -1,4 +1,15 @@
 # AA-ACCEPT — Accepted Baseline
+## Gezamenlijke LiquidHR TEST-release — 20-11-2026
+
+**Accepted as a limited synthetic TEST release; overall acceptance PARTIAL.** The consolidated main is active on the existing canonical domain with app version 1.20261120.1. Local/GitHub/Vercel source-SHA equality, READY state, runtime provenance and alias assignment were read back after deployment.
+
+- HR/Core: existing SEC-101 post-CONTRACT matrix is 44 PASS / 0 FAIL / 1 NOT TESTED; cross-tenant acceptance remains OPEN.
+- WVP and Talent: consolidated and locally verified; hosted persona, lifecycle, positive-data and negative-scope evidence remains PARTIAL/OPEN.
+- Payroll ESS and HR Admin: current code is released; previous post-CONTRACT evidence is retained. Full authenticated persona acceptance on the new candidate did not complete.
+- Database: no migration or data write during release. Keep registered Payroll migration 20261113073051 as a separate missing-source recovery item.
+- Rollback: previous READY post-CONTRACT deployment retained; rollback has not been exercised.
+
+See the [final release acceptance report](../quality/acceptance/runs/LIQUIDHR-FINAL-RELEASE-20261120.md) and [open evidence register](AA-OPEN.md). This is not ACCEPTANCE GREEN or commercial Payroll approval.
 
 > **Acceptatie-afbakening 18-10-2026:** zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md). Historisch bewezen Emma/Noah FINALIZED zijn aparte geldige casussen. CAO-SETUP/PENSION/SOURCE is qua UI en gerichte tests gebouwd, maar Kinderopvang K2/Retail R1/R2 zijn **nog niet als volledige Core-payrollruns met nieuwe PDF's bewezen**. Vereist: echte geautoriseerde broninvoer en readback per werkgever, effectieve schaal/trede/pensioen/looncomponenten, cumulatieven, fiscale controle, 32/32 waar toepasselijk, immutable FINALIZED/PDF/hash, persona- en scope-negatives. Geen review-only status of cataloguspercentage aanmerken als juridisch of end-to-end payrollbewijs.
 

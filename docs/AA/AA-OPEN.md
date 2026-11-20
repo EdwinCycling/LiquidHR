@@ -1,4 +1,13 @@
 # AA-OPEN — Openstaande punten, uitgesteld bewijs en beslissingen
+> **20-11-2026 — gezamenlijke TEST-release LIMITED / PARTIAL:** lokale main, GitHub main en Vercel runtime-/platformbron zijn na deployment-readback exact gelijk. Appversie 1.20261120.1 draait op het bestaande canonieke TEST-domein. Build/provenance PASS; hosted persona-matrix OPEN doordat de bestaande Payroll-persona-configuratie geen kandidaat-sessies opleverde. HR/Core 44 PASS / 0 FAIL / 1 NOT TESTED uit bestaande post-CONTRACT-evidence; andere-tenantacceptatie en #101 blijven OPEN vóór productie. Geen nieuwe migratie of businessdatawrite. De ontbrekende Payroll-bron voor 20261113073051 blijft afzonderlijk herstel. Zie [release-acceptatie](../quality/acceptance/runs/LIQUIDHR-FINAL-RELEASE-20261120.md).
+>
+> | ID | Status | Afsluitproef |
+> | --- | --- | --- |
+> | HOSTED-PERSONA-MATRIX-20261120 | OPEN — sessiebewijs ontbreekt | Gebruik bestaande ondersteunde sessies; voltooi rol-/negatieve API/RLS-proeven zonder grants of bypass. |
+> | SEC-101-CROSS-TENANT-20261120 | OPEN — vereist vóór productie | Sluit #101 met een geautoriseerde andere-tenantfixture en bevestig dat profiel-/audittoegang tenantgescheiden blijft. |
+> | TALENT-POSITIVE-DATA-20261120 | OPEN — fixture ontbreekt | Gebruik bestaande synthetische data; vraag alleen een gebundeld TEST-datamandaat als positieve records noodzakelijk zijn. |
+> | POST-CONTRACT-ROLLBACK-20261120 | OPEN — drill niet uitgevoerd | Bewijs terugschakeling naar behouden post-CONTRACT-deployment zonder remote migratiehistorie te wijzigen. |
+> | PAYROLL-MIGRATION-SOURCE-20261113073051 | OPEN — historische bronrecovery | Herstel alleen het exact toegepaste SQL-artefact; geen fictieve migratie of registrywijziging.
 
 > **19-11-2026 — WVP joint integration: code PASS / live acceptance OPEN.** Candidate 0f3e82e0 is included in local integration code SHA e90bd178. Full suite 4,335 PASS / 8 SKIP, production build, TypeScript, ESLint and i18n PASS. The week-42 date uses the same effective-clock calendar contract in the app and new PMUX steps. Migration 20261119120000 is applied once to Core TEST and registered as 20261119160230; function security and trigger readback PASS, with 0 security/performance/health advisor findings. OPEN: real HR Admin/Manager/Employee plus negative API/scope/RLS acceptance in the joint TEST window and explicit joint release. WVP02 SEC01/WVP05 were already applied and not rerun. No push, main merge or Vercel deployment. See [run report](../quality/acceptance/runs/WVP-PMUX-WEEK42-INTEGRATION-20261119.md).
 

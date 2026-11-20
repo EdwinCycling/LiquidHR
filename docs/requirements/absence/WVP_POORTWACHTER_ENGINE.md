@@ -1,4 +1,5 @@
 # Wet verbetering poortwachter
+> **20-11-2026 — gezamenlijke TEST-release PARTIAL:** week-42/PMUX is opgenomen in actieve LiquidHR-main. Lokale code-/buildgates zijn geslaagd; hosted casuslifecycle, documentacties en volledige rol-/negatieve scopeacceptatie blijven OPEN. Geen migratie uitgevoerd; Core-registratie 20261119160230 blijft staan. Zie [releaseacceptatie](../../quality/acceptance/runs/LIQUIDHR-FINAL-RELEASE-20261120.md) en [WVP-integratiebewijs](../../quality/acceptance/runs/WVP-PMUX-WEEK42-INTEGRATION-20261119.md).
 
 > **19-11-2026 — WVP-FUNCTIONAL-COMPLETION:** lokale codechecks PASS; end-to-end en hosted acceptatie PARTIAL/OPEN. Gerichte WVP-suite 81/81, TypeScript, ESLint, i18n en diff-check PASS. Week-42-voorbereiding staat apart van de standaard UWV-meldwerkdag; PMUX-snapshots bij weekend/feestdag blijven een gedeeld contractpunt. WVP02 SEC01 en WVP05 zijn volgens 13-11-readback op Core TEST toegepast; niet herhaald. Zie [acceptatierun](../../quality/acceptance/runs/WVP-FUNCTIONAL-COMPLETION-20261119.md).
 
