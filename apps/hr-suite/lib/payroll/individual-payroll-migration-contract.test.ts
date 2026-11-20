@@ -8,7 +8,7 @@ const migrationPath = join(
   payrollSource,
   'supabase',
   'migrations',
-  '20261005100100_payrun01_individual_payroll.sql',
+  '20261006055549_20261005100100_payrun01_individual_payroll.sql',
 )
 const migration = readFileSync(migrationPath, 'utf8').toLowerCase()
 const guardRepairMigrationPath = join(
@@ -22,28 +22,28 @@ const versionSupersessionMigrationPath = join(
   payrollSource,
   'supabase',
   'migrations',
-  '20261007091338_payrun01_test_version_supersession.sql',
+  '20261007091826_payrun01_test_version_supersession.sql',
 )
 const versionSupersessionMigration = readFileSync(versionSupersessionMigrationPath, 'utf8').toLowerCase()
 const successfulVersionSupersessionMigrationPath = join(
   payrollSource,
   'supabase',
   'migrations',
-  '20261007175209_payrun01_test_successful_version_supersession.sql',
+  '20261008061304_20261007175209_payrun01_test_successful_version_supersession.sql',
 )
 const successfulVersionSupersessionMigration = readFileSync(successfulVersionSupersessionMigrationPath, 'utf8').toLowerCase()
 const initialFixtureSuccessorMigrationPath = join(
   payrollSource,
   'supabase',
   'migrations',
-  '20261008170000_payrun01_test_initial_fixture_successor.sql',
+  '20261008175223_payrun01_test_initial_fixture_successor.sql',
 )
 const initialFixtureSuccessorMigration = readFileSync(initialFixtureSuccessorMigrationPath, 'utf8').toLowerCase()
 const failedAttemptSuccessorMigrationPath = join(
   payrollSource,
   'supabase',
   'migrations',
-  '20261009100000_payrun01_test_failed_attempt_successor.sql',
+  '20261009050755_payrun01_test_failed_attempt_successor.sql',
 )
 const failedAttemptSuccessorMigration = readFileSync(failedAttemptSuccessorMigrationPath, 'utf8')
   .replace(/\r\n/g, '\n')

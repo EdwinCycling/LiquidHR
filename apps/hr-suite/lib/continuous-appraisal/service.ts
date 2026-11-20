@@ -223,27 +223,29 @@ export async function listContinuousAppraisalEmployeeOptions(): Promise<Continuo
   if (!context.permissions.includes('continuous-appraisal:manage')) {
     if (!context.employeeId) return []
     const today = new Date().toISOString().slice(0, 10)
-    const { data: assignments, error: assignmentError } = await supabase
+    const { data: assignments, error: assignmentError, count: assignmentCount } = await supabase
       .from('employee_organizations')
-      .select('employee_id')
+      .select('employee_id', { count: 'exact' })
       .eq('tenant_id', context.tenantId)
       .eq('direct_manager_id', context.employeeId)
       .lte('effective_from', today)
       .or(`effective_to.is.null,effective_to.gte.${today}`)
     if (assignmentError) databaseError(assignmentError.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+    if ((assignments ?? []).length < (assignmentCount ?? Number.POSITIVE_INFINITY)) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_SCOPE_SOURCE_LIMIT_EXCEEDED', 503)
     accessibleEmployeeIds = [...new Set((assignments ?? []).map((assignment) => assignment.employee_id))]
     if (accessibleEmployeeIds.length === 0) return []
   }
   let employeesQuery = supabase
     .from('employees')
-    .select('id, first_name, birth_name, employee_number, avatar_url')
+    .select('id, first_name, birth_name, employee_number, avatar_url', { count: 'exact' })
     .eq('tenant_id', context.tenantId)
     .eq('is_active', true)
     .eq('is_archived', false)
     .is('deleted_at', null)
   if (accessibleEmployeeIds) employeesQuery = employeesQuery.in('id', accessibleEmployeeIds)
-  const { data, error } = await employeesQuery.order('first_name').limit(500)
+  const { data, error, count } = await employeesQuery.order('first_name').limit(500)
   if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+  if ((data ?? []).length < (count ?? Number.POSITIVE_INFINITY)) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_EMPLOYEE_OPTIONS_SOURCE_LIMIT_EXCEEDED', 503)
   return (data ?? []).map((employee) => toEmployeeOption(employee))
 }
 
@@ -255,21 +257,22 @@ export async function listContinuousAppraisalItemsForEmployees(employeeIds: read
   if (!context.permissions.includes('continuous-appraisal:manage')) {
     if (!context.employeeId) return []
     const today = new Date().toISOString().slice(0, 10)
-    const { data: assignments, error: assignmentError } = await supabase
+    const { data: assignments, error: assignmentError, count: assignmentCount } = await supabase
       .from('employee_organizations')
-      .select('employee_id')
+      .select('employee_id', { count: 'exact' })
       .eq('tenant_id', context.tenantId)
       .eq('direct_manager_id', context.employeeId)
       .lte('effective_from', today)
       .or(`effective_to.is.null,effective_to.gte.${today}`)
     if (assignmentError) databaseError(assignmentError.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+    if ((assignments ?? []).length < (assignmentCount ?? Number.POSITIVE_INFINITY)) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_SCOPE_SOURCE_LIMIT_EXCEEDED', 503)
     const accessibleEmployeeIds = new Set([context.employeeId, ...(assignments ?? []).map((assignment) => assignment.employee_id)])
     scopedEmployeeIds = scopedEmployeeIds.filter((employeeId) => accessibleEmployeeIds.has(employeeId))
   }
   if (scopedEmployeeIds.length === 0) return []
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from('continuous_appraisal_items')
-    .select('id,employee_id,item_type,title,occurred_on,due_on,next_meeting_on,item_status')
+    .select('id,employee_id,item_type,title,occurred_on,due_on,next_meeting_on,item_status', { count: 'exact' })
     .eq('tenant_id', context.tenantId)
     .in('employee_id', scopedEmployeeIds)
     .is('deleted_at', null)
@@ -277,6 +280,7 @@ export async function listContinuousAppraisalItemsForEmployees(employeeIds: read
     .order('created_at', { ascending: false })
     .limit(5000)
   if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+  if ((data ?? []).length < (count ?? Number.POSITIVE_INFINITY)) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_SOURCE_LIMIT_EXCEEDED', 503)
   return data ?? []
 }
 

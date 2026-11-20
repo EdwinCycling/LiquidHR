@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => {
     AuthorizationError: MockAuthorizationError,
     getRequestAuthorizationContext: vi.fn(),
     requirePermissionInContext: vi.fn(),
-    listDirectTeamEmployeeIds: vi.fn(),
+    listDirectTeamEmployeeScope: vi.fn(),
   }
 })
 
@@ -19,7 +19,7 @@ vi.mock('@/lib/auth/permissions', () => ({
   requirePermissionInContext: mocks.requirePermissionInContext,
 }))
 
-vi.mock('@/lib/organization/team-scope', () => ({ listDirectTeamEmployeeIds: mocks.listDirectTeamEmployeeIds }))
+vi.mock('@/lib/organization/team-scope', () => ({ listDirectTeamEmployeeScope: mocks.listDirectTeamEmployeeScope }))
 
 import { getStarPerformersDetail } from './v2-service'
 
@@ -32,12 +32,12 @@ describe('star performer talent passport authorization', () => {
       supabase,
     })
     mocks.requirePermissionInContext.mockResolvedValue(undefined)
-    mocks.listDirectTeamEmployeeIds.mockResolvedValue(['employee-1'])
+    mocks.listDirectTeamEmployeeScope.mockResolvedValue({ employeeIds: ['employee-1'], sourceTruncated: false })
   })
 
   it('rejects a forged employee outside the direct-team scope before any detail read', async () => {
     await expect(getStarPerformersDetail('employee-outside-team')).rejects.toMatchObject({ status: 403 })
     expect(mocks.getRequestAuthorizationContext).toHaveBeenCalledTimes(1)
-    expect(mocks.listDirectTeamEmployeeIds).toHaveBeenCalledTimes(1)
+    expect(mocks.listDirectTeamEmployeeScope).toHaveBeenCalledTimes(1)
   })
 })

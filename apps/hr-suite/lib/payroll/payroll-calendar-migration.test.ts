@@ -4,7 +4,7 @@ import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
 import { describe, expect, it } from 'vitest'
 import { generatePayrollCalendar, type PayrollCalendarDefinition } from './payroll-calendar'
 
-const migration = readFileSync(new URL('./supabase/migrations/20261014105333_payroll_calendar_foundation.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('./supabase/migrations/20261014140803_20261014105333_payroll_calendar_foundation.sql', import.meta.url), 'utf8')
 
 const payrollCatalog = `
 CREATE ROLE anon;

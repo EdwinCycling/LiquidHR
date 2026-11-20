@@ -450,6 +450,7 @@
   "goalChooseEmployee": "Choose an employee",
   "goalCapability": "Linked capability",
   "goalNoCapability": "No capability",
+  "goalCapabilityUnavailable": "Linked capability unavailable",
   "goalNoEmployees": "No employees are available within your scope.",
   "goalName": "Goal",
   "goalDescription": "Description",

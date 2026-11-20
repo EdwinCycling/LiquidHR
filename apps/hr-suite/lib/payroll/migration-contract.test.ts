@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const appSource = fileURLToPath(new URL('../../../../apps/hr-suite', import.meta.url))
-const migrationPath = join(appSource, 'lib', 'payroll', 'supabase', 'migrations', '20260930100000_paylab00_isolation_foundation.sql')
+const migrationPath = join(appSource, 'lib', 'payroll', 'supabase', 'migrations', '20260930125822_20260930100000_paylab00_isolation_foundation.sql')
 const requiredTables = [
   'payroll_administrations',
   'payroll_periods',

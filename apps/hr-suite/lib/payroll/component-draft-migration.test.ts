@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const payrollSource = fileURLToPath(new URL('../../../../apps/hr-suite', import.meta.url))
-const migrationFile = join(payrollSource, 'lib', 'payroll', 'supabase', 'migrations', '20261001153005_paylab04_customer_component_versions.sql')
+const migrationFile = join(payrollSource, 'lib', 'payroll', 'supabase', 'migrations', '20261001155314_paylab04_customer_component_versions.sql')
 
 describe('PAYLAB04 customer component version migration contract', () => {
   it('keeps the DRAFT table in the Payroll Lab migration stream with same-database scoped ownership', () => {

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const migrationUrl = new URL('./20261007131203_apiai07_remote_mcp_test.sql', import.meta.url)
+const migrationUrl = new URL('./20261007131203_20261007142637_apiai07_remote_mcp_test.sql', import.meta.url)
 
 describe('APIAI-07 remote MCP TEST migration contract', () => {
   it('adds only the fixed Employee self-service resource and bounded TEST policy', async () => {

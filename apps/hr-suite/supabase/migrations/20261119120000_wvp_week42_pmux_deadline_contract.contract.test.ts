@@ -10,7 +10,7 @@ const cases = [
   { id: '30000000-0000-4000-8000-000000000003', processId: '40000000-0000-4000-8000-000000000003', clockStart: '2026-03-06', taskDue: '2026-12-25', name: 'recognized public holiday', expected: '2026-12-26 00:00:00' },
   { id: '30000000-0000-4000-8000-000000000004', processId: '40000000-0000-4000-8000-000000000004', clockStart: '2026-01-10', taskDue: '2026-10-31', name: 'effective clock after a recovery gap', expected: '2026-11-01 00:00:00' },
 ]
-const migration = readFileSync(new URL('./20261119120000_wvp_week42_pmux_deadline_contract.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('./20261119160230_20261119120000_wvp_week42_pmux_deadline_contract.sql', import.meta.url), 'utf8')
 
 let db: PGlite
 

@@ -8,31 +8,31 @@ const migration = readFileSync(join(
   payrollSource,
   'supabase',
   'migrations',
-  '20261003100000_paylab05_arrangement_foundation.sql',
+  '20261003122457_20261003100000_paylab05_arrangement_foundation.sql',
 ), 'utf8').toLowerCase()
 const integrityMigration = readFileSync(join(
   payrollSource,
   'supabase',
   'migrations',
-  '20261003123000_paylab05_arrangement_integrity_hardening.sql',
+  '20261003122705_20261003123000_paylab05_arrangement_integrity_hardening.sql',
 ), 'utf8').toLowerCase()
 const availabilityMigration = readFileSync(join(
   payrollSource,
   'supabase',
   'migrations',
-  '20261003130000_paylab05_arrangement_availability_validity.sql',
+  '20261003124346_20261003130000_paylab05_arrangement_availability_validity.sql',
 ), 'utf8').toLowerCase()
 const auditedAvailabilityStartMigration = readFileSync(join(
   payrollSource,
   'supabase',
   'migrations',
-  '20261003140000_paylab06_audited_availability_start.sql',
+  '20261003171547_paylab06_audited_availability_start.sql',
 ), 'utf8').toLowerCase()
 const benchmarkFixtureCodesMigration = readFileSync(join(
   payrollSource,
   'supabase',
   'migrations',
-  '20261003180000_paylab06_benchmark_fixture_codes.sql',
+  '20261003174936_paylab06_benchmark_fixture_codes.sql',
 ), 'utf8').toLowerCase()
 
 const tables = [

@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type QueryRow = Record<string, unknown>
-type QueryResult = { data: QueryRow[]; error: null }
+type QueryResult = { data: QueryRow[]; error: null; count: number }
 type Filter = { kind: 'eq' | 'in' | 'is'; column: string; value: unknown }
 
 const mocks = vi.hoisted(() => ({
   getRequestAuthorizationContext: vi.fn(),
   requirePermissionInContext: vi.fn(),
-  listDirectTeamEmployeeIds: vi.fn(),
+  listDirectTeamEmployeeScope: vi.fn(),
   listContinuousAppraisalItemsForEmployees: vi.fn(),
   listTalentGoals: vi.fn(),
   listTalentProfilesForWorkforce: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock('@/lib/auth/permissions', () => ({
   requirePermissionInContext: mocks.requirePermissionInContext,
 }))
 
-vi.mock('@/lib/organization/team-scope', () => ({ listDirectTeamEmployeeIds: mocks.listDirectTeamEmployeeIds }))
+vi.mock('@/lib/organization/team-scope', () => ({ listDirectTeamEmployeeScope: mocks.listDirectTeamEmployeeScope }))
 vi.mock('@/lib/continuous-appraisal/service', () => ({ listContinuousAppraisalItemsForEmployees: mocks.listContinuousAppraisalItemsForEmployees }))
 vi.mock('@/lib/talent/goal-service', () => ({ listTalentGoals: mocks.listTalentGoals }))
 vi.mock('@/lib/talent/service', () => ({ listTalentProfilesForWorkforce: mocks.listTalentProfilesForWorkforce }))
@@ -30,18 +30,22 @@ vi.mock('@/lib/talent/employee-capability-service', () => ({ listTalentEmployeeC
 
 function createQuery(rowsByTable: Readonly<Record<string, readonly QueryRow[]>>, table: string) {
   const filters: Filter[] = []
-  const resolve = (): QueryResult => ({
-    data: (rowsByTable[table] ?? []).filter((row) => filters.every((filter) => {
+  let rowLimit: number | null = null
+  const matchingRows = () => (rowsByTable[table] ?? []).filter((row) => filters.every((filter) => {
       if (filter.kind === 'eq') return row[filter.column] === filter.value
       if (filter.kind === 'is') return filter.value === null ? row[filter.column] === null : row[filter.column] === filter.value
       return Array.isArray(filter.value) && filter.value.includes(row[filter.column])
-    })) as QueryRow[],
+    })) as QueryRow[]
+  const resolve = (): QueryResult => ({
+    data: matchingRows().slice(0, rowLimit ?? undefined),
     error: null,
+    count: matchingRows().length,
   })
 
   const builder = {
-    select: (columns: string) => {
+    select: (columns: string, options?: unknown) => {
       void columns
+      void options
       return builder
     },
     eq: (column: string, value: unknown) => {
@@ -71,7 +75,7 @@ function createQuery(rowsByTable: Readonly<Record<string, readonly QueryRow[]>>,
       return builder
     },
     limit: (count: number) => {
-      void count
+      rowLimit = count
       return builder
     },
     then: (onfulfilled: (value: QueryResult) => unknown) => Promise.resolve(resolve()).then(onfulfilled),
@@ -79,7 +83,7 @@ function createQuery(rowsByTable: Readonly<Record<string, readonly QueryRow[]>>,
   return builder
 }
 
-function createSupabase() {
+function createSupabase(overrides: Readonly<Record<string, readonly QueryRow[]>> = {}) {
   const rowsByTable: Readonly<Record<string, readonly QueryRow[]>> = {
     departments: [{ id: 'department-1', name: 'People', tenant_id: 'tenant-1', is_active: true }],
     jobs: [{ id: 'job-1', code: 'HR-ADVISOR', job_group_id: 'group-1', tenant_id: 'tenant-1', is_active: true }],
@@ -102,10 +106,36 @@ function createSupabase() {
       { id: 'level-advanced', code: 'ADVANCED', sort_order: 2, tenant_id: 'tenant-1' },
     ],
   }
-  return { from: vi.fn((table: string) => createQuery(rowsByTable, table)) }
+  return { from: vi.fn((table: string) => createQuery({ ...rowsByTable, ...overrides }, table)) }
 }
 
-import { getStarPerformersInsights } from './v2-service'
+import { classifySkillGapStatus, getStarPerformersInsights } from './v2-service'
+
+describe('Star Performers skillgap evidence classification', () => {
+  const requirement = { capability: { capability_type: 'COMPETENCY' }, target_level_id: 'advanced', language_level: null }
+  const currentRecord = {
+    status: 'RELEASED', validFrom: '2026-01-01', validUntil: null,
+    talentLevelId: 'basic', languageLevel: null, evidenceStatus: 'VERIFIED',
+  } as const
+  const ranks = new Map([['basic', 1], ['advanced', 2]])
+
+  it('keeps level, assessment, and evidence outcomes distinct', () => {
+    expect(classifySkillGapStatus(requirement, { ...currentRecord, talentLevelId: 'advanced' }, ranks, '2026-10-18')).toBe('MATCH')
+    expect(classifySkillGapStatus(requirement, currentRecord, ranks, '2026-10-18')).toBe('INSUFFICIENT_LEVEL')
+    expect(classifySkillGapStatus(requirement, { ...currentRecord, talentLevelId: null }, ranks, '2026-10-18')).toBe('MISSING_LEVEL')
+    expect(classifySkillGapStatus(requirement, undefined, ranks, '2026-10-18')).toBe('NOT_ASSESSED')
+    expect(classifySkillGapStatus(requirement, { ...currentRecord, evidenceStatus: null }, ranks, '2026-10-18')).toBe('MISSING_EVIDENCE')
+    expect(classifySkillGapStatus(requirement, { ...currentRecord, evidenceStatus: 'PENDING' }, ranks, '2026-10-18')).toBe('MISSING_EVIDENCE')
+    expect(classifySkillGapStatus(requirement, { ...currentRecord, evidenceStatus: 'EXPIRED' }, ranks, '2026-10-18')).toBe('EXPIRED_EVIDENCE')
+  })
+
+  it('does not classify missing or expired evidence as an insufficient level', () => {
+    for (const evidenceStatus of [null, 'NOT_PROVIDED', 'PENDING', 'REJECTED', 'EXPIRED'] as const) {
+      const status = classifySkillGapStatus(requirement, { ...currentRecord, evidenceStatus }, ranks, '2026-10-18')
+      expect(status).not.toBe('INSUFFICIENT_LEVEL')
+    }
+  })
+})
 
 describe('Star Performers Manager skillgap readpath', () => {
   beforeEach(() => {
@@ -123,7 +153,7 @@ describe('Star Performers Manager skillgap readpath', () => {
       supabase,
     })
     mocks.requirePermissionInContext.mockResolvedValue(undefined)
-    mocks.listDirectTeamEmployeeIds.mockResolvedValue(['employee-team'])
+    mocks.listDirectTeamEmployeeScope.mockResolvedValue({ employeeIds: ['employee-team'], sourceTruncated: false })
     mocks.listTalentGoals.mockResolvedValue({ goals: [], employees: [], capabilities: [] })
     mocks.listContinuousAppraisalItemsForEmployees.mockResolvedValue([])
     mocks.listTalentProfilesForWorkforce.mockResolvedValue([{
@@ -162,7 +192,7 @@ describe('Star Performers Manager skillgap readpath', () => {
       perspective: 'top-talent', area: 'insights', insight: 'skill-gaps', q: '', status: 'all', appraisalStatus: 'all', page: 1, pageSize: 20,
     })
 
-    expect(mocks.listDirectTeamEmployeeIds).toHaveBeenCalledWith(expect.objectContaining({ employeeId: 'manager-1' }), expect.anything())
+    expect(mocks.listDirectTeamEmployeeScope).toHaveBeenCalledWith(expect.objectContaining({ employeeId: 'manager-1' }), expect.anything(), 5_000)
     expect(mocks.requirePermissionInContext).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ employeeId: 'manager-1' }), 'star-performer:manager-read')
     expect(mocks.requirePermissionInContext).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ employeeId: 'manager-1' }), 'talent:manager-read')
     expect(report.population.employeesInScope).toBe(1)
@@ -171,6 +201,44 @@ describe('Star Performers Manager skillgap readpath', () => {
     expect(report.skillGaps.rows[0]).toMatchObject({ capabilityName: 'Gesprek voeren', requiredLevelLabel: 'Gevorderd', coveragePercent: 0, statusCounts: { INSUFFICIENT_LEVEL: 1, MATCH: 0, NOT_ASSESSED: 0 } })
     expect(report.skillGaps.rows[0]?.employees.map((employee) => employee.employeeId)).toEqual(['employee-team'])
     expect(JSON.stringify(report.skillGaps)).not.toContain('employee-outside')
+  })
+
+  it('fails closed when the organization placements exceed the report source limit', async () => {
+    const placements = Array.from({ length: 5_001 }, (_, index) => ({
+      employee_id: `employee-${index}`,
+      department_id: 'department-1',
+      job_id: 'job-1',
+      job_title: 'HR adviseur',
+      effective_from: '2026-01-01',
+      administration_id: 'administration-1',
+    }))
+    const supabase = createSupabase({ employee_organizations: placements })
+    mocks.getRequestAuthorizationContext.mockResolvedValue({
+      context: {
+        tenantId: 'tenant-1',
+        administrationId: 'administration-1',
+        userId: 'manager-user',
+        employeeId: 'hr-admin-1',
+        activeRoles: ['HR_ADMIN'],
+        permissions: ['star-performer:read'],
+      },
+      supabase,
+    })
+
+    await expect(getStarPerformersInsights({
+      perspective: 'top-talent', area: 'insights', insight: 'skill-gaps', q: '', status: 'all', appraisalStatus: 'all', page: 1, pageSize: 20,
+    })).rejects.toMatchObject({ code: 'STAR_PERFORMER_SCOPE_SOURCE_LIMIT_EXCEEDED', status: 503 })
+  })
+
+  it('fails closed when the direct-team scope source reports truncation', async () => {
+    mocks.listDirectTeamEmployeeScope.mockResolvedValue({
+      employeeIds: Array.from({ length: 5_000 }, (_, index) => `employee-${index}`),
+      sourceTruncated: true,
+    })
+
+    await expect(getStarPerformersInsights({
+      perspective: 'top-talent', area: 'insights', insight: 'skill-gaps', q: '', status: 'all', appraisalStatus: 'all', page: 1, pageSize: 20,
+    })).rejects.toMatchObject({ code: 'STAR_PERFORMER_SCOPE_SOURCE_LIMIT_EXCEEDED', status: 503 })
   })
 
   it('returns capability-linked plans only for the existing direct-team scope in the skillgap report', async () => {

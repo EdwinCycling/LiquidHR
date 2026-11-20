@@ -1,5 +1,7 @@
 # TAL-INS01 — Talent & Development-overzicht
 
+> **19-11-2026 — lokale functionele afronding:** het bestaande overzicht hergebruikt plannen, competenties/bewijs en Continuous Appraisal met dezelfde rapportfilters, scope en bronlinks. Planlinks openen nu het exacte plan en de medewerker in de rolgebonden beheerroute; CSV bevat dezelfde volledige bronrijen als de totalen. Afgekorte bronresultaten falen gesloten. 62 gerichte tests, TypeScript, ESLint, i18n en diffcheck PASS. Geauthenticeerde UI/API- en RLS-acceptatie per persona blijft OPEN: de opgegeven kandidaat toont alleen de uitnodigingslogin. Zie [acceptatiebewijs](../../quality/acceptance/runs/TALENT-FUNCTIONAL-COMPLETION-20261119.md).
+
 > **13-11-2026 — aanvullende acceptatie PARTIAL:** HR Admin en Manager openden het ontwikkelrapport; Employee werd eerder geweigerd. Volledige bronherleiding, filters en negatieve scopegevallen blijven OPEN. Zie [handoff](../../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md).
 
 > **13-11-2026 — integratieacceptatie PARTIAL:** het bestaande ontwikkelrapport is lokaal geopend als HR Admin en Manager; Employee werd uit het managementrapport geweigerd. De volledige bron-, filter- en scopeset blijft OPEN. Zie [integratiehandoff](../../delivery/LIQUIDHR-INTEGRATION-HANDOFF-20261113.md).
