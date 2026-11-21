@@ -1,24 +1,24 @@
 # AA-ACCEPT — Accepted Baseline
-## Gezamenlijke LiquidHR TEST-release — 20-11-2026
+## Geconsolideerde LiquidHR TEST-baseline — closeout 21-11-2026
 
-**Accepted as a limited synthetic TEST release; overall acceptance PARTIAL.** The consolidated main is active on the existing canonical domain with app version 1.20261120.1. Local/GitHub/Vercel source-SHA equality, READY state, runtime provenance and alias assignment were read back after deployment.
+**Consolidation COMPLETE; hosted functional acceptance PARTIAL.** Edwin accepted the consolidated operational baseline. The limited synthetic TEST release remains active on the existing canonical domain with app version 1.20261120.1. The 20-11 release readback confirmed local/GitHub/Vercel source-SHA equality at `3b76be2c614d4e1abbac5f7289925ef8d75eddbd`, READY state, runtime provenance and alias assignment. The closeout changes existing documentation only; no redeployment was made.
 
 - HR/Core: existing SEC-101 post-CONTRACT matrix is 44 PASS / 0 FAIL / 1 NOT TESTED; cross-tenant acceptance remains OPEN.
 - WVP and Talent: consolidated and locally verified; hosted persona, lifecycle, positive-data and negative-scope evidence remains PARTIAL/OPEN.
-- Payroll ESS and HR Admin: current code is released; previous post-CONTRACT evidence is retained. Full authenticated persona acceptance on the new candidate did not complete.
+- Payroll ESS and HR Admin: current code is released; previous post-CONTRACT evidence is retained. The targeted local Lisa/Jaap/Frits run was BLOCKED; hosted authenticated persona acceptance remains incomplete because supported Test Auth/role-switch flows are loopback-only and no hosted persona session was available.
 - Database: no migration or data write during release. Keep registered Payroll migration 20261113073051 as a separate missing-source recovery item.
 - Rollback: previous READY post-CONTRACT deployment retained; rollback has not been exercised.
 
-See the [final release acceptance report](../quality/acceptance/runs/LIQUIDHR-FINAL-RELEASE-20261120.md) and [open evidence register](AA-OPEN.md). This is not ACCEPTANCE GREEN or commercial Payroll approval.
+See the [final release and closeout report](../quality/acceptance/runs/LIQUIDHR-FINAL-RELEASE-20261120.md) and [open evidence register](AA-OPEN.md). SEC-101 other-tenant acceptance, missing Payroll migration source 20261113073051 and rollback proof remain separate open items. This is not ACCEPTANCE GREEN or commercial Payroll approval.
 
 > **Acceptatie-afbakening 18-10-2026:** zie [AA-PAYROLL-CONVERGENCE-20261018](AA-PAYROLL-CONVERGENCE-20261018.md). Historisch bewezen Emma/Noah FINALIZED zijn aparte geldige casussen. CAO-SETUP/PENSION/SOURCE is qua UI en gerichte tests gebouwd, maar Kinderopvang K2/Retail R1/R2 zijn **nog niet als volledige Core-payrollruns met nieuwe PDF's bewezen**. Vereist: echte geautoriseerde broninvoer en readback per werkgever, effectieve schaal/trede/pensioen/looncomponenten, cumulatieven, fiscale controle, 32/32 waar toepasselijk, immutable FINALIZED/PDF/hash, persona- en scope-negatives. Geen review-only status of cataloguspercentage aanmerken als juridisch of end-to-end payrollbewijs.
 
 Status: **LIVING INDEX**
-Bijgewerkt: 2026-10-23 (PAY-MERGE-FIX-02; historische acceptaties ongewijzigd)
+Bijgewerkt: 2026-11-21 (baseline closeout; historische acceptaties ongewijzigd)
 
 Dit is geen vervanging voor de gedateerde acceptance reports. Het is de compacte index van wat we als actuele baseline accepteren.
 
-## Actuele productcode-baseline — 1.20261021.1 (21 oktober 2026)
+## Historische productcode-baseline — 1.20261021.1 (21 oktober 2026)
 
 **Geïntegreerd en deployed:** source-SHA `c0fa236967ec0708c0a57f72e0dfb29b78b3fead`, Vercel `dpl_CuyAgvBwHr5z9bXNv52Np7SaTxb9` **READY**. De GitHub-developmenthead kan door afzonderlijke docs-only commits verder bewegen zonder de Vercel-runtime te wijzigen. De beperkte geauthenticeerde smoke toont HR Admin/Jupiter, STAR-data, Payroll-hoofdoverzicht, Employee Journey en HeRa-paneel.
 
@@ -59,6 +59,7 @@ PR #16 is gemerged op `ffdca4822fb4cca6e675d9c969b59a12ca664c51`; alleen de gese
 
 | Slice | Status | Bewijs / opmerking |
 | --- | --- | --- |
+| Geconsolideerde LiquidHR TEST-baseline 1.20261120.1 | **CONSOLIDATION COMPLETE; HOSTED FUNCTIONAL ACCEPTANCE PARTIAL** | Actieve deploymentbron `3b76be2c614d4e1abbac5f7289925ef8d75eddbd` op de canonieke alias; release-readback bevestigde lokale/GitHub/Vercel-SHA-pariteit. Payroll/WVP/Talent/HR Core hosted persona-acceptatie blijft gedeeltelijk; geen migratie of databasewrite. [Closeoutrapport](../quality/acceptance/runs/LIQUIDHR-FINAL-RELEASE-20261120.md) |
 | APIAI-09 limited TEST | **TEST RELEASED — LIMITED; APIAI-08/09 ACCEPTANCE OPEN** | Main `a5d1b3ff61e8c1d1af05a0c89b08a4fe73472495`; Vercel `dpl_7HBAyX61sjs1YNtmMZJU55NpNii6` READY, exact main SHA, canonical alias. Anonymous safety smoke passed. No authenticated login/regression smoke; Employee 0/8, Manager 0/6; Preview isolation and version metadata OPEN. [Run report](../quality/acceptance/runs/APIAI-09-20261012-TEST-RELEASE.md) |
 | Vorige TEST-release 1.20261011.2 (NMBRS-01) | **TEST RELEASED — LIMITED; NMBRS OAUTH/PREVIEW AND SEC-01 HOSTED ACCEPTANCE OPEN** | Automatic READY `dpl_BVuywDYacYZk2DXn9ZNkgVRgkvkp` on exact main SHA `58dc758c950b4e6da45c43a1692f45eb0fc019e9`; canonical alias `liquid-hr-hr-suite.vercel.app`; AA-REL §7 smoke passed. SEC-01 TEST-applied, source/registration versions `20261011120317` / `20261011130922` |
 | ABS02 | GREEN | `docs/quality/acceptance/runs/ABS02-20260927.md` |

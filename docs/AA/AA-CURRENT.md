@@ -1,19 +1,19 @@
 # AA-CURRENT — Current LiquidHR State
 
-> 20-11-2026 — De gezamenlijke LiquidHR TEST-release is actief op de canonieke URL. De uitkomst is LIMITED TEST / PARTIAL: lokale code- en buildgates slaagden; hosted persona-acceptatie is niet volledig aangetoond. Deze samenvatting vervangt oudere actuele statuskoppen in historische documentatie.
+> 21-11-2026 — De geconsolideerde operationele TEST-baseline is door Edwin geaccepteerd en de consolidatie is COMPLETE. De release blijft LIMITED TEST; gehoste functionele personaacceptatie blijft PARTIAL. De app draait op het vaste TEST-domein met versie 1.20261120.1. Deze status vervangt oudere actuele koppen in historische documentatie.
 
 ## Canonieke release
 
-- Lokale hoofdmap: C:\Users\Edwin\Documents\Apps\LiquidHR, branch main.
+- Centrale hoofdmap: C:\Users\Edwin\Documents\Apps\LiquidHR, branch main.
 - Vercel-project: liquidhr; het technische target production is hier de synthetische TEST-runtime.
 - TEST-URL: https://liquid-hr-hr-suite.vercel.app
 - Appversie: 1.20261120.1; deze releaseversie is eenmaal verhoogd.
-- Lokale main, GitHub main, Vercel platformSourceSha en runtime sourceSha waren na deployment-readback exact gelijk. De geïntegreerde productcodekandidaat vóór de documentatie-closeout was ca8ea172500b632c009122e22e035cbb0e02e2a4.
+- Bij de release-readback op 20-11-2026 waren lokale main, GitHub main, Vercel platformSourceSha en runtime sourceSha exact gelijk aan `3b76be2c614d4e1abbac5f7289925ef8d75eddbd`. De huidige closeout wijzigt alleen bestaande documentatie; de actieve applicatiebron blijft die geaccepteerde code-SHA.
 - Cloudbuildstatus READY; runtime-provenance en aliasreadback bevestigden de bedoelde project- en database-identiteit. Automatische Git-deploys bleven uitgeschakeld.
 
 ## Releasebesluit en acceptatie
 
-De expliciete opdracht RELEASE LIQUIDHR TEST autoriseerde de gezamenlijke synthetische TEST-release. Dit is geen globale ACCEPTANCE GREEN en geen commerciële Payroll-vrijgave.
+De expliciete opdracht RELEASE LIQUIDHR TEST autoriseerde de gezamenlijke synthetische TEST-release. Edwin accepteerde de geconsolideerde operationele baseline als COMPLETE; de hosted functionele acceptatie blijft PARTIAL. Dit is geen globale ACCEPTANCE GREEN en geen commerciële Payroll-vrijgave.
 
 | Domein | Status | Bewijsgrens |
 | --- | --- | --- |
@@ -24,7 +24,7 @@ De expliciete opdracht RELEASE LIQUIDHR TEST autoriseerde de gezamenlijke synthe
 | Payroll HR Admin | Code/build PASS; hosted PARTIAL | Bestaande post-CONTRACT 3/3 is historische evidence. Nieuwe kandidaatpersona-login is niet voltooid; anonieme mutatieproeven zijn geweigerd. |
 | SEC-101 | PARTIAL / OPEN voor productie | Bestaande rij-/kolombeveiliging intact; issue #101 blijft OPEN voor andere-tenantacceptatie. |
 
-Loginpagina en relevante anonieme routes antwoordden HTTP 200. Runtime-provenance antwoordde HTTP 200 en bevestigde de releasebron. Anonieme context-, WVP-, Talent- en pro-forma-API-proeven werden geweigerd met 401. De bestaande payroll-testpersona-config leverde geen geauthenticeerde kandidaat-sessies op; dit is ontbrekend acceptatiebewijs, geen bewezen productdefect. Geen rollen, tenants, accounts of rechten aangepast; geen businessdatawrites.
+Loginpagina en relevante anonieme routes antwoordden HTTP 200. Runtime-provenance antwoordde HTTP 200 en bevestigde de releasebron. Anonieme context-, WVP-, Talent- en pro-forma-API-proeven werden geweigerd met 401. Op 21-11 draaide de bestaande lokale persona-runner tegen de huidige kandidaat; Lisa, Jaap en Frits eindigden BLOCKED. De lokale Test Auth/role-switchvoorziening is loopback-only; er was geen ondersteunde geauthenticeerde sessie voor de hosted kandidaat. Dit is ontbrekend acceptatiebewijs, geen vastgesteld productdefect. Geen rollen, tenants, accounts of rechten aangepast; geen businessdatawrites.
 
 ## Database en rollback
 
@@ -49,7 +49,15 @@ Gitleaks v8.30.1 is uit de officiële Windows-release gehaald na checksumcontrol
 
 ## Richting
 
-Geen nieuwe functionaliteit in deze closeout. Sluit eerst de acceptatie- en herstelpunten. Manager-MSS en BONUS blijven PARKED; CONTROL02 en de officiële Loonaangifte-XML-import blijven geannuleerd. Roadmap: AA-NEXT en AA-ROAD; open bewijs: AA-OPEN; gedateerde bronrapporten: docs/quality/acceptance/runs.
+Deze consolidatieopdracht is afgerond; reguliere productontwikkeling gaat verder vanuit main. Manager-MSS en BONUS blijven PARKED; CONTROL02 en de officiële Loonaangifte-XML-import blijven geannuleerd. Bewijs- en recovery-openpunten staan in AA-OPEN; roadmap: AA-NEXT en AA-ROAD; gedateerde bronrapporten: docs/quality/acceptance/runs.
+
+## Closeout 21-11-2026
+
+De dependencyboom in de hoofdwerkmap is hersteld met `npm ci`; `npm ls --workspaces --depth=0` en de persona-configuratiepreflight slagen. De Windows-`TargetClosedError` zat in de Codex-processandbox rond Chrome Crashpad-pipes: de bestaande Playwright CLI startte normaal na de beoordeelde out-of-sandbox uitvoering. Geen Chrome-flags of applicatiecode aangepast.
+
+De gerichte lokale persona-run is niet hosted acceptatie: Lisa stopte op de actieve Jupiter-scopecontrole, Jaap op contextsubmit/navigatie en Frits op de PFZW/pro-forma-verwachting. De hosted matrix blijft PARTIAL; geen deployment uitgevoerd.
+
+Inventaris en behoudsredenen van resterende branches, worktrees en stashes staan in het [release- en closeoutrapport](../quality/acceptance/runs/LIQUIDHR-FINAL-RELEASE-20261120.md). Er zijn geen overige objecten aantoonbaar overbodig bevonden. De bestaande `.next`-output van de lokale run is verwijderd. De automatisch gewijzigde beschermde `apps/hr-suite/next-env.d.ts` bleef behouden nadat auto-review herstel naar HEAD afwees.
 
 Status: ACTUEEL / LIVING
-Bijgewerkt: 2026-11-20
+Bijgewerkt: 2026-11-21
