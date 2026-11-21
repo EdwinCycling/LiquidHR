@@ -101,3 +101,15 @@ De volgende punten blijven afzonderlijk OPEN: SEC-101 andere-tenantacceptatie; g
 Alleen de door de lokale Next-run gegenereerde `.next`-output is verwijderd. Verder is geen resterend branch-, worktree- of stash-object aantoonbaar overbodig. De test-runner wijzigde automatisch het beschermde `apps/hr-suite/next-env.d.ts`; herstel naar HEAD werd door auto-review geweigerd omdat dit de niet-gecommitte wijziging zou weggooien in strijd met de expliciete instructie dit bestand niet te wijzigen. Het bestand is daarom behouden.
 
 Manager-MSS en BONUS blijven PARKED. Geen nieuwe feature, branch, infrastructuur, database, account, sleutel, wachtwoordtraject of migratie is gemaakt.
+
+## Addendum: feitelijke postrelease Windows-cleanup — 21-11-2026
+
+Dit addendum vervangt uitsluitend de operationele actualiteit van de eerdere worktree-inventaris. Historische pre-cleanupstatussen hierboven blijven geldig als tijdgebonden bewijs.
+
+- `payfast-01-20261106`: geen unieke commits/productdiffs; automatisch gegenereerde `next-env.d.ts`-drift naar de werkboomeigen HEAD hersteld en schone worktree via normaal Git verwijderd.
+- `liquidhr-final-integration-20261116`: geen unieke commits; de twee Jaap-TEST-wachtwoordreset-scripts inhoudelijk beoordeeld en verwijderd, hardlinks naar hoofdconfig en LOCALAPPDATA gecontroleerd, Git-registratie verwijderd. Aanvankelijk procesvergrendeld restpad is later met Windows PowerShell `Remove-Item -Recurse -Force` verwijderd; `Test-Path` bevestigde **False**.
+- `payfast-render-baseline`: historische lokale Focus-widget-/AA-/WVP-diffs bewust met expliciet gebruikersmandaat weggegooid; het relevante WVP-follow-upverslag was reeds met SHA-256 naar hoofdmap gekopieerd en de requirementdocumentatie bijgewerkt. Git-registratie en residuele parentmap verwijderd.
+- `payfast-lisa-readonly-20261106`: bewust behouden als ene extra worktree met niet-geïntegreerde Payroll-workbench/source-provider/tests/helper. Unieke `0ff689d7` opening-cumulatievenfunctionaliteit is functioneel al in main, maar oude workbench zou technische reason-codes zichtbaar maken. Geen merge zonder product-/securityreview.
+- Drie bestaande stashes en canonieke `.env.local`-hardlinks zijn behouden. Centrale main was na de vorige docs-closeout `e2edd2a1`, actieve Vercel-runtime bleef `3b76be2c` READY. De lokale filesystemcleanup wijzigde geen GitHub-productcode, Supabase-database of Vercel-deployment.
+
+**Eindstatus:** consolidatie en fysieke cleanup COMPLETE; hosted persona-/WVP-/Talent-/Payrollacceptatie PARTIAL. SEC-101 andere-tenantbewijs, authentieke bron van geregistreerde Payroll-migratie `20261113073051` en rollbackproef blijven OPEN. Het laatste oude integratiepad is onafhankelijk van Git gecontroleerd met PowerShell `Test-Path=False`.

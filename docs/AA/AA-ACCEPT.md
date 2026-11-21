@@ -1,4 +1,11 @@
 # AA-ACCEPT — Accepted Baseline
+
+## Post-cleanup acceptancegrens — 21-11-2026
+
+De op `3b76be2c` actieve READY TEST-runtime met appversie `1.20261120.1` is geconsolideerd en technisch gereleased. Main is na de release met documentatie-only `e2edd2a1` bijgewerkt. De laatste lokale opruiming heeft ook de oude render-/integratie-residumappen verwijderd zonder productcode/deployment te wijzigen. Eén Payroll Lisa-recoveryworktree en drie stashes zijn bewust behouden.
+
+**Verdict: CONSOLIDATION COMPLETE / HOSTED FUNCTIONAL ACCEPTANCE PARTIAL.** De post-CONTRACT SEC-101-regressie blijft 44 PASS/0 FAIL/1 NOT TESTED; andere-tenantproef is geen PASS. Geauthenticeerde hosted WVP/Talent/Payroll-rollen en positieve flows zijn nog onbewezen. Geen nieuwe release, database- of functionele proef op grond van deze documentatiewijzigingen.
+
 ## Geconsolideerde LiquidHR TEST-baseline — closeout 21-11-2026
 
 **Consolidation COMPLETE; hosted functional acceptance PARTIAL.** Edwin accepted the consolidated operational baseline. The limited synthetic TEST release remains active on the existing canonical domain with app version 1.20261120.1. The 20-11 release readback confirmed local/GitHub/Vercel source-SHA equality at `3b76be2c614d4e1abbac5f7289925ef8d75eddbd`, READY state, runtime provenance and alias assignment. The closeout changes existing documentation only; no redeployment was made.

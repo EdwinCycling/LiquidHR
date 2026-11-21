@@ -1,4 +1,20 @@
 # AA-OPEN — Openstaande punten, uitgesteld bewijs en beslissingen
+
+## Update herstelpunten na Windows-cleanup — 21-11-2026
+
+| Onderdeel | Status | Actie of afsluitbewijs |
+| --- | --- | --- |
+| Oude A/C/PayFast-01-worktrees | CLOSED | Registraties verwijderd; beide A/C-residuele directories verwijderd, integratierestmap `Test-Path=False`. |
+| Payroll Lisa-recovery | PROTECTED | Eén detached `payfast-lisa-readonly-20261106`-worktree met niet-geïntegreerde source-provider/workbench/tests/helper. Oude workbench zou technische reason-codes tonen, terwijl actuele code die afschermt; dus niet blind mergen. |
+| Git-stashes | PROTECTED | Drie stashes behouden; niet toegepast of gedropt. |
+| Hosted persona/WVP/Talent/Payroll | OPEN / PARTIAL | Geen ondersteunde geauthenticeerde hosted rol-/lifecycle-/API/RLS-matrix; loopback-only Test Auth telt niet. |
+| SEC-101 andere tenant | OPEN | 44 PASS / 0 FAIL / 1 NOT TESTED; andere-tenantfixture ontbreekt en GitHub #101 blijft open. |
+| Payroll-migratiebron 20261113073051 | OPEN | Reeds toegepaste SQL-bron ontbreekt; geen fictieve SQL of wijziging van remote migratiehistorie. |
+| Post-CONTRACT rollback | OPEN | Behouden READY rollbackdeployment is niet daadwerkelijk getest na CONTRACT. |
+| Lokale Node Chromium engine | MAINTENANCE | Node 22.14.0 versus minimaal vereist `^22.17.0 || >=24` voor `@sparticuz/chromium@149.0.0`. |
+
+De oude closeout-inventaris van vier extra worktrees is ingehaald door de bevestigde opruiming. Behoud overige unieke refs en herstelpunten tot afzonderlijke inhoudsbeslissing.
+
 > **21-11-2026 — baseline-closeout:** consolidatie **COMPLETE**, hosted functionele acceptatie **PARTIAL**. Release-readback 20-11 bevestigde exacte source-SHA `3b76be2c614d4e1abbac5f7289925ef8d75eddbd` en appversie 1.20261120.1 op het vaste TEST-domein. Dependencyboom hersteld; Windows Playwright-start hersteld via de bestaande CLI buiten de processandbox. De lokale Lisa-, Jaap- en Frits-run bleef BLOCKED; de ondersteunde Test Auth/role-switch is alleen lokaal en er was geen hosted persona-sessie. Geen deployment, migratie of businessdatawrite. Andere-tenantacceptatie SEC-101, Payroll-bron `20261113073051` en rollbackproef blijven afzonderlijk OPEN. Zie [release- en closeoutrapport](../quality/acceptance/runs/LIQUIDHR-FINAL-RELEASE-20261120.md).
 >
 > | ID | Status | Afsluitproef |

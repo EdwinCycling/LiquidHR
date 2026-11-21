@@ -1,4 +1,15 @@
 # AA-NEXT — Short-Term Roadmap
+
+## Werkvolgorde na definitieve opruiming — 21-11-2026
+
+1. Reguliere LiquidHR-productontwikkeling vanuit de centrale `main`; geen nieuwe consolidatieronde. Operationele TEST-release is READY, niet algemeen ACCEPTANCE GREEN.
+2. Hosted HR Admin/Manager/Employee/Tenant Admin-personaacceptatie via bestaande ondersteunde sessies, inclusief WVP lifecycle/documenten, Talent positieve plannen/skills en Payroll ESS/HR Admin; negatieve API/RLS-proeven. Geen auth-bypass.
+3. SEC-101 #101 andere-tenantfixture en deny-proef vóór productieclaim.
+4. Herstelbron Payroll-migratie `20261113073051` en compatibele post-CONTRACT-rollbackproef als afzonderlijke gecontroleerde taken.
+5. Behouden Payroll Lisa-recovery en drie stashes alleen inhoudelijk behandelen als daar een concrete product- of recoveryaanleiding voor is. Node/Chromium-enginewaarschuwing in onderhoudswave.
+
+Historische vervolgopdrachten om de inmiddels verwijderde integratie- en renderworktrees op te ruimen zijn achterhaald.
+
 > **20-11-2026 — eerstvolgend werk na release:** start geen nieuwe functionaliteit. Sluit eerst de hosted HR Admin/Manager/Employee/Tenant Admin-matrix met bestaande sessies; rond #101/andere-tenantacceptatie af vóór productiegebruik; bewijs de rollbackprocedure; herstel de exacte bron voor geregistreerde Payroll-migratie 20261113073051 zonder remote history-write. Talent-positive records vragen alleen indien nodig een apart gebundeld TEST-datamandaat. Manager-MSS en BONUS blijven PARKED. De actieve release is LIMITED TEST / PARTIAL; zie [AA-CURRENT](AA-CURRENT.md), [AA-OPEN](AA-OPEN.md) en [releaseacceptatie](../quality/acceptance/runs/LIQUIDHR-FINAL-RELEASE-20261120.md).
 
 > **20-11-2026 — pre-release operationele checkpoint (historisch):** operationele TEST-baseline is deployment `dpl_799S2oXST6MgNzW96iBqUnhUQ1RK` / SHA `69d29bbe80a5791cf31c1d4966347f756cd10130`; Payroll ESS/HR Admin en post-CONTRACT SEC-101-rij-/kolomregressies zijn geaccepteerd (44 PASS / 0 FAIL / 1 NOT TESTED). De Tenant Admin-configuratie is tenantbreed binnen De Sterren holding (3 HR-groepen, 5 selecteerbare administraties); de live regressie bevestigde toegang in de eigen en één tweede administratie, conform de scope. Er zijn nul grants naar andere tenants. Andere-tenantacceptatie blijft OPEN vóór productiegebruik; rollback na CONTRACT is niet uitgevoerd. Gebruik de gecontroleerde integratielijn `work/liquidhr-final-20261116` als ontwikkelbasis voor de volgende gezamenlijke WVP/Talent-integratie. Neem alleen gevalideerde parallelle commits en bijbehorende noodzakelijke migraties mee; behoud de operationele TEST-baseline. Geen herhaling van Payroll-acceptatie, centrale migratie of deployment zonder afzonderlijke noodzaak en autorisatie. Manager-MSS en BONUS blijven PARKED.

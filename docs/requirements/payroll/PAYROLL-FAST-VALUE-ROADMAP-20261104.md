@@ -116,3 +116,7 @@ Uitgaande loonaangifte, jaaropgaaf, pensioenbestanden, SEPA-betaalbestand, finan
 **Parallel of meteen daarna:** [PAYROLL-FAST-02 #93](https://github.com/EdwinCycling/LiquidHR/issues/93) voor echte medewerker-/periode-componentinvoer.
 
 **Daarna:** S4 templates en S5 ontbrekende P1-bronnen; roadmap bijwerken zodra uitvoer bewijs oplevert. Een globale P2-scope of andere betaalkoppeling niet achteloos in dezelfde PR meenemen.
+
+## Status na consolidatie — 21-11-2026
+
+De historische fast-value-roadmap is deels uitgevoerd: Payroll ESS en HR Admin zijn in main en versie `1.20261120.1` uitgebracht. Bestaande post-CONTRACT positieve berekeningen ESS 3/3 en HR Admin 3/3, plus SEC-101 44 PASS/0 FAIL/1 NOT TESTED; geen volledige nieuwe hosted persona-acceptatie op de finale code-SHA. Manager-MSS en BONUS blijven PARKED, ongeacht de oorspronkelijke roadmapambitie. Eén oude Payroll Lisa-worktree bevat ongecommitte source-provider/workbench/tests en helpercode; niet automatisch mergen, omdat de kandidaat technische reason-codes zou tonen die main nu afschermt. De geregistreerde Payroll-migratie `20261113073051` mist een gezaghebbend SQL-bronbestand en de post-CONTRACT-rollback is onbewezen. Geen nieuwe schema-, productcode- of deploymentactie bij dit statusaddendum.

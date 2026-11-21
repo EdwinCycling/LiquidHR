@@ -1,4 +1,7 @@
 # TAL-INS01 — Talent & Development-overzicht
+
+> **21-11-2026 — actuele gate:** TAL-INS01 is geïntegreerd in de ene TEST-runtime; oude WVP/Talent-/integratie-renderworktrees zijn opgeruimd. Lokale 62/62 gerichte TAL-tests zijn bestaand bewijs. De geauthenticeerde hosted HR Admin/Manager-scopes, Employee-deny, bron-/filter-/CSV- en negatieve API/RLS-matrix zijn op de actieve release nog niet als volledig bewezen geregistreerd. Status: CODE-IN-MAIN / TEST RELEASED / HOSTED PARTIAL.
+
 > **20-11-2026 — gezamenlijke TEST-release PARTIAL:** TAL-INS01 zit in actieve LiquidHR-main. Lokale implementatie en releasebuild zijn geverifieerd; hosted persona-/API-/RLS-acceptatie en positieve bronrecords blijven OPEN. Zie [releaseacceptatie](../../quality/acceptance/runs/LIQUIDHR-FINAL-RELEASE-20261120.md) en [functionele afronding](../../quality/acceptance/runs/TALENT-FUNCTIONAL-COMPLETION-20261119.md).
 
 > **19-11-2026 — lokale functionele afronding:** het bestaande overzicht hergebruikt plannen, competenties/bewijs en Continuous Appraisal met dezelfde rapportfilters, scope en bronlinks. Planlinks openen nu het exacte plan en de medewerker in de rolgebonden beheerroute; CSV bevat dezelfde volledige bronrijen als de totalen. Afgekorte bronresultaten falen gesloten. 62 gerichte tests, TypeScript, ESLint, i18n en diffcheck PASS. Geauthenticeerde UI/API- en RLS-acceptatie per persona blijft OPEN: de opgegeven kandidaat toont alleen de uitnodigingslogin. Zie [acceptatiebewijs](../../quality/acceptance/runs/TALENT-FUNCTIONAL-COMPLETION-20261119.md).

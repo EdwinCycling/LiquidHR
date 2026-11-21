@@ -61,3 +61,11 @@ Inventaris en behoudsredenen van resterende branches, worktrees en stashes staan
 
 Status: ACTUEEL / LIVING
 Bijgewerkt: 2026-11-21
+
+## Laatste cleanup en codebaselines — 21-11-2026
+
+**Consolidatie COMPLETE; hosted functionele acceptatie PARTIAL.** Centrale map `C:\Users\Edwin\Documents\Apps\LiquidHR`, lokale/GitHub main op `e2edd2a1` vóór deze documentatie-update. Vercel draait READY versie `1.20261120.1`, source-SHA `3b76be2c`. Het verschil is documentatie-only; geen nieuwe release.
+
+Verwijderd: `payfast-01-20261106`, `payfast-render-baseline`, `liquidhr-final-integration-20261116` als Git-worktrees, plus de laatste residuele render- en integratiemappen. Voor die laatste bevestigde Windows PowerShell `Test-Path=False`. De twee Jaap-TEST-wachtwoordreset-hulpscripts uit de integratiemap zijn verwijderd na beoordeling. Oude unieke render-AA-/Focus-wijzigingen zijn op expliciete gebruikersinstructie zonder archief weggegooid; het WVP-follow-uprapport was eerder met SHA-256 in de centrale hoofdmap veiliggesteld. Geen productcode is hierdoor in main geïntegreerd.
+
+Bewust behouden: `payfast-lisa-readonly-20261106` (oude Payroll-workbench/source-provider-diffs/tests/helper, niet veilig te mergen), drie Git-stashes en de canonieke `.env.local`-hardlinks. Beschermde `next-env.d.ts`-status in de hoofdmap niet door deze opschoning als hersteld beschouwen. De 44 PASS/0 FAIL/1 NOT TESTED post-CONTRACT securitymatrix geldt als bestaand bewijs; hosted persona-/WVP-/Talent-/Payrollmatrix, SEC-101 andere tenant, Payroll SQL-bron 20261113073051 en rollbackproef blijven OPEN/PARTIAL.

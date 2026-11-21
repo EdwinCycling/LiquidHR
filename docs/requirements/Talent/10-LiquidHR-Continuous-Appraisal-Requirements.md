@@ -1,5 +1,8 @@
 # LiquidHR Continuous Appraisal / Doorlopende beoordeling
 
+> **21-11-2026 — integratie-/acceptatiegrens:** Continuous Appraisal zit in dezelfde actuele main en TEST-app. Eerdere V2-personaacceptatie was lokale TEST-evidence, niet nieuw gehost bewijs op runtime-SHA `3b76be2c`. Transparante timeline, maker-scoped auditeerbare soft delete en afzonderlijk onbewezen capability-link tussen Talent-prioriteiten en appraisal-acties blijven leidend. Geen functionele wijziging.
+
+
 **Status:** LEIDEND; V2-addendum aangevuld op 14 oktober 2026
 
 **Actuele V2-acceptatie (2026-10-15 rerun): TEST PERSONA / BUSINESS-FLOW ACCEPTED.** HR Admin, Manager and Employee timelines, all six type-tab preselection states, status transition, maker-scoped auditable soft delete with retained database row, and RLS/grant boundaries passed on local main against Supabase TEST. This is not a hosted release. See the [rerun evidence](../../quality/acceptance/runs/TALENT-CONVERGENCE-01-20261015-RERUN.md).
