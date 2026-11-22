@@ -5,6 +5,24 @@
 **Productspecificatie:** [Gesprekscycli MVP](../requirements/Talent/20-LiquidHR-Performance-Reviews-MVP.md)  
 **Doel:** één volledig werkende, lokaal gebouwde en risicogestuurd geteste MVP, geen verzameling losse prototypes.
 
+## EXECUTION HOTFIX — 22 november 2026: niet stoppen vóór het bouwen
+
+**Aanleiding:** vorige Codex-run heeft de twee documenten hersteld, maar stopte na HARNESS_FRICTION / RUNTIME_START_OR_REUSE_FAILED met nul featurecode. Dit is een browser-/testharnessprobleem, geen valide reden om niet te implementeren.
+
+**Deze wijziging gaat vóór de operationele preflightvolgorde hieronder. Harde security- en mandaatgrenzen uit AGENTS.md blijven leidend.**
+
+1. **BOUW EERST.** Verifieer bron/documents en veilige schrijfplek, start geen browser-, TEST-runtime- of persona-preflight vóór featurecode. Een browserprobleem verhindert lokaal schrijven/testen van migration-SQL als code, RPC/services, React-UI, Vitest of PGlite.
+2. **BESCHERM dirty main.** Verifieer git status/worktree list/branch/origin-main, geen reset/pull/clean/stash. Als main dirty en achterloopt, gebruik een bestaande veilige featurecheckout of maak precies één nieuwe geïsoleerde worktree+branch vanaf actuele origin/main. Maak een nog niet bestaande locatie zelf aan met git worktree add; veronderstel niet dat een tweede workspace al bestaat. Pas geen wijziging toe op dirty main, next-env.d.ts of protected .env.local, en kopieer de protected .env.local nergens heen. De twee design-docs zijn aanwezig op origin/main.
+3. **CODE MILESTONE.** Voordat je een definitief rapport opstelt: (a) ten minste één nieuwe forward-only featuremigration als code onder apps/hr-suite/supabase/migrations/, (b) een feature-domainservice of veilige RPC-wrapper, en (c) gerichte unit-/securitycontracttests daadwerkelijk schrijven. Dit is alleen de eerste stap: bouw vervolgens alle MUST-functionaliteit in dezelfde run.
+4. **PREFLIGHT IS GEEN BOUWBLOKKADE.** Pas na code en lokale tests doe je browser-/real-persona-test. Bij runtimefrictie markeer uitsluitend de daadwerkelijk getroffen E2E-criteria BLOCKED_BY_ENVIRONMENT. Niet gebouwd = NOT_IMPLEMENTED, niet getest = NOT_RUN; zet niet alle criteria op BLOCKED.
+5. **REMOTE TEST IS APART.** Nieuwe remote Supabase schema-/datawrites zijn niet automatisch geautoriseerd. Schrijf de migratie lokaal, test met bestaande lokale infrastructuur en PGlite. Wanneer echte E2E remote schema nodig heeft: beperk de BLOCKED_BY_MANDATE-status tot de concrete onbewezen E2E-criteria, en rapporteer precieze scope voor aanvullende toestemming. Geen auth-/RLS-bypass.
+6. **FIX EN GA DOOR.** Reproduceer bugs, herstel, hertest met maximaal twee gerichte herstelcycli per blocker. Ga onafhankelijk door met de rest van de MUST-scope. Een eindbericht met 0 featurecode/0 tests/0 commits is FAILED EXECUTION, geen MVP-oplevering.
+7. **FINALE GATE NA CODE.** Echte personatests, geauthenticeerde UI, de relevante CONTROLLED-suite, TS/lint/i18n/build volgen na implementatie. Geen Vercel-release zonder letterlijk RELEASE LIQUIDHR TEST.
+
+**Direct te sturen Codex-herstelopdracht:**
+
+> HERSTART PERF-MVP-01. Documenten zijn beschikbaar. Vorige HARNESS_FRICTION geldt alleen voor browser-E2E. Bescherm dirty main, maak zo nodig één schone featureworktree vanaf actuele origin/main, bouw alle MUST onderdelen lokaal inclusief migration-RLS, PMUX, service, UI, documenten, private notes, Continuous Appraisal, dashboards, dossier; test wat lokaal kan en fix. Lever featurecode, tests, commits, bewijs. Geen remote databasewrites of Vercel-release zonder aparte toestemming. Geen preflight-stop vóór code.
+
 ## 0. Kopieer deze /doel naar Codex
 
 **/doel PERF-MVP-01 — Bouw LiquidHR Gesprekscycli V1 volledig, van veilig datamodel/migrations en serverautorisatie tot PMUX-taken, documenten, interne notities, Continuous Appraisal-koppelingen, alle drie rolgerichte UI's, dashboards en medewerkerkaart. Gebruik de leidende productspecificatie docs/requirements/Talent/20-LiquidHR-Performance-Reviews-MVP.md en dit runbook. Werk autonoom in één bounded implementatiecyclus: begrijp → bouw alle MUST-functionaliteit → test met bestaande HR Admin/Manager/Employee-persona's → reproduceer en fix defecten → hertest → lever de complete CODE COMPLETE-kandidaat met evidence en commit. Geen subagents, geen nieuwe parallelle productarchitectuur, geen onbevoegde SQL-/TEST-data-/accountwrites of release. Als remote migratie/TEST-fixturetoestemming vereist is: bouw en test wat veilig kan, stop uitsluitend de geblokkeerde E2E-stap, rapporteer het exacte afzonderlijke mandaat; claim geen valse PASS. Geen Vercel-deployment zonder letterlijk RELEASE LIQUIDHR TEST.**
@@ -139,7 +157,7 @@ Werk in deze volgorde maar rond alle lagen in dezelfde opdracht af:
 ## 6. Testcommando's en testvolgorde
 
 Voer alleen commando's uit die op de feitelijke bestaande npm-scriptnamen en checkout aansluiten:
-1. Git status/origin-main, dependency/runtime preflight, eventuele veilige featurebranch volgens scripts/new-feature.ps1 alleen op schone main. Laat dirty, protected files en stashes met rust.
+1. Git status/origin-main en veilige ontwikkelcheckout controleren. Bij dirty main één nieuwe schone featureworktree vanaf actuele origin/main volgens EXECUTION HOTFIX. Alleen dependencychecks voor lokale tooling; **geen browser-, persona- of TEST-runtime-preflight als gate vóór de eerste featurecode**. Laat dirty, protected files en stashes met rust.
 2. Gerichte Vitest-tests voor nieuwe performance-service, schema/PGlite/RLS contract, process-automation transitions, document signature/privacy en UI components. Gebruik bijvoorbeeld npm.cmd exec --workspace @liquid-hr/hr-suite -- vitest run <gekozen-bestanden>. Lees npm-CLI syntax en package.json vóór uitvoering; geen blind glob.
 3. Typecheck: npm.cmd run type-check --workspace @liquid-hr/hr-suite.
 4. Lint: npm.cmd run lint --workspace @liquid-hr/hr-suite (of passende scope; volledige workspace bij finale CONTROLLED gate).
