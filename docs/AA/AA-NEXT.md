@@ -1,5 +1,7 @@
 # AA-NEXT — Short-Term Roadmap
 
+> **22-11-2026 — P1 ontwerp gereed, geen implementatie:** [PERF-MVP-01 functionele MVP](../requirements/Talent/20-LiquidHR-Performance-Reviews-MVP.md) en [complete Codex-uitvoeropdracht](../delivery/PERF-MVP-01-CODEX-20261122.md) zijn vastgelegd. 34 acceptatiecriteria, drie rolpersona's, documenten, private HR-/managernotitie, Continuous Appraisal en dashboard/dossier navigatie zijn opgenomen. **Geen code, migratie, TEST-datawrite, merge of release uitgevoerd.** P0 blijft prioriteit en open; gebruik dit pakket voor één begrensde CONTROLLED P1-bouwopdracht na de toepasselijke product-/securitygates.
+
 > **22-11-2026 — functionele productvolgorde na baselineconsolidatie (voorstel, geen bouw-GO):** de nieuwe P0–P7-prioritering staat in [AA-ROAD — Functionele productroadmap 2027](AA-ROAD.md#functionele-productroadmap-2027--prioriteringsvoorstel-22-11-2026). **P0 blijft eerst:** sluit de bestaande hosted rol-/scopeacceptatie, SEC-101 andere-tenantbewijs voor productiegebruik, rollback en Payroll-migratiebronrecovery. **P1 is de voorkeurskandidaat voor de eerstvolgende nieuwe functionaliteit:** start met functioneel ontwerp van een HR-gestuurde functionerings-/beoordelingsgesprekkencyclus, gekoppeld aan Talent, Continuous Appraisal en PMUX; nog niet coderen. Daarna indicatief P2 Journeys/onboarding, P3 documenten/signing, P4 HR Insights, P5 recruitment, P6 ESS/MSS/mobile en P7 governed AI. Bestaande Manager-MSS/BONUS PARKED en overige releasegates blijven ongewijzigd.
 
 

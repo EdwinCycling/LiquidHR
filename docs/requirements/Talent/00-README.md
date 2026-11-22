@@ -1,5 +1,7 @@
 # LiquidHR Workforce & Talent Management — v2 Product Package
 
+> **Aanvulling 22-11-2026 — PERF-MVP-01:** voor de nieuwe formele gesprekscycli is [20-LiquidHR-Performance-Reviews-MVP.md](20-LiquidHR-Performance-Reviews-MVP.md) het leidende functionele ontwerp. De volledige [Codex-uitvoerinstructie](../../delivery/PERF-MVP-01-CODEX-20261122.md) bouwt V1 in één bounded opdracht. Gesprekscycli blijven gescheiden van de transparante [Continuous Appraisal-tijdlijn](10-LiquidHR-Continuous-Appraisal-Requirements.md). Status: ontwerp gereed, engineering NIET uitgevoerd.
+
 **Product owner / auteur:** Edwin Dingjan  
 **E-mail:** edwin@editsolutions.nl  
 **Datum:** 31 juli 2026

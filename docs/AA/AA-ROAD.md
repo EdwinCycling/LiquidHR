@@ -17,7 +17,10 @@
 | **P6** | **ESS/MSS en mobile-first gebruikservaring** | Eén persoonlijke werkvoorraad en overzichtelijke acties voor medewerkers/managers, responsive formulieren, feedback en minder navigatie tussen HR-modules. | Doorlopende UX-kwaliteit; uitbreidingen alleen op geaccepteerde serverautorisatie en bestaande workflows. Payroll Manager-MSS blijft PARKED totdat apart besloten. |
 | **P7** | **AI HR Assistant en gecontroleerde automatisering** | Contextuele hulp en optionele beleidstoetsing, uitleg van HR-processen en bronverantwoorde suggesties; acties uitsluitend met bevoegdheidscontrole, toestemming en audit. | Hergebruik AI Foundation/credits/governance; geen autonome risicovolle HR- of Payroll-beslissingen, geen medische diagnoseverwerking. Waarde en veiligheid per use case toetsen. |
 
-### P1 — eerst uitwerken als functioneel ontwerp, niet meteen bouwen
+### P1 — functioneel ontwerp vastgelegd; engineering nog niet gestart
+
+> **PERF-MVP-01 — vastgesteld productontwerp (22-11-2026).** De volledige functionele MVP-scope en de beslissingen v0.1–v0.4 zijn geconsolideerd in [Gesprekscycli MVP](../requirements/Talent/20-LiquidHR-Performance-Reviews-MVP.md). De uitvoerbare één-run [Codex-instructie](../delivery/PERF-MVP-01-CODEX-20261122.md) bevat de 34 acceptatiecriteria, testpersona's en security-/migration-/releasegates. **Status: ontwerp en runbook opgeslagen; code, TEST-migratie, geauthenticeerde acceptatie en release NIET uitgevoerd.** P0 blijft onafhankelijk OPEN.
+
 
 De **gesprekkencyclus** is de voorkeurskandidaat voor de eerstvolgende *nieuwe* functionele ontwikkelwave nadat P0 voldoende is afgesloten. Het ontwerp omvat minimaal:
 
@@ -28,7 +31,7 @@ De **gesprekkencyclus** is de voorkeurskandidaat voor de eerstvolgende *nieuwe* 
 5. **Opvolging:** afspraken en competentiegerichte ontwikkelplannen koppelen aan bestaande Talent- en Continuous Appraisal-bronnen.
 6. **Regie:** HR-overzicht van voortgang, deadlines, achterstallige acties en beperkte rapportage zonder ongeautoriseerde detailinzage.
 
-**Nog te beslissen vóór code:** verplichte vs optionele beoordeling, ratingmodel, kalibratie/9-grid-koppeling, rechten op concepten en feedback, wederzijds akkoord/bezwaar, uitzonderingen bij afwezigheid en privacy-/bewaarregels. Lever daarna een afgebakende MVP en acceptance criteria per HR Admin, Manager en Employee.
+**Productbesluiten V1 (22-11-2026):** beoordeling optioneel; schaal 4/5/10 met bedrijfseigen omschrijvingen; eenvoudige tekstreflectie medewerker en manager; optionele gespreksdatum; managerdocumenten PDF/Word, employee read-only; afzonderlijk intern manager-/HR Admin-veld; akkoord of gemotiveerd voor gezien/niet akkoord; deelnemers achteraf toevoegen; zachte streefdatum; voortijdige rondeafsluiting houdt bestaande dossierstatus read-only; alle drie dashboards en medewerkerkaarttab; basislink met bestaande Continuous Appraisal. Peerfeedback, vragensets, AI en formele extra bezwaarstukken buiten V1. Zie [leidend MVP-ontwerp](../requirements/Talent/20-LiquidHR-Performance-Reviews-MVP.md); remote TEST-migraties en Vercel-release vragen afzonderlijk mandaat.
 
 ### Productpijlers en afbakening
 
