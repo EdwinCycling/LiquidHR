@@ -1,5 +1,9 @@
 # AA-NEXT — Short-Term Roadmap
 
+> **22-11-2026 — functionele productvolgorde na baselineconsolidatie (voorstel, geen bouw-GO):** de nieuwe P0–P7-prioritering staat in [AA-ROAD — Functionele productroadmap 2027](AA-ROAD.md#functionele-productroadmap-2027--prioriteringsvoorstel-22-11-2026). **P0 blijft eerst:** sluit de bestaande hosted rol-/scopeacceptatie, SEC-101 andere-tenantbewijs voor productiegebruik, rollback en Payroll-migratiebronrecovery. **P1 is de voorkeurskandidaat voor de eerstvolgende nieuwe functionaliteit:** start met functioneel ontwerp van een HR-gestuurde functionerings-/beoordelingsgesprekkencyclus, gekoppeld aan Talent, Continuous Appraisal en PMUX; nog niet coderen. Daarna indicatief P2 Journeys/onboarding, P3 documenten/signing, P4 HR Insights, P5 recruitment, P6 ESS/MSS/mobile en P7 governed AI. Bestaande Manager-MSS/BONUS PARKED en overige releasegates blijven ongewijzigd.
+
+
+
 ## Werkvolgorde na definitieve opruiming — 21-11-2026
 
 1. Reguliere LiquidHR-productontwikkeling vanuit de centrale `main`; geen nieuwe consolidatieronde. Operationele TEST-release is READY, niet algemeen ACCEPTANCE GREEN.
