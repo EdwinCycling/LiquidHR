@@ -1,5 +1,49 @@
 # AA-ROAD — Long-Term Product Roadmap
 
+## Functionele productroadmap 2027 — prioriteringsvoorstel (22-11-2026)
+
+**Status:** vastgelegd productvoorstel voor de volgende HR-waves, geen engineering-GO, migratiemandaat, releasebesluit of harde kwartaalplanning. De actieve LiquidHR-baseline blijft LIMITED TEST / PARTIAL. De eerstvolgende uitvoeringsstap is P0; de precieze volgorde na P0 wordt per wave functioneel besloten. [AA-CURRENT](AA-CURRENT.md), [AA-OPEN](AA-OPEN.md) en [AA-NEXT](AA-NEXT.md) blijven leidend voor actuele acceptatiegates en concrete uitvoering.
+
+**Productdoel:** van losse HR-functionaliteiten naar een samenhangende suite waarin HR Admin, Manager en Employee de hele employee lifecycle kunnen uitvoeren. Hergebruik de bestaande Core HR-, Process Automation/Forms Studio-, Talent-, WVP-, document-, Insights- en AI-fundamenten; geen parallelle procesengine of dubbel datamodel.
+
+| Prioriteit | Productwave | Functionele uitkomst / MVP | Voorwaarde en afbakening |
+| --- | --- | --- | --- |
+| **P0 — eerst** | **Bestaande suite functioneel accepteren en afwerken** | Hosted rolgebaseerde HR-, WVP-, Talent- en Payroll ESS/HR Admin-scenario's; positieve en negatieve API/RLS-proeven; bruikbare synthetische demonstratiedata; consistente foutafhandeling. | SEC-101 andere-tenantbewijs vóór echt productiegebruik, functionele persona-matrix, rollback en ontbrekende Payroll-migratiebron blijven expliciet OPEN. Geen nieuwe featurewave zolang de geldende AA-NEXT-gate dit blokkeert. |
+| **P1** | **Functionerings- en beoordelingsgesprekkencyclus** | HR start een jaarlijkse/halfjaarlijkse cyclus; toewijzing aan medewerkers en managers; voorbereiding en zelfevaluatie; managerfeedback; gesprek; vastlegging, bevestiging en opvolgafspraken naar bestaande ontwikkelplannen en Continuous Appraisal. | **Eerst functioneel ontwerp en besluit**, daarna pas engineering. Privacy/zichtbaarheid, rollen, statusovergangen, templates, akkoord/bezwaar, historie en audit expliciet vastleggen. Geen dubbele gesprek- of workflow-engine. |
+| **P2** | **Onboarding en offboarding / Journeys** | Herbruikbare proces- en taaktemplates voor nieuwe en vertrekkende medewerkers; HR/Manager/Employee-eigenaar, formulieren, documentstappen, deadlines, reminders en voortgang. | Hergebruik PMUX-05/06/07 en bestaande HR-medewerker-/contractbron; ronde afbakening voor preboarding en offboarding. |
+| **P3** | **HR-documenten en digitaal ondertekenen** | Documentsjablonen, placeholders, generatie, interne akkoord-/ondertekenstroom, dossieropslag en audit; inzetbaar vanuit onboarding en gesprekken. | Bestaande documentrechten blijven leidend; externe signing pas na afzonderlijk product-, security- en juridisch besluit. |
+| **P4** | **WVP-, Talent- en Workforce Insights verdiepen** | Betrouwbare HR- en Managersturing op voortgang, verzuim/WVP-mijlpalen, ontwikkelplannen, competentiegaps en uitzonderingen, met consistente KPI-, filter-, detail- en exportdefinities. | **INS-03C WVP Insights blijft uit** tot wettelijke definitie, PMUX/WVP-bronnen, privacy en rol/RLS-acceptatie bewezen zijn. Canonieke brondata, niet AI-geschatte scores. |
+| **P5** | **Recruitment / lichte ATS** | Vacatures, kandidaten, selectiestappen, HR/Manager-samenwerking, kandidaat naar medewerker en aansluitende preboarding. | Gefaseerde veilige publieke kandidatenlaag, privacy/retentie en rollen; geen zwaar ATS als eerste slice. |
+| **P6** | **ESS/MSS en mobile-first gebruikservaring** | Eén persoonlijke werkvoorraad en overzichtelijke acties voor medewerkers/managers, responsive formulieren, feedback en minder navigatie tussen HR-modules. | Doorlopende UX-kwaliteit; uitbreidingen alleen op geaccepteerde serverautorisatie en bestaande workflows. Payroll Manager-MSS blijft PARKED totdat apart besloten. |
+| **P7** | **AI HR Assistant en gecontroleerde automatisering** | Contextuele hulp en optionele beleidstoetsing, uitleg van HR-processen en bronverantwoorde suggesties; acties uitsluitend met bevoegdheidscontrole, toestemming en audit. | Hergebruik AI Foundation/credits/governance; geen autonome risicovolle HR- of Payroll-beslissingen, geen medische diagnoseverwerking. Waarde en veiligheid per use case toetsen. |
+
+### P1 — eerst uitwerken als functioneel ontwerp, niet meteen bouwen
+
+De **gesprekkencyclus** is de voorkeurskandidaat voor de eerstvolgende *nieuwe* functionele ontwikkelwave nadat P0 voldoende is afgesloten. Het ontwerp omvat minimaal:
+
+1. **Cyclusbeheer door HR:** gesprekstype (functioneren/beoordelen/ontwikkeling), periode, doelgroep, fasen, sjablonen, deadlines en toewijzing.
+2. **Employee-voorbereiding:** zelfevaluatie, doelen, competenties en conceptantwoorden met heldere zichtbaarheid.
+3. **Manager-voorbereiding:** gesprekspunten, feedback en beoordeling binnen directe teamscope, met expliciete vertrouwelijkheid.
+4. **Gesprek en afsluiting:** gezamenlijke vastlegging, statusovergangen, eventuele afwijkende mening, bevestiging/akkoord en immutable audit.
+5. **Opvolging:** afspraken en competentiegerichte ontwikkelplannen koppelen aan bestaande Talent- en Continuous Appraisal-bronnen.
+6. **Regie:** HR-overzicht van voortgang, deadlines, achterstallige acties en beperkte rapportage zonder ongeautoriseerde detailinzage.
+
+**Nog te beslissen vóór code:** verplichte vs optionele beoordeling, ratingmodel, kalibratie/9-grid-koppeling, rechten op concepten en feedback, wederzijds akkoord/bezwaar, uitzonderingen bij afwezigheid en privacy-/bewaarregels. Lever daarna een afgebakende MVP en acceptance criteria per HR Admin, Manager en Employee.
+
+### Productpijlers en afbakening
+
+- **Core HR:** medewerker, dienstverband, contract, verlof, verzuim, dossier en bevoegdheden.
+- **Talent & Groei:** gesprekken, competenties, ontwikkelplannen, Continuous Appraisal en Talent Insights.
+- **HR Automation:** Journeys, PMUX, formulieren, documenten en gecontroleerde AI.
+- **Payroll:** gespecialiseerde geïntegreerde productlijn, met afzonderlijke wettelijke, deterministische reken-, bron-, security- en acceptatiegates. ESS en HR Admin staan in LIMITED TEST; Manager-MSS en BONUS blijven PARKED.
+
+**Niet direct prioriteren:** internationale HR (BE/DE), activa/wagenpark/software/budgetten, externe signing, volledig autonome agents en volledige commerciële Payroll-verloning als bijproduct van HR-features. Deze richtingen blijven Explore of een afzonderlijke productroadmap, geen impliciete scope voor P1–P7.
+
+**Overkoepelende Definition of Done per wave:** aantoonbare HR Admin-/Manager-/Employee-gebruikersflow waar van toepassing; positieve en negatieve tenant-/team-/medewerkerscope; bronherleidbaarheid, privacy en audit; NL/EN, toegankelijkheid/responsive UX; gerichte contracttests en echte functionele acceptatie. Code-integratie, TEST-deployment en commerciële vrijgave blijven afzonderlijke statussen.
+
+---
+
+
 ## Consolidatie-mijlpaal — 21-11-2026
 
 De gezamenlijke HR/Core-, PAYFAST ESS/HR Admin-, SEC-101-, WVP01–07/week-42/PMUX-, Talent TAL-INS01/TAL-INS02-, Continuous Appraisal-, Process Automation- en Forms Studio-code zit in de bestaande ene LiquidHR TEST-app. Operationele consolidatie en de veilige filesystemcleanup zijn COMPLETE; enige extra beschermde Git-worktree betreft Payroll Lisa, naast drie stashes. Oude A- en C-residumappen zijn nu daadwerkelijk weg.
