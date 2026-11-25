@@ -94,12 +94,12 @@ try {
     check((await dashboardHeading.innerText()).trim() === headingName, `DASHBOARD_HEADING_MISMATCH_${persona.toUpperCase()}`)
     dashboardScreenshots.push(await screenshot(page, `${persona}-dashboard-desktop.png`))
     const desktopAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
-    accessibilityResults.push({ persona, viewport: 'desktop', violations: desktopAxe.violations.map((violation) => ({ id: violation.id, impact: violation.impact, nodes: violation.nodes.map((node) => ({ target: node.target, contrastChecks: node.any.filter((checkResult) => checkResult.id === 'color-contrast').map((checkResult) => checkResult.data) })) })) })
+    accessibilityResults.push({ persona, viewport: 'desktop', violations: desktopAxe.violations.map((violation) => ({ id: violation.id, impact: violation.impact, nodes: violation.nodes.map((node) => ({ target: node.target, htmlOpeningTag: node.html.match(/^<[^>]+>/u)?.[0] ?? null, contrastChecks: node.any.filter((checkResult) => checkResult.id === 'color-contrast').map((checkResult) => checkResult.data) })) })) })
     await page.setViewportSize({ width: 390, height: 852 })
     check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `DASHBOARD_MOBILE_OVERFLOW_${persona.toUpperCase()}`)
     dashboardScreenshots.push(await screenshot(page, `${persona}-dashboard-mobile.png`))
     const mobileAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
-    accessibilityResults.push({ persona, viewport: 'mobile', violations: mobileAxe.violations.map((violation) => ({ id: violation.id, impact: violation.impact, nodes: violation.nodes.map((node) => ({ target: node.target, contrastChecks: node.any.filter((checkResult) => checkResult.id === 'color-contrast').map((checkResult) => checkResult.data) })) })) })
+    accessibilityResults.push({ persona, viewport: 'mobile', violations: mobileAxe.violations.map((violation) => ({ id: violation.id, impact: violation.impact, nodes: violation.nodes.map((node) => ({ target: node.target, htmlOpeningTag: node.html.match(/^<[^>]+>/u)?.[0] ?? null, contrastChecks: node.any.filter((checkResult) => checkResult.id === 'color-contrast').map((checkResult) => checkResult.data) })) })) })
     await page.setViewportSize({ width: 1440, height: 900 })
   }
   results.push({ step, status: 'PASS', screenshots: dashboardScreenshots })
@@ -153,7 +153,8 @@ try {
     testedCandidateFilters.push(filterName)
   }
   await hrWizardPage.getByRole('button', { name: 'Volgende stap', exact: true }).click()
-  const participantSearch = hrWizardPage.getByLabel('Zoek medewerker')
+  await waitForUi(hrWizardPage.getByRole('heading', { name: 'Deelnemers', exact: true }), 'HR_WIZARD_PARTICIPANT_STEP_TIMEOUT', config.timeoutMs)
+  const participantSearch = hrWizardPage.locator('label').filter({ hasText: 'Zoek medewerker' }).locator('input').first()
   await waitForUi(participantSearch, 'HR_WIZARD_PARTICIPANT_SEARCH_TIMEOUT', config.timeoutMs)
   const participantApiResponse = hrWizardPage.waitForResponse((response) => {
     try {
