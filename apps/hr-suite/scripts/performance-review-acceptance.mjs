@@ -125,7 +125,8 @@ try {
   }, { timeout: config.timeoutMs })
   await hrWizardPage.getByRole('button', { name: 'Concept bewaren', exact: true }).click()
   check((await draftSaveResponse).status() === 201, 'HR_WIZARD_DRAFT_SAVE_FAILED')
-  await waitForUi(hrWizardPage.getByRole('status').filter({ hasText: 'Concept opgeslagen.' }), 'HR_WIZARD_DRAFT_FEEDBACK_MISSING', config.timeoutMs)
+  const draftFeedbackVisible = await hrWizardPage.waitForFunction(() => [...document.querySelectorAll('[role="status"]')].some((element) => element.textContent?.includes('Concept opgeslagen.') && element.getClientRects().length > 0), undefined, { timeout: config.timeoutMs }).then(() => true).catch(() => false)
+  check(draftFeedbackVisible, 'HR_WIZARD_DRAFT_FEEDBACK_MISSING')
   const savedRounds = await request('hr-admin', 'GET', '/api/performance-reviews/rounds')
   const wizardDraftRound = savedRounds.find((round) => round.title === wizardTitle && round.status === 'DRAFT')
   check(Boolean(wizardDraftRound?.id), 'HR_WIZARD_DRAFT_NOT_PERSISTED')
@@ -236,7 +237,7 @@ try {
     const round = await request('hr-admin', 'POST', '/api/performance-reviews/rounds', {
       title: rated ? `Ontwikkelgesprek najaar 2026 · ${runLabel}` : `Terugblik samenwerking 2026 · ${runLabel}`,
       introduction: 'We bespreken de resultaten, samenwerking en ontwikkeling van het afgelopen jaar en maken afspraken voor de komende periode.',
-      roundType: rated ? 'DEVELOPMENT' : 'LOOKBACK', periodStart: '2026-01-01', periodEnd: '2026-12-31', startDate: '2026-11-23', dueDate: '2026-12-18',
+      roundType: rated ? 'DEVELOPMENT' : 'LOOKBACK', periodStart: '2026-01-01', periodEnd: '2026-12-31', startDate: '2026-11-23', dueDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       rating: rated ? { options: [1, 2, 3, 4, 5].map(score => ({ score, label: ['Aandacht nodig', 'In ontwikkeling', 'Volgens verwachting', 'Sterk', 'Uitstekend'][score - 1], description: `Niveau ${score} op basis van resultaten en samenwerking.` })) } : null,
     }, [201], randomUUID())
     check(round.id, 'ROUND_ID_MISSING')
@@ -254,6 +255,12 @@ try {
     await pages.get('employee').goto(new URL(`/my-conversations?dossierId=${dossier.id}`, config.baseUrl).toString())
     await waitForUi(pages.get('employee').locator('textarea').first(), 'EMPLOYEE_SELF_FORM_TIMEOUT', config.timeoutMs)
     check((await pages.get('employee').locator('textarea').count()) > 0, 'EMPLOYEE_SELF_FORM_NOT_VISIBLE')
+    if (!rated) {
+      const overdueBadge = pages.get('employee').getByText('Streefdatum verstreken', { exact: true }).first()
+      await waitForUi(overdueBadge, 'SOFT_DEADLINE_BADGE_MISSING', config.timeoutMs)
+      check(await pages.get('employee').locator('textarea').first().isEnabled(), 'SOFT_DEADLINE_BLOCKED_EMPLOYEE')
+      results.push({ step: 'soft-deadline-warning-remains-editable', status: 'PASS', badgeVisible: true, employeeFormEnabled: true, screenshot: await screenshot(pages.get('employee'), 'employee-overdue-soft-deadline.png') })
+    }
     await pages.get('employee').setViewportSize({ width: 390, height: 852 })
     check(await pages.get('employee').evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'EMPLOYEE_MOBILE_OVERFLOW')
     dossier = await request('employee', 'POST', `${path}/self`, { version: dossier.version, body: 'Ik heb de overdracht verbeterd en wil volgend jaar mijn vakkennis verder verdiepen.', submit: false })

@@ -23,6 +23,7 @@ export function performanceReviewLabels(locale: Locale, role: PerformanceReviewR
     status: messages.status,
     period: messages.period,
     dueDate: messages.dueDate,
+    overdue: messages.overdue,
     action: messages.action,
     selfReflection: messages.selfReflection,
     managerResponse: messages.managerResponse,

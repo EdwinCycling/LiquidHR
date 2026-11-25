@@ -9,7 +9,9 @@ import { SectionHeader } from '@/components/patterns/section-header'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { Surface } from '@/components/ui/surface'
 import { Button, buttonClasses } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { PerformanceReviewDashboard } from './performance-review-dashboard'
+import { isSoftDeadlineOverdue } from '@/lib/performance-reviews/performance-domain'
 
 export type PerformanceReviewRole = 'hr' | 'manager' | 'employee'
 type Submission = { kind: 'SELF' | 'MANAGER'; body: string; meeting_date?: string | null; score?: number | null; rating_explanation?: string | null; submitted_at?: string | null }
@@ -18,7 +20,7 @@ type RoundDetails = { title?: string; due_date?: string | null; status?: string;
 export type PerformanceReviewSummary = { id: string; title: string; employeeName?: string; reviewerName?: string; employeeId?: string; phase: string; dueDate?: string | null; roundStatus?: string; submitted?: boolean; version?: number; attachments?: Array<{ id: string; original_filename: string; content_type: string; file_size: number }>; appraisalLinks?: Array<{ appraisal_item_id: string }>; performance_review_rounds?: RoundDetails | RoundDetails[] | null; performance_review_submissions?: Submission[]; performance_review_acknowledgements?: Acknowledgement[] }
 type AppraisalItem = { id: string; title: string; occurred_on?: string; item_status?: string }
 type RoundSummary = { id: string; title: string; status: string; period_start: string; period_end: string; due_date?: string | null }
-type Labels = { title: string; subtitle: string; newRound: string; rounds: string; roundsEmpty: string; myTeam: string; myConversations: string; open: string; empty: string; employee: string; status: string; dueDate: string; action: string; selfReflection: string; managerResponse: string; acknowledgement: string; saveDraft: string; submit: string; agree: string; disagree: string; disagreementReason: string; privateInfo: string; privateInfoHint: string; closed: string; error: string; saved: string; search: string; filter: string; allStatuses: string; attachments: string; upload: string; appraisalLink: string; link: string; dashboard: string; waitingEmployee: string; waitingManager: string; waitingAcknowledgement: string; completedAgreed: string; completedDisagreed: string; closedOpen: string; nextActions: string; noActions: string; meetingDate: string; rating: string; ratingScore: string; ratingExplanation: string; remove: string; reassignReviewer: string; newReviewer: string; reviewerSearch: string; confirmSubmit: string; confirmSubmitTitle: string; cancel: string; phaseCancelled: string; roundDraft: string; roundScheduled: string; roundActive: string; roundClosed: string; roundCancelled: string }
+type Labels = { title: string; subtitle: string; newRound: string; rounds: string; roundsEmpty: string; myTeam: string; myConversations: string; open: string; empty: string; employee: string; status: string; dueDate: string; overdue: string; action: string; selfReflection: string; managerResponse: string; acknowledgement: string; saveDraft: string; submit: string; agree: string; disagree: string; disagreementReason: string; privateInfo: string; privateInfoHint: string; closed: string; error: string; saved: string; search: string; filter: string; allStatuses: string; attachments: string; upload: string; appraisalLink: string; link: string; dashboard: string; waitingEmployee: string; waitingManager: string; waitingAcknowledgement: string; completedAgreed: string; completedDisagreed: string; closedOpen: string; nextActions: string; noActions: string; meetingDate: string; rating: string; ratingScore: string; ratingExplanation: string; remove: string; reassignReviewer: string; newReviewer: string; reviewerSearch: string; confirmSubmit: string; confirmSubmitTitle: string; cancel: string; phaseCancelled: string; roundDraft: string; roundScheduled: string; roundActive: string; roundClosed: string; roundCancelled: string }
 
 type Props = { role: PerformanceReviewRole; summaries: PerformanceReviewSummary[]; labels: Labels }
 
@@ -43,7 +45,18 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
   const [confirmation, setConfirmation] = useState<{ action: string; payload: Record<string, string | number | null> } | null>(null)
   const [search, setSearch] = useState('')
   const [phaseFilter, setPhaseFilter] = useState('')
+  const [today, setToday] = useState<string | null>(null)
   const selected = summaries.find((item) => item.id === selectedId) ?? null
+
+  useEffect(() => {
+    const updateToday = () => {
+      const now = new Date()
+      setToday(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`)
+    }
+    updateToday()
+    const timer = window.setInterval(updateToday, 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   useEffect(() => { let active = true; void fetch(`/api/performance-reviews?role=${role}`).then((response) => response.ok ? response.json() as Promise<{ items?: PerformanceReviewSummary[] }> : { items: [] }).then((result) => { if (!active || !Array.isArray(result.items)) return; setSummaries(result.items); const requested = new URLSearchParams(window.location.search).get('dossierId'); setSelectedId((current) => current && result.items?.some((item) => item.id === current) ? current : requested && result.items?.some((item) => item.id === requested) ? requested : result.items?.[0]?.id ?? null) }).catch(() => undefined); return () => { active = false } }, [role])
   useEffect(() => { if (role !== 'hr') return; let active = true; void fetch('/api/performance-reviews/rounds').then((response) => response.ok ? response.json() as Promise<RoundSummary[]> : []).then((result) => { if (active) setRounds(Array.isArray(result) ? result : []) }).catch(() => undefined); return () => { active = false } }, [role])
@@ -110,6 +123,7 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
                 <p className="font-medium">{item.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{item.employeeName ?? item.reviewerName ?? labels.employee}</p>
                 <span className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground"><CalendarDays aria-hidden="true" className="size-3.5" />{item.dueDate ?? labels.dueDate} · {phaseLabel(item.phase)}</span>
+                {isSoftDeadlineOverdue({ dueDate: item.dueDate, today, phase: item.phase, roundStatus: item.roundStatus }) ? <Badge className="mt-2" tone="warning">{labels.overdue}</Badge> : null}
               </button>
             )) : <p className="p-6 text-sm text-muted-foreground">{labels.empty}</p>}
           </div>
@@ -122,6 +136,7 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
                 <span className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs"><UserRound aria-hidden="true" className="size-3.5" />{phaseLabel(selected.phase)}</span>
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-3"><Info icon={<CalendarDays />} label={labels.dueDate} value={selected.dueDate ?? '—'} /><Info icon={<FileText />} label={labels.status} value={phaseLabel(selected.phase)} /><Info icon={<LockKeyhole />} label={labels.action} value={selected.roundStatus === 'CLOSED' ? labels.closed : labels.open} /></div>
+              {isSoftDeadlineOverdue({ dueDate: selected.dueDate, today, phase: selected.phase, roundStatus: selected.roundStatus }) ? <p className="mt-3"><Badge tone="warning">{labels.overdue}</Badge></p> : null}
               {role === 'hr' && selected.phase === 'WAITING_MANAGER' && selected.roundStatus === 'ACTIVE' ? <section className="mt-6 space-y-3 border-t border-border-subtle pt-5"><h3 className="text-sm font-semibold">{labels.reassignReviewer}</h3><label className="block text-sm font-medium">{labels.reviewerSearch}<input className="mt-1 block w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2" value={reviewerSearch} onChange={(event) => setReviewerSearch(event.target.value)} /></label>{reviewerCandidates.length ? <ul className="divide-y divide-border-subtle rounded-[var(--radius-control)] border border-border-subtle">{reviewerCandidates.map((candidate) => <li key={candidate.id}><button className="w-full px-3 py-2 text-left text-sm hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-focus" disabled={busy} onClick={() => void reassignReviewer(candidate.id)} type="button">{[candidate.first_name, candidate.birth_name].filter(Boolean).join(' ')} <span className="text-xs text-muted-foreground">({candidate.employee_number})</span></button></li>)}</ul> : null}</section> : null}
               {role === 'manager' && selfSubmission?.submitted_at ? <ReadOnlyText label={labels.selfReflection} value={selfSubmission.body} /> : null}
               {role === 'employee' && selfSubmission?.submitted_at && selected.phase !== 'WAITING_EMPLOYEE' ? <ReadOnlyText label={labels.selfReflection} value={selfSubmission.body} /> : null}

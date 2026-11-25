@@ -13,6 +13,13 @@ export type ReviewPhase = 'WAITING_EMPLOYEE' | 'WAITING_MANAGER' | 'WAITING_ACKN
 export type ReviewAction = 'SUBMIT_SELF' | 'SUBMIT_MANAGER' | 'AGREE' | 'DISAGREE'
 export type ReviewActor = 'EMPLOYEE' | 'MANAGER'
 
+const openReviewPhases: readonly ReviewPhase[] = ['WAITING_EMPLOYEE', 'WAITING_MANAGER', 'WAITING_ACKNOWLEDGEMENT']
+
+/** Een zachte streefdatum markeert alleen een actieve, nog openstaande actie als te laat. */
+export function isSoftDeadlineOverdue(input: { dueDate?: string | null; phase: string; roundStatus?: string | null; today?: string | null }): boolean {
+  return Boolean(input.today && input.dueDate && input.dueDate < input.today && input.roundStatus === 'ACTIVE' && openReviewPhases.includes(input.phase as ReviewPhase))
+}
+
 /** Aanvullende domeincontrole; de database moet dezelfde overgang atomair afdwingen. */
 export function nextPhase(phase: ReviewPhase, actor: ReviewActor, action: ReviewAction): ReviewPhase {
   if (phase === 'WAITING_EMPLOYEE' && actor === 'EMPLOYEE' && action === 'SUBMIT_SELF') return 'WAITING_MANAGER'

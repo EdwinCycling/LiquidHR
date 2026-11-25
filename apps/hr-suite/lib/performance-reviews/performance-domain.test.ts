@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validateManagerRating, nextPhase, publicSubmissionVisible } from './performance-domain'
+import { isSoftDeadlineOverdue, validateManagerRating, nextPhase, publicSubmissionVisible } from './performance-domain'
 
 describe('beoordeling bij managerindiening', () => {
   it('weigert score en toelichting als de ronde geen beoordeling heeft', () => {
@@ -30,5 +30,16 @@ describe('gespreksfasen', () => {
     expect(publicSubmissionVisible(false, 'other-authorized')).toBe(false)
     expect(publicSubmissionVisible(true, 'other-authorized')).toBe(true)
     expect(publicSubmissionVisible(true, 'unauthorized')).toBe(false)
+  })
+})
+
+describe('zachte gespreksstreefdatum', () => {
+  it('markeert alleen een verstreken datum bij een actieve, onvoltooide actie', () => {
+    expect(isSoftDeadlineOverdue({ dueDate: '2026-11-24', today: '2026-11-25', phase: 'WAITING_EMPLOYEE', roundStatus: 'ACTIVE' })).toBe(true)
+    expect(isSoftDeadlineOverdue({ dueDate: '2026-11-25', today: '2026-11-25', phase: 'WAITING_MANAGER', roundStatus: 'ACTIVE' })).toBe(false)
+    expect(isSoftDeadlineOverdue({ dueDate: '2026-11-26', today: '2026-11-25', phase: 'WAITING_MANAGER', roundStatus: 'ACTIVE' })).toBe(false)
+    expect(isSoftDeadlineOverdue({ dueDate: '2026-11-24', today: '2026-11-25', phase: 'COMPLETED_AGREED', roundStatus: 'ACTIVE' })).toBe(false)
+    expect(isSoftDeadlineOverdue({ dueDate: '2026-11-24', today: '2026-11-25', phase: 'WAITING_EMPLOYEE', roundStatus: 'CLOSED' })).toBe(false)
+    expect(isSoftDeadlineOverdue({ today: '2026-11-25', phase: 'WAITING_EMPLOYEE', roundStatus: 'ACTIVE' })).toBe(false)
   })
 })
