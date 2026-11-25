@@ -263,10 +263,37 @@ try {
     }
     await pages.get('employee').setViewportSize({ width: 390, height: 852 })
     check(await pages.get('employee').evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'EMPLOYEE_MOBILE_OVERFLOW')
-    dossier = await request('employee', 'POST', `${path}/self`, { version: dossier.version, body: 'Ik heb de overdracht verbeterd en wil volgend jaar mijn vakkennis verder verdiepen.', submit: false })
-    const managerDraftRead = await request('manager', 'GET', path)
-    check(!JSON.stringify(managerDraftRead).includes('Ik heb de overdracht verbeterd'), 'SELF_DRAFT_LEAK')
-    dossier = await request('employee', 'POST', `${path}/self`, { version: dossier.version, body: 'Ik heb de overdracht verbeterd en wil volgend jaar mijn vakkennis verder verdiepen.', submit: true })
+    const selfDraftBody = 'Ik heb de overdracht verbeterd en wil volgend jaar mijn vakkennis verder verdiepen.'
+    if (!rated) {
+      const employeePage = pages.get('employee')
+      const selfField = employeePage.locator('textarea').first()
+      await selfField.fill(selfDraftBody)
+      const selfDraftResponse = employeePage.waitForResponse((response) => new URL(response.url()).pathname === '/api/performance-reviews' && response.request().method() === 'POST', { timeout: config.timeoutMs })
+      await employeePage.getByRole('button', { name: 'Concept bewaren', exact: true }).click()
+      check((await selfDraftResponse).status() === 200, 'EMPLOYEE_SELF_UI_DRAFT_FAILED')
+      check(await selfField.inputValue() === selfDraftBody, 'EMPLOYEE_SELF_UI_DRAFT_CLEARED')
+      dossier = await request('employee', 'GET', path)
+      check(dossier.performance_review_submissions?.some((submission) => submission.kind === 'SELF' && submission.body === selfDraftBody && !submission.submitted_at), 'EMPLOYEE_SELF_UI_DRAFT_NOT_PERSISTED')
+      const managerDraftRead = await request('manager', 'GET', path)
+      check(!JSON.stringify(managerDraftRead).includes(selfDraftBody), 'SELF_DRAFT_LEAK')
+      const finalSelfBody = 'Ik heb de overdracht verbeterd. Volgend jaar verdiep ik mijn vakkennis en deel ik die met het team.'
+      await selfField.fill(finalSelfBody)
+      const selfSubmitResponse = employeePage.waitForResponse((response) => new URL(response.url()).pathname === '/api/performance-reviews' && response.request().method() === 'POST', { timeout: config.timeoutMs })
+      await employeePage.getByRole('button', { name: 'Definitief indienen', exact: true }).click()
+      const confirmationDialog = employeePage.getByRole('dialog')
+      await waitForUi(confirmationDialog, 'EMPLOYEE_SELF_CONFIRMATION_MISSING', config.timeoutMs)
+      await confirmationDialog.getByRole('button', { name: 'Definitief indienen', exact: true }).click()
+      check((await selfSubmitResponse).status() === 200, 'EMPLOYEE_SELF_UI_SUBMIT_FAILED')
+      dossier = await request('employee', 'GET', path)
+      check(dossier.phase === 'WAITING_MANAGER' && dossier.performance_review_submissions?.some((submission) => submission.kind === 'SELF' && submission.body === finalSelfBody && submission.submitted_at), 'EMPLOYEE_SELF_UI_SUBMIT_NOT_PERSISTED')
+      await waitForUi(employeePage.getByText(finalSelfBody, { exact: true }), 'EMPLOYEE_SELF_UI_READBACK_MISSING', config.timeoutMs)
+      results.push({ step: 'employee-self-draft-and-submit-ui', status: 'PASS', draftRetainedInForm: true, submissionReadback: true })
+    } else {
+      dossier = await request('employee', 'POST', `${path}/self`, { version: dossier.version, body: selfDraftBody, submit: false })
+      const managerDraftRead = await request('manager', 'GET', path)
+      check(!JSON.stringify(managerDraftRead).includes(selfDraftBody), 'SELF_DRAFT_LEAK')
+      dossier = await request('employee', 'POST', `${path}/self`, { version: dossier.version, body: selfDraftBody, submit: true })
+    }
     await request('employee', 'POST', `${path}/self`, { version: dossier.version, body: 'Wijziging na definitieve indiening', submit: false }, [409])
     await request('manager', 'POST', `${path}/private-note`, { version: dossier.version, body: 'Bespreek welke begeleiding aansluit bij de gewenste ontwikkeling.' })
     await request('employee', 'GET', `${path}/private-note`, undefined, [403, 404])
@@ -305,17 +332,70 @@ try {
     check((await pages.get('manager').locator('textarea').count()) > 0, 'MANAGER_FORM_NOT_VISIBLE')
     await pages.get('manager').setViewportSize({ width: 390, height: 852 })
     check(await pages.get('manager').evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'MANAGER_MOBILE_OVERFLOW')
+    const managerPage = pages.get('manager')
+    const privateNoteField = managerPage.getByLabel('Interne informatie')
+    await waitForUi(privateNoteField, 'MANAGER_PRIVATE_NOTE_UI_MISSING', config.timeoutMs)
+    await privateNoteField.fill('Interne opvolging: bespreek welke begeleiding aansluit bij de gewenste ontwikkeling.')
+    const privateNoteSaveResponse = managerPage.waitForResponse((response) => new URL(response.url()).pathname === `${path}/private-note` && response.request().method() === 'POST', { timeout: config.timeoutMs })
+    await managerPage.getByRole('button', { name: 'Concept bewaren', exact: true }).last().click()
+    check((await privateNoteSaveResponse).status() === 200, 'MANAGER_PRIVATE_NOTE_UI_SAVE_FAILED')
+    const privateNoteReadback = await request('manager', 'GET', `${path}/private-note`)
+    check(privateNoteReadback.at(-1)?.body.includes('bespreek welke begeleiding'), 'MANAGER_PRIVATE_NOTE_UI_READBACK_FAILED')
+    results.push({ step: 'manager-private-note-ui', status: 'PASS', employeeCannotRead: true })
+    const uiAttachmentUpload = managerPage.waitForResponse((response) => new URL(response.url()).pathname === `${path}/attachments` && response.request().method() === 'POST', { timeout: config.timeoutMs })
+    await managerPage.locator('input[type="file"]').setInputFiles({ name: 'Ontwikkelafspraken UI 2026.pdf', mimeType: 'application/pdf', buffer: pdf })
+    await managerPage.getByRole('button', { name: 'Document uploaden', exact: true }).click()
+    check((await uiAttachmentUpload).status() === 201, 'MANAGER_ATTACHMENT_UI_UPLOAD_FAILED')
+    await waitForUi(managerPage.getByText('Ontwikkelafspraken UI 2026.pdf', { exact: true }), 'MANAGER_ATTACHMENT_UI_READBACK_MISSING', config.timeoutMs)
+    results.push({ step: 'manager-document-upload-ui', status: 'PASS' })
     step = 'manager-form-submit'
-    if (rated) await request('manager', 'POST', `${path}/manager`, { version: dossier.version, body: 'Beoordeling zonder onderbouwing', submit: true, score: 4 }, [400])
-    const expectedManagerVersion = dossier.version
-    const concurrentDrafts = await Promise.all([
-      request('manager', 'POST', `${path}/manager`, { version: expectedManagerVersion, body: 'Conceptreactie A voor concurrencycontrole.', submit: false }, [200, 409]),
-      request('manager', 'POST', `${path}/manager`, { version: expectedManagerVersion, body: 'Conceptreactie B voor concurrencycontrole.', submit: false }, [200, 409]),
-    ])
-    const winningDrafts = concurrentDrafts.filter((value) => value?.version === expectedManagerVersion + 1)
-    check(winningDrafts.length === 1, 'OPTIMISTIC_LOCK_DID_NOT_REJECT_STALE_WRITE')
-    dossier = winningDrafts[0]
-    dossier = await request('manager', 'POST', `${path}/manager`, { version: dossier.version, body: 'De samenwerking en overdracht zijn merkbaar verbeterd. We plannen ruimte voor verdere vakontwikkeling.', submit: true, ...(rated ? { score: 4, ratingExplanation: 'De resultaten zijn sterk en de samenwerking heeft aantoonbaar bijgedragen aan het team.' } : {}) })
+    if (!rated) {
+      const managerField = managerPage.locator('textarea').first()
+      const managerDraftBody = 'De taakoverdracht verloopt duidelijker. Ik wil de werkafspraken komend kwartaal verder borgen.'
+      await managerField.fill(managerDraftBody)
+      const managerDraftResponse = managerPage.waitForResponse((response) => new URL(response.url()).pathname === '/api/performance-reviews' && response.request().method() === 'POST', { timeout: config.timeoutMs })
+      await managerPage.getByRole('button', { name: 'Concept bewaren', exact: true }).first().click()
+      check((await managerDraftResponse).status() === 200, 'MANAGER_UI_DRAFT_FAILED')
+      check(await managerField.inputValue() === managerDraftBody, 'MANAGER_UI_DRAFT_CLEARED')
+      dossier = await request('manager', 'GET', path)
+      check(dossier.performance_review_submissions?.some((submission) => submission.kind === 'MANAGER' && submission.body === managerDraftBody && !submission.submitted_at), 'MANAGER_UI_DRAFT_NOT_PERSISTED')
+      const finalManagerBody = 'De samenwerking en overdracht zijn merkbaar verbeterd. We plannen ruimte voor verdere vakontwikkeling.'
+      await managerField.fill(finalManagerBody)
+      const managerSubmitResponse = managerPage.waitForResponse((response) => new URL(response.url()).pathname === '/api/performance-reviews' && response.request().method() === 'POST', { timeout: config.timeoutMs })
+      await managerPage.getByRole('button', { name: 'Definitief indienen', exact: true }).click()
+      const confirmationDialog = managerPage.getByRole('dialog')
+      await waitForUi(confirmationDialog, 'MANAGER_SUBMIT_CONFIRMATION_MISSING', config.timeoutMs)
+      await confirmationDialog.getByRole('button', { name: 'Definitief indienen', exact: true }).click()
+      check((await managerSubmitResponse).status() === 200, 'MANAGER_UI_SUBMIT_FAILED')
+      dossier = await request('manager', 'GET', path)
+      check(dossier.phase === 'WAITING_ACKNOWLEDGEMENT', 'MANAGER_UI_SUBMIT_PHASE_MISMATCH')
+      results.push({ step: 'manager-draft-and-submit-ui', status: 'PASS', draftRetainedInForm: true, submissionReadback: true })
+    } else {
+      const managerField = managerPage.getByLabel('Managerreactie')
+      await managerField.fill('De overdracht is merkbaar verbeterd. Ik wil de werkafspraken verder borgen.')
+      const managerSubmitButton = managerPage.getByRole('button', { name: 'Definitief indienen', exact: true }).first()
+      check(await managerSubmitButton.isDisabled(), 'MANAGER_RATING_SUBMIT_ENABLED_WITHOUT_DETAILS')
+      await managerPage.getByLabel('Score').selectOption('4')
+      await managerPage.getByLabel('Onderbouwing').fill('De resultaten zijn sterk en de samenwerking heeft aantoonbaar bijgedragen aan het team.')
+      check(await managerSubmitButton.isEnabled(), 'MANAGER_RATING_SUBMIT_REMAINS_DISABLED')
+      const managerRatedDraftResponse = managerPage.waitForResponse((response) => new URL(response.url()).pathname === '/api/performance-reviews' && response.request().method() === 'POST', { timeout: config.timeoutMs })
+      await managerPage.getByRole('button', { name: 'Concept bewaren', exact: true }).first().click()
+      check((await managerRatedDraftResponse).status() === 200, 'MANAGER_RATED_UI_DRAFT_FAILED')
+      dossier = await request('manager', 'GET', path)
+      check(dossier.performance_review_submissions?.some((submission) => submission.kind === 'MANAGER' && submission.score === 4 && submission.rating_explanation?.includes('aantoonbaar') && !submission.submitted_at), 'MANAGER_RATED_UI_DRAFT_NOT_PERSISTED')
+      results.push({ step: 'manager-rating-ui-required-fields', status: 'PASS', submitEnabledAfterRequiredFields: true })
+      await request('manager', 'POST', `${path}/manager`, { version: dossier.version, body: 'Beoordeling zonder onderbouwing', submit: true, score: 4 }, [400])
+      const expectedManagerVersion = dossier.version
+      const concurrencyRating = { score: 4, ratingExplanation: 'De conceptbeoordeling is onderbouwd op basis van resultaten en samenwerking.' }
+      const concurrentDrafts = await Promise.all([
+        request('manager', 'POST', `${path}/manager`, { version: expectedManagerVersion, body: 'Conceptreactie A voor concurrencycontrole.', submit: false, ...concurrencyRating }, [200, 409]),
+        request('manager', 'POST', `${path}/manager`, { version: expectedManagerVersion, body: 'Conceptreactie B voor concurrencycontrole.', submit: false, ...concurrencyRating }, [200, 409]),
+      ])
+      const winningDrafts = concurrentDrafts.filter((value) => value?.version === expectedManagerVersion + 1)
+      check(winningDrafts.length === 1, 'OPTIMISTIC_LOCK_DID_NOT_REJECT_STALE_WRITE')
+      dossier = winningDrafts[0]
+      dossier = await request('manager', 'POST', `${path}/manager`, { version: dossier.version, body: 'De samenwerking en overdracht zijn merkbaar verbeterd. We plannen ruimte voor verdere vakontwikkeling.', submit: true, score: 4, ratingExplanation: 'De resultaten zijn sterk en de samenwerking heeft aantoonbaar bijgedragen aan het team.' })
+    }
     const employeeRead = await request('employee', 'GET', path)
     check(!JSON.stringify(employeeRead).includes('Bespreek welke begeleiding'), 'PRIVATE_NOTE_LEAK')
     const finalManagerSubmission = employeeRead.performance_review_submissions?.find((submission) => submission.kind === 'MANAGER' && submission.submitted_at)

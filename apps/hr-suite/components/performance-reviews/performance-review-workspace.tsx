@@ -76,7 +76,17 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
   async function performSubmit(action: string, payload: Record<string, string | number | null>) {
     if (!selected) return
     setBusy(true); setMessage(null)
-    try { const response = await fetch('/api/performance-reviews', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, dossierId: selected.id, version: selected.version ?? 1, body, reason, privateNote, ...payload }) }); if (!response.ok) throw new Error('request'); setMessage(labels.saved); if (action !== 'save-private-note') setBody('') } catch { setMessage(labels.error) } finally { setBusy(false) }
+    try {
+      const response = await fetch('/api/performance-reviews', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, dossierId: selected.id, version: selected.version ?? 1, body, reason, privateNote, ...payload }) })
+      if (!response.ok) throw new Error('request')
+      const mutation = await response.json() as { version?: number; phase?: string }
+      setSummaries((current) => current.map((item) => item.id === selected.id ? { ...item, ...(typeof mutation.version === 'number' ? { version: mutation.version } : {}), ...(typeof mutation.phase === 'string' ? { phase: mutation.phase } : {}) } : item))
+      if (action === 'submit-self' || action === 'submit-manager' || action === 'acknowledge') {
+        setBody('')
+        await refreshSelected()
+      }
+      setMessage(labels.saved)
+    } catch { setMessage(labels.error) } finally { setBusy(false) }
   }
   async function savePrivateNote() {
     if (!selected) return
