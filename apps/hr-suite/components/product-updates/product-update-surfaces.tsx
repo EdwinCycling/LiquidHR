@@ -98,7 +98,7 @@ export function ProductUpdateDrawerTrigger({ unreadCount, updates, labels, local
   return <>
     <button aria-label={triggerLabel} className={`relative grid size-11 place-items-center rounded-lg text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${collapsed ? 'mx-auto' : ''}`} data-testid="product-updates-trigger" onClick={openDrawer} title={labels.title} type="button">
       <Gift aria-hidden="true" size={18} />
-      {unreadCount > 0 ? <span aria-hidden="true" className="absolute right-0.5 top-0.5 grid min-w-5 -translate-y-1/4 translate-x-1/4 place-items-center rounded-full bg-destructive px-1.5 py-0.5 text-[11px] font-bold leading-4 text-destructive-foreground">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
+      {unreadCount > 0 ? <span aria-hidden="true" className="absolute right-0.5 top-0.5 grid min-w-5 -translate-y-1/4 translate-x-1/4 place-items-center rounded-full bg-destructive-surface px-1.5 py-0.5 text-[11px] font-bold leading-4 text-destructive">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
     </button>
     <Drawer closeLabel={labels.close} description={labels.subtitle} onOpenChange={setOpen} open={open} title={labels.title}>
       <div className="grid gap-4">

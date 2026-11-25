@@ -36,7 +36,9 @@ describe('Product Updates drawer trigger', () => {
     zero.unmount()
 
     const unread = mount(createElement(ProductUpdateDrawerTrigger, { collapsed: true, labels, locale: 'nl-NL', unreadCount: 3, updates: [update] }))
-    expect(unread.host.querySelector('.bg-destructive')?.textContent).toBe('3')
+    const badge = unread.host.querySelector('.bg-destructive-surface')
+    expect(badge?.textContent).toBe('3')
+    expect(badge?.classList.contains('text-destructive')).toBe(true)
     expect(unread.host.querySelector('button')?.getAttribute('aria-label')).toContain('3')
     unread.unmount()
   })

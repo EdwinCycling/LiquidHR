@@ -1,4 +1,5 @@
 import { chromium } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 import { randomUUID } from 'node:crypto'
 import { mkdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
@@ -39,7 +40,7 @@ async function request(persona, method, path, body, statuses = [200], idempotenc
     const payload = await response.json().catch(() => null)
     const errorCode = typeof payload?.error === 'string' && /^[A-Z0-9_]+$/.test(payload.error) ? payload.error : null
     const safePath = path.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/giu, 'id').split('?')[0].replace(/[^a-z0-9]+/giu, '_').toUpperCase()
-    check(false, `HTTP_${persona}_${method}_${response.status()}_${errorCode ?? safePath}`)
+    check(false, `HTTP_${persona}_${method}_${response.status()}_${errorCode ?? 'API_ERROR'}_${safePath}`)
   }
   const contentType = response.headers()['content-type'] ?? ''
   return response.status() === 204 || !contentType.includes('application/json') ? null : response.json()
@@ -71,6 +72,40 @@ try {
     check(forbiddenRoutes === 0, `ROLE_NAVIGATION_LEAK_${persona.toUpperCase()}`)
   }
   results.push({ step, status: 'PASS' })
+
+  step = 'role-dashboards-responsive-accessibility'
+  const dashboardViews = [
+    ['hr-admin', '/workforce/conversations', 'hr', 'Gespreksrondes'],
+    ['manager', '/workforce/conversations', 'manager', 'Mijn team'],
+    ['employee', '/my-conversations', 'employee', 'Mijn gesprekken'],
+  ]
+  const dashboardScreenshots = []
+  const accessibilityResults = []
+  for (const [persona, route, role, headingName] of dashboardViews) {
+    const page = pages.get(persona)
+    const dataResponse = page.waitForResponse((response) => {
+      try { const url = new URL(response.url()); return url.pathname === '/api/performance-reviews/dashboard' && url.searchParams.get('role') === role } catch { return false }
+    }, { timeout: config.timeoutMs }).catch(() => null)
+    await page.goto(new URL(route, config.baseUrl).toString())
+    const dashboardResponse = await dataResponse
+    check(Boolean(dashboardResponse?.ok()), `DASHBOARD_DATA_FAILED_${persona.toUpperCase()}`)
+    const dashboardHeading = page.locator('h1').first()
+    await waitForUi(dashboardHeading, `DASHBOARD_HEADING_MISSING_${persona.toUpperCase()}`, config.timeoutMs)
+    check((await dashboardHeading.innerText()).trim() === headingName, `DASHBOARD_HEADING_MISMATCH_${persona.toUpperCase()}`)
+    dashboardScreenshots.push(await screenshot(page, `${persona}-dashboard-desktop.png`))
+    const desktopAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+    accessibilityResults.push({ persona, viewport: 'desktop', violations: desktopAxe.violations.map((violation) => ({ id: violation.id, impact: violation.impact, nodes: violation.nodes.map((node) => ({ target: node.target, contrastChecks: node.any.filter((checkResult) => checkResult.id === 'color-contrast').map((checkResult) => checkResult.data) })) })) })
+    await page.setViewportSize({ width: 390, height: 852 })
+    check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `DASHBOARD_MOBILE_OVERFLOW_${persona.toUpperCase()}`)
+    dashboardScreenshots.push(await screenshot(page, `${persona}-dashboard-mobile.png`))
+    const mobileAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+    accessibilityResults.push({ persona, viewport: 'mobile', violations: mobileAxe.violations.map((violation) => ({ id: violation.id, impact: violation.impact, nodes: violation.nodes.map((node) => ({ target: node.target, contrastChecks: node.any.filter((checkResult) => checkResult.id === 'color-contrast').map((checkResult) => checkResult.data) })) })) })
+    await page.setViewportSize({ width: 1440, height: 900 })
+  }
+  results.push({ step, status: 'PASS', screenshots: dashboardScreenshots })
+  const accessibilityPassed = accessibilityResults.every((item) => item.violations.length === 0)
+  results.push({ step: 'accessibility-axe', status: accessibilityPassed ? 'PASS' : 'FAIL', checks: accessibilityResults })
+  if (!accessibilityPassed) process.exitCode = 1
 
   step = 'hr-round-wizard-draft'
   const hrWizardPage = pages.get('hr-admin')
@@ -164,7 +199,36 @@ try {
   await request('employee', 'POST', '/api/performance-reviews/rounds', deniedRoundBody, [403], randomUUID())
   await request('manager', 'GET', '/api/performance-reviews/rounds', undefined, [401, 403])
   await request('hr-admin', 'GET', `/api/performance-reviews/employees?hrGroupId=${randomUUID()}`, undefined, [403])
-  results.push({ step, status: 'PASS' })
+  const roster = await request('hr-admin', 'GET', '/api/performance-reviews/employees?limit=100')
+  const outsideTeamCandidate = roster.items?.find((employee) => employee.id !== employeeId && employee.reviewerEmployeeId !== reviewerEmployeeId && employee.assignmentStatus === 'READY' && employee.administrationId)
+  check(Boolean(outsideTeamCandidate?.id), 'CROSS_SCOPE_TEST_FIXTURE_MISSING')
+  const scopeRound = await request('hr-admin', 'POST', '/api/performance-reviews/rounds', {
+    title: `Afgeschermd teamdossier · ${runLabel}`, introduction: 'Synthetisch dossier om personeels- en teamgrenzen te controleren.',
+    roundType: 'DEVELOPMENT', periodStart: '2026-01-01', periodEnd: '2026-12-31', startDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10), dueDate: null, rating: null,
+  }, [201], randomUUID())
+  await request('hr-admin', 'POST', `/api/performance-reviews/rounds/${scopeRound.id}/publish`, { version: scopeRound.version }, [200], randomUUID())
+  const scopeDossier = await request('hr-admin', 'POST', `/api/performance-reviews/rounds/${scopeRound.id}/dossiers`, {
+    employeeId: outsideTeamCandidate.id, reviewerEmployeeId: outsideTeamCandidate.reviewerEmployeeId,
+    administrationId: outsideTeamCandidate.administrationId,
+  }, [201], randomUUID())
+  const hrScopeReadback = await request('hr-admin', 'GET', `/api/performance-reviews/dossiers/${scopeDossier.id}`)
+  check(hrScopeReadback.id === scopeDossier.id, 'CROSS_SCOPE_TEST_DOSSIER_NOT_PERSISTED')
+  const historyScopeStatuses = []
+  for (const persona of ['employee', 'manager']) {
+    const historyResponse = await sessions.get(persona).request.fetch(new URL(`/api/performance-reviews/employees/${outsideTeamCandidate.id}`, config.baseUrl).toString())
+    const historyStatus = historyResponse.status()
+    check([200, 401, 403, 404].includes(historyStatus), `CROSS_SCOPE_HISTORY_STATUS_${persona.toUpperCase()}_${historyStatus}`)
+    if (historyStatus === 200) {
+      const historyPayload = await historyResponse.json().catch(() => null)
+      check(Array.isArray(historyPayload?.items) && historyPayload.items.length === 0, `CROSS_SCOPE_HISTORY_LEAK_${persona.toUpperCase()}`)
+    }
+    const dossierResponse = await sessions.get(persona).request.fetch(new URL(`/api/performance-reviews/dossiers/${scopeDossier.id}`, config.baseUrl).toString())
+    check([401, 403, 404].includes(dossierResponse.status()), `CROSS_SCOPE_DOSSIER_ACCESS_${persona.toUpperCase()}_${dossierResponse.status()}`)
+    historyScopeStatuses.push({ persona, status: historyStatus, dossierDenied: true })
+  }
+  const scopeRoundReadback = await request('hr-admin', 'GET', `/api/performance-reviews/rounds/${scopeRound.id}`)
+  await request('hr-admin', 'POST', `/api/performance-reviews/rounds/${scopeRound.id}/close`, { version: scopeRoundReadback.version, reason: 'De scopecontrole is afgerond; het dossier blijft alleen als historie bestaan.' }, [200], randomUUID())
+  results.push({ step, status: 'PASS', historyScopeStatuses, testDossierClosed: true })
 
   for (const rated of [false, true]) {
     step = rated ? 'rated-round' : 'unrated-round'
@@ -198,6 +262,17 @@ try {
     await request('employee', 'POST', `${path}/self`, { version: dossier.version, body: 'Wijziging na definitieve indiening', submit: false }, [409])
     await request('manager', 'POST', `${path}/private-note`, { version: dossier.version, body: 'Bespreek welke begeleiding aansluit bij de gewenste ontwikkeling.' })
     await request('employee', 'GET', `${path}/private-note`, undefined, [403, 404])
+    const appraisalTitle = `Werkafspraak ontwikkeling · ${runLabel}`
+    const appraisalBody = 'De medewerker reserveert maandelijks tijd voor vakontwikkeling en bespreekt de voortgang tijdens het volgende overleg.'
+    const appraisalItem = await request('manager', 'POST', '/api/continuous-appraisal', {
+      employeeId, itemType: 'AGREEMENT', title: appraisalTitle, body: appraisalBody,
+      occurredOn: new Date().toISOString().slice(0, 10), itemStatus: 'OPEN',
+    }, [201])
+    await request('manager', 'POST', `${path}/appraisal-links`, { appraisalItemId: appraisalItem.id }, [201])
+    const linkedDossier = await request('employee', 'GET', path)
+    check(linkedDossier.performance_review_appraisal_links?.some((link) => link.appraisal_item_id === appraisalItem.id), 'APPRAISAL_LINK_NOT_VISIBLE')
+    check(!JSON.stringify(linkedDossier).includes(appraisalTitle) && !JSON.stringify(linkedDossier).includes(appraisalBody), 'APPRAISAL_CONTENT_COPIED_INTO_DOSSIER')
+    await request('employee', 'POST', `${path}/appraisal-links`, { appraisalItemId: appraisalItem.id }, [403])
     const pdf = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF\n', 'utf8')
     const attachmentKey = randomUUID()
     const uploadAttachment = (key) => sessions.get('manager').request.fetch(new URL(`${path}/attachments`, config.baseUrl).toString(), { method: 'POST', headers: { origin: new URL(config.baseUrl).origin, 'Idempotency-Key': key }, multipart: { file: { name: 'Gespreksafspraken 2026.pdf', mimeType: 'application/pdf', buffer: pdf } } })
@@ -261,11 +336,18 @@ try {
     await waitForUi(pages.get('employee').getByRole('heading', { name: round.title, exact: true }), 'EMPLOYEE_HISTORY_NOT_AVAILABLE', config.timeoutMs)
     check((await pages.get('employee').getByRole('heading', { name: round.title, exact: true }).count()) > 0, 'EMPLOYEE_HISTORY_NOT_AVAILABLE')
     await pages.get('employee').goto(new URL(`/employees/${employeeId}?tab=conversations`, config.baseUrl).toString())
-    const employeeCardLink = pages.get('employee').getByRole('link', { name: /^(Gesprekken|Conversations)$/u })
-    await waitForUi(employeeCardLink, 'EMPLOYEE_DETAIL_CONVERSATIONS_TAB_MISSING', config.timeoutMs)
-    check(await employeeCardLink.getAttribute('aria-current') === 'page', 'EMPLOYEE_DETAIL_CONVERSATIONS_TAB_NOT_SELECTED')
-    check(await pages.get('employee').getByRole('heading', { name: round.title, exact: true }).count() > 0, 'EMPLOYEE_DETAIL_CONVERSATIONS_HISTORY_MISSING')
-    results.push({ step: 'employee-detail-conversations-tab', status: 'PASS', talentPassportRequired: false })
+    const employeeCardTab = pages.get('employee').getByRole('tablist').getByRole('link', { name: /^(Gesprekken|Conversations)$/u })
+    await waitForUi(employeeCardTab, 'EMPLOYEE_DETAIL_CONVERSATIONS_TAB_MISSING', config.timeoutMs)
+    check(await employeeCardTab.getAttribute('aria-current') === 'page', 'EMPLOYEE_DETAIL_CONVERSATIONS_TAB_NOT_SELECTED')
+    const employeeCardHistoryTitle = pages.get('employee').getByText(round.title, { exact: true })
+    await waitForUi(employeeCardHistoryTitle, 'EMPLOYEE_DETAIL_CONVERSATIONS_HISTORY_MISSING', config.timeoutMs)
+    const employeeCardDesktop = await screenshot(pages.get('employee'), 'employee-card-conversations-desktop.png')
+    await pages.get('employee').setViewportSize({ width: 390, height: 852 })
+    check(await pages.get('employee').evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'EMPLOYEE_CARD_MOBILE_OVERFLOW')
+    const employeeCardMobile = await screenshot(pages.get('employee'), 'employee-card-conversations-mobile.png')
+    await pages.get('employee').setViewportSize({ width: 1440, height: 900 })
+    check(await employeeCardHistoryTitle.count() > 0, 'EMPLOYEE_DETAIL_CONVERSATIONS_HISTORY_MISSING')
+    results.push({ step: 'employee-detail-conversations-tab', status: 'PASS', talentPassportRequired: false, screenshots: [employeeCardDesktop, employeeCardMobile] })
     await pages.get('employee').goto(new URL(`/my-conversations?dossierId=${dossier.id}`, config.baseUrl).toString())
     if (rated) {
       const hrPage = pages.get('hr-admin')
@@ -285,6 +367,15 @@ try {
       await managerPage.goto(new URL(`/workforce/conversations?dossierId=${dossier.id}`, config.baseUrl).toString())
       const managerHeading = managerPage.getByRole('heading', { name: round.title, exact: true })
       await waitForUi(managerHeading, 'MANAGER_DOSSIER_SCREEN_TIMEOUT', config.timeoutMs)
+      const managerAttachmentRow = managerPage.locator('li').filter({ hasText: 'Gespreksafspraken 2026.pdf' }).last()
+      await waitForUi(managerAttachmentRow, 'MANAGER_RELEASED_ATTACHMENT_MISSING', config.timeoutMs)
+      const pdfResponse = sessions.get('manager').waitForEvent('response', (response) => response.status() === 200 && (response.headers()['content-type'] ?? '').includes('application/pdf'), { timeout: config.timeoutMs })
+      const attachmentPopup = managerPage.waitForEvent('popup', { timeout: config.timeoutMs })
+      await managerAttachmentRow.getByRole('button', { name: 'Volgende actie', exact: true }).click()
+      const [attachmentPage, attachmentResponse] = await Promise.all([attachmentPopup, pdfResponse])
+      check(attachmentResponse.ok() && (attachmentResponse.headers()['content-type'] ?? '').includes('application/pdf'), 'MANAGER_RELEASED_ATTACHMENT_DOWNLOAD_FAILED')
+      await attachmentPage.close()
+      results.push({ step: 'manager-released-document-download', status: 'PASS' })
       await managerHeading.scrollIntoViewIfNeeded()
       const managerDesktop = await screenshot(managerPage, 'manager-dossier-desktop.png')
       await managerPage.setViewportSize({ width: 390, height: 852 })
@@ -304,6 +395,31 @@ try {
     }
     results.push({ step, status: 'PASS', roundId: round.id, dossierId: dossier.id })
   }
+
+  step = 'round-close-race-and-open-dossier-history'
+  const closeRound = await request('hr-admin', 'POST', '/api/performance-reviews/rounds', {
+    title: `Afgesloten ronde met open dossier · ${runLabel}`, introduction: 'Deze ronde wordt gesloten terwijl het dossier nog openstaat.',
+    roundType: 'DEVELOPMENT', periodStart: '2026-01-01', periodEnd: '2026-12-31', startDate: new Date().toISOString().slice(0, 10), dueDate: null, rating: null,
+  }, [201], randomUUID())
+  await request('hr-admin', 'POST', `/api/performance-reviews/rounds/${closeRound.id}/publish`, { version: closeRound.version }, [200], randomUUID())
+  const closeDossier = await request('hr-admin', 'POST', `/api/performance-reviews/rounds/${closeRound.id}/dossiers`, { employeeId, reviewerEmployeeId, administrationId: config.administrationId }, [201], randomUUID())
+  const preCloseRound = await request('hr-admin', 'GET', `/api/performance-reviews/rounds/${closeRound.id}`)
+  const originalOpenPhase = preCloseRound.participants?.find((item) => item.id === closeDossier.id)?.phase
+  check(Boolean(originalOpenPhase), 'ROUND_CLOSE_OPEN_DOSSIER_MISSING')
+  const closeResponse = await Promise.all([randomUUID(), randomUUID()].map(async (key) => {
+    const response = await sessions.get('hr-admin').request.fetch(new URL(`/api/performance-reviews/rounds/${closeRound.id}/close`, config.baseUrl).toString(), {
+      method: 'POST', headers: { origin: new URL(config.baseUrl).origin, 'Idempotency-Key': key },
+      data: { version: preCloseRound.version, reason: 'De testcyclus is afgerond; resterende acties worden beëindigd.' },
+    })
+    return { status: response.status(), body: await response.json().catch(() => null) }
+  }))
+  check(closeResponse.filter((response) => response.status === 200).length === 1 && closeResponse.filter((response) => response.status === 409).length === 1, 'ROUND_CLOSE_RACE_NOT_SERIALIZED')
+  const closedRound = await request('hr-admin', 'GET', `/api/performance-reviews/rounds/${closeRound.id}`)
+  const closedDossier = await request('employee', 'GET', `/api/performance-reviews/dossiers/${closeDossier.id}`)
+  check(closedRound.status === 'CLOSED' && closedDossier.phase === originalOpenPhase, 'ROUND_CLOSE_CHANGED_DOSSIER_HISTORY')
+  const managerWorkspace = await request('manager', 'GET', '/api/performance-reviews?role=manager')
+  check(managerWorkspace.items?.some((item) => item.id === closeDossier.id && item.roundStatus === 'CLOSED'), 'CLOSED_OPEN_DOSSIER_HISTORY_MISSING')
+  results.push({ step, status: 'PASS', closeResponses: closeResponse.map((response) => response.status), openDossierPhasePreserved: true })
 } catch (error) {
   const message = error instanceof Error ? error.message.split('\n')[0] : ''
   const sanitizedMessage = message.replace(/https?:\/\/[^\s)]+/gu, '[url]').replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/gu, '[email]').slice(0, 180)
