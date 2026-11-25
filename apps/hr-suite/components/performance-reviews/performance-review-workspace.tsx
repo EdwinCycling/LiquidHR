@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CalendarDays, CheckCircle2, Download, FileText, LockKeyhole, MessageSquareText, Send, UserRound } from 'lucide-react'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
@@ -46,6 +46,7 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
   const [search, setSearch] = useState('')
   const [phaseFilter, setPhaseFilter] = useState('')
   const [today, setToday] = useState<string | null>(null)
+  const draftEditRevisions = useRef({ body: 0, meetingDate: 0, score: 0, ratingExplanation: 0 })
   const selected = summaries.find((item) => item.id === selectedId) ?? null
 
   useEffect(() => {
@@ -60,7 +61,26 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
 
   useEffect(() => { let active = true; void fetch(`/api/performance-reviews?role=${role}`).then((response) => response.ok ? response.json() as Promise<{ items?: PerformanceReviewSummary[] }> : { items: [] }).then((result) => { if (!active || !Array.isArray(result.items)) return; setSummaries(result.items); const requested = new URLSearchParams(window.location.search).get('dossierId'); setSelectedId((current) => current && result.items?.some((item) => item.id === current) ? current : requested && result.items?.some((item) => item.id === requested) ? requested : result.items?.[0]?.id ?? null) }).catch(() => undefined); return () => { active = false } }, [role])
   useEffect(() => { if (role !== 'hr') return; let active = true; void fetch('/api/performance-reviews/rounds').then((response) => response.ok ? response.json() as Promise<RoundSummary[]> : []).then((result) => { if (active) setRounds(Array.isArray(result) ? result : []) }).catch(() => undefined); return () => { active = false } }, [role])
-  useEffect(() => { if (!selectedId) return; let active = true; void fetch(`/api/performance-reviews/dossiers/${selectedId}`).then((response) => response.ok ? response.json() as Promise<PerformanceReviewSummary> : null).then((result) => { if (active && result) { setSummaries((current) => current.map((item) => item.id === selectedId ? { ...item, ...result } : item)); const self = result.performance_review_submissions?.find((item) => item.kind === 'SELF'); const manager = result.performance_review_submissions?.find((item) => item.kind === 'MANAGER'); const editable = role === 'employee' ? self : manager; setBody(editable?.body ?? ''); setMeetingDate(manager?.meeting_date ?? ''); setScore(manager?.score == null ? '' : String(manager.score)); setRatingExplanation(manager?.rating_explanation ?? '') } }).catch(() => undefined); return () => { active = false } }, [selectedId, role])
+  useEffect(() => {
+    if (!selectedId) return
+    let active = true
+    const editRevisionsAtRequest = { ...draftEditRevisions.current }
+    void fetch(`/api/performance-reviews/dossiers/${selectedId}`)
+      .then((response) => response.ok ? response.json() as Promise<PerformanceReviewSummary> : null)
+      .then((result) => {
+        if (!active || !result) return
+        setSummaries((current) => current.map((item) => item.id === selectedId ? { ...item, ...result } : item))
+        const self = result.performance_review_submissions?.find((item) => item.kind === 'SELF')
+        const manager = result.performance_review_submissions?.find((item) => item.kind === 'MANAGER')
+        const editable = role === 'employee' ? self : manager
+        if (draftEditRevisions.current.body === editRevisionsAtRequest.body) setBody(editable?.body ?? '')
+        if (draftEditRevisions.current.meetingDate === editRevisionsAtRequest.meetingDate) setMeetingDate(manager?.meeting_date ?? '')
+        if (draftEditRevisions.current.score === editRevisionsAtRequest.score) setScore(manager?.score == null ? '' : String(manager.score))
+        if (draftEditRevisions.current.ratingExplanation === editRevisionsAtRequest.ratingExplanation) setRatingExplanation(manager?.rating_explanation ?? '')
+      })
+      .catch(() => undefined)
+    return () => { active = false }
+  }, [selectedId, role])
   useEffect(() => { if (!selectedId || role === 'employee') return; let active = true; void fetch(`/api/performance-reviews/dossiers/${selectedId}/private-note`).then((response) => response.ok ? response.json() as Promise<Array<{ body: string }>> : []).then((notes) => { if (active) setPrivateNote(notes.at(-1)?.body ?? '') }).catch(() => undefined); return () => { active = false } }, [selectedId, role])
   useEffect(() => { if (!selected?.employeeId || role === 'employee') { window.setTimeout(() => setAppraisalItems([]), 0); return }; let active = true; void fetch(`/api/continuous-appraisal?employeeId=${encodeURIComponent(selected.employeeId)}`).then((response) => response.ok ? response.json() as Promise<{ items?: AppraisalItem[] }> : { items: [] }).then((result) => { if (active) setAppraisalItems(result.items ?? []) }).catch(() => undefined); return () => { active = false } }, [role, selected?.employeeId])
   useEffect(() => { if (role !== 'hr' || selected?.phase !== 'WAITING_MANAGER' || selected.roundStatus !== 'ACTIVE' || reviewerSearch.trim().length < 2) { window.setTimeout(() => setReviewerCandidates([]), 0); return }; let active = true; const timer = window.setTimeout(() => { void fetch(`/api/performance-reviews/employees?search=${encodeURIComponent(reviewerSearch)}&employeeId=${encodeURIComponent(selected.employeeId ?? '')}`).then((response) => response.ok ? response.json() as Promise<{ items?: Array<{ id: string; first_name: string; birth_name: string; employee_number: string; assignmentStatus?: string }> }> : { items: [] }).then((result) => { if (active) setReviewerCandidates((result.items ?? []).filter((candidate) => candidate.id !== selected.employeeId && (!candidate.assignmentStatus || candidate.assignmentStatus === 'READY'))) }).catch(() => undefined) }, 250); return () => { active = false; window.clearTimeout(timer) } }, [role, selected?.id, selected?.employeeId, selected?.phase, selected?.roundStatus, reviewerSearch])
@@ -82,6 +102,7 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
       const mutation = await response.json() as { version?: number; phase?: string }
       setSummaries((current) => current.map((item) => item.id === selected.id ? { ...item, ...(typeof mutation.version === 'number' ? { version: mutation.version } : {}), ...(typeof mutation.phase === 'string' ? { phase: mutation.phase } : {}) } : item))
       if (action === 'submit-self' || action === 'submit-manager' || action === 'acknowledge') {
+        draftEditRevisions.current.body += 1
         setBody('')
         await refreshSelected()
       }
@@ -154,15 +175,15 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
               {role === 'employee' && managerSubmission?.submitted_at && managerSubmission.score != null ? <div className="mt-4 grid gap-3 sm:grid-cols-2"><Info icon={<FileText />} label={labels.ratingScore} value={String(managerSubmission.score)} />{managerSubmission.rating_explanation ? <ReadOnlyText label={labels.ratingExplanation} value={managerSubmission.rating_explanation} /> : null}</div> : null}
               {role === 'employee' && acknowledgement ? <ReadOnlyText label={labels.acknowledgement} value={acknowledgement.decision === 'AGREE' ? labels.agree : `${labels.disagree}${acknowledgement.reason ? `: ${acknowledgement.reason}` : ''}`} /> : null}
               {selected.attachments?.length ? <div className="mt-6 space-y-2"><p className="text-sm font-medium">{labels.attachments}</p><ul className="divide-y divide-border-subtle rounded-[var(--radius-control)] border border-border-subtle">{selected.attachments.map((item) => <li className="flex items-center justify-between gap-3 px-3 py-2 text-sm" key={item.id}><span className="min-w-0 truncate">{item.original_filename}</span><span className="flex shrink-0 items-center gap-3"><button className="inline-flex items-center gap-1 text-xs underline-offset-4 hover:underline" onClick={() => void downloadAttachment(item.id)} type="button"><Download aria-hidden="true" className="size-3.5" />{labels.action}</button>{role === 'manager' && selected.phase === 'WAITING_MANAGER' && selected.roundStatus !== 'CLOSED' ? <button className="text-xs text-destructive underline-offset-4 hover:underline" onClick={() => void removeAttachment(item.id)} type="button">{labels.remove}</button> : null}</span></li>)}</ul></div> : null}
-              {role === 'employee' && selected.phase === 'WAITING_EMPLOYEE' && selected.roundStatus !== 'CLOSED' ? <Form label={labels.selfReflection} value={body} onChange={setBody} onSubmit={() => submit('submit-self')} busy={busy} submitLabel={labels.submit} draftLabel={labels.saveDraft} onDraft={() => submit('save-self')} /> : null}
+              {role === 'employee' && selected.phase === 'WAITING_EMPLOYEE' && selected.roundStatus !== 'CLOSED' ? <Form label={labels.selfReflection} value={body} onChange={(value) => { draftEditRevisions.current.body += 1; setBody(value) }} onSubmit={() => submit('submit-self')} busy={busy} submitLabel={labels.submit} draftLabel={labels.saveDraft} onDraft={() => submit('save-self')} /> : null}
               {role === 'manager' && selected.phase === 'WAITING_MANAGER' && selected.roundStatus !== 'CLOSED' ? (
                 <>
-                  <Form label={labels.managerResponse} value={body} onChange={setBody} onSubmit={() => submit('submit-manager', { meetingDate: meetingDate || null, ...(ratingOptions.length ? { score: score ? Number(score) : null, ratingExplanation } : {}) })} busy={busy} submitLabel={labels.submit} submitDisabled={ratingOptions.length > 0 && (!score || !ratingExplanation.trim())} draftLabel={labels.saveDraft} onDraft={() => submit('save-manager', { meetingDate: meetingDate || null, ...(ratingOptions.length ? { score: score ? Number(score) : null, ratingExplanation } : {}) })} />
+                  <Form label={labels.managerResponse} value={body} onChange={(value) => { draftEditRevisions.current.body += 1; setBody(value) }} onSubmit={() => submit('submit-manager', { meetingDate: meetingDate || null, ...(ratingOptions.length ? { score: score ? Number(score) : null, ratingExplanation } : {}) })} busy={busy} submitLabel={labels.submit} submitDisabled={ratingOptions.length > 0 && (!score || !ratingExplanation.trim())} draftLabel={labels.saveDraft} onDraft={() => submit('save-manager', { meetingDate: meetingDate || null, ...(ratingOptions.length ? { score: score ? Number(score) : null, ratingExplanation } : {}) })} />
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <label className="block text-sm font-medium">{labels.meetingDate}<input type="date" className="mt-1 block w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2" value={meetingDate} onChange={(event) => setMeetingDate(event.target.value)} /></label>
-                    {ratingOptions.length ? <label className="block text-sm font-medium">{labels.ratingScore}<select required className="mt-1 block w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2" value={score} onChange={(event) => setScore(event.target.value)}><option value="">{labels.rating}</option>{ratingOptions.map((option) => <option key={option.score} value={option.score}>{option.score} · {option.label}</option>)}</select></label> : null}
+                    <label className="block text-sm font-medium">{labels.meetingDate}<input type="date" className="mt-1 block w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2" value={meetingDate} onChange={(event) => { draftEditRevisions.current.meetingDate += 1; setMeetingDate(event.target.value) }} /></label>
+                    {ratingOptions.length ? <label className="block text-sm font-medium">{labels.ratingScore}<select required className="mt-1 block w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2" value={score} onChange={(event) => { draftEditRevisions.current.score += 1; setScore(event.target.value) }}><option value="">{labels.rating}</option>{ratingOptions.map((option) => <option key={option.score} value={option.score}>{option.score} · {option.label}</option>)}</select></label> : null}
                   </div>
-                  {ratingOptions.length ? <label className="mt-4 block text-sm font-medium">{labels.ratingExplanation}<textarea required className="mt-1 min-h-28 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm" value={ratingExplanation} onChange={(event) => setRatingExplanation(event.target.value)} /></label> : null}
+                  {ratingOptions.length ? <label className="mt-4 block text-sm font-medium">{labels.ratingExplanation}<textarea required className="mt-1 min-h-28 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm" value={ratingExplanation} onChange={(event) => { draftEditRevisions.current.ratingExplanation += 1; setRatingExplanation(event.target.value) }} /></label> : null}
                   <div className="mt-6 space-y-3 border-t border-border-subtle pt-5"><p className="text-sm font-medium">{labels.attachments}</p><div className="flex flex-wrap items-center gap-2"><input aria-label={labels.attachments} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => { setAttachment(event.target.files?.[0] ?? null); setAttachmentRequestKey(crypto.randomUUID()) }} /><Button disabled={busy || !attachment} onClick={() => void uploadAttachment()} variant="secondary">{labels.upload}</Button></div><div className="flex flex-wrap items-center gap-2"><select aria-label={labels.appraisalLink} className="min-h-10 min-w-0 flex-1 rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm" value={appraisalId} onChange={(event) => setAppraisalId(event.target.value)}><option value="">{labels.appraisalLink}</option>{appraisalItems.map((item) => <option key={item.id} value={item.id}>{item.title}{item.occurred_on ? ` · ${item.occurred_on}` : ''}</option>)}</select><Button disabled={busy || !appraisalId} onClick={() => void linkAppraisal()} variant="secondary">{labels.link}</Button></div></div>
                 </>
               ) : null}

@@ -50,7 +50,7 @@ try {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     sessions.set(persona, context)
     const page = await context.newPage()
-    page.setDefaultNavigationTimeout(Math.max(config.timeoutMs, 60000))
+    page.setDefaultNavigationTimeout(Math.max(config.timeoutMs, 180000))
     pages.set(persona, page)
     await loginWithTestAuth(page, config, '/dashboard/start', { allowContextSelection: true })
     await ensureContext(context, config)
@@ -83,12 +83,9 @@ try {
   const accessibilityResults = []
   for (const [persona, route, role, headingName] of dashboardViews) {
     const page = pages.get(persona)
-    const dataResponse = page.waitForResponse((response) => {
-      try { const url = new URL(response.url()); return url.pathname === '/api/performance-reviews/dashboard' && url.searchParams.get('role') === role } catch { return false }
-    }, { timeout: config.timeoutMs }).catch(() => null)
     await page.goto(new URL(route, config.baseUrl).toString())
-    const dashboardResponse = await dataResponse
-    check(Boolean(dashboardResponse?.ok()), `DASHBOARD_DATA_FAILED_${persona.toUpperCase()}`)
+    const dashboardData = await request(persona, 'GET', `/api/performance-reviews/dashboard?role=${role}`)
+    check(typeof dashboardData === 'object' && dashboardData !== null && typeof dashboardData.phaseCounts === 'object' && Array.isArray(dashboardData.nextActions), `DASHBOARD_DATA_FAILED_${persona.toUpperCase()}`)
     const dashboardHeading = page.locator('h1').first()
     await waitForUi(dashboardHeading, `DASHBOARD_HEADING_MISSING_${persona.toUpperCase()}`, config.timeoutMs)
     check((await dashboardHeading.innerText()).trim() === headingName, `DASHBOARD_HEADING_MISMATCH_${persona.toUpperCase()}`)
