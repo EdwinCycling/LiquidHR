@@ -12,7 +12,7 @@ const results = []
 const sessions = new Map()
 const pages = new Map()
 const runLabel = new Intl.DateTimeFormat('nl-NL', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date())
-const screenshotDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../../docs/quality/acceptance/runs/PERF-MVP-01-20261123/screenshots')
+const screenshotDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../../docs/quality/acceptance/runs/PERF-MVP-01-20261125/screenshots')
 await mkdir(screenshotDir, { recursive: true })
 const browser = await chromium.launch({
   headless: true,
