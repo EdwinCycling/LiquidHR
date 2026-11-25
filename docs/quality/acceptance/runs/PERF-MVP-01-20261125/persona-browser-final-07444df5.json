@@ -1,0 +1,205 @@
+{
+  "mode": "local-real-persona",
+  "screenshots": "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots",
+  "results": [
+    {
+      "step": "existing-persona-login",
+      "status": "PASS"
+    },
+    {
+      "step": "role-navigation-scope",
+      "status": "PASS"
+    },
+    {
+      "step": "role-dashboards-responsive-accessibility",
+      "status": "PASS",
+      "screenshots": [
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\hr-admin-dashboard-desktop.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\hr-admin-dashboard-mobile.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\manager-dashboard-desktop.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\manager-dashboard-mobile.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\employee-dashboard-desktop.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\employee-dashboard-mobile.png"
+      ]
+    },
+    {
+      "step": "accessibility-axe",
+      "status": "PASS",
+      "checks": [
+        {
+          "persona": "hr-admin",
+          "viewport": "desktop",
+          "violations": []
+        },
+        {
+          "persona": "hr-admin",
+          "viewport": "mobile",
+          "violations": []
+        },
+        {
+          "persona": "manager",
+          "viewport": "desktop",
+          "violations": []
+        },
+        {
+          "persona": "manager",
+          "viewport": "mobile",
+          "violations": []
+        },
+        {
+          "persona": "employee",
+          "viewport": "desktop",
+          "violations": []
+        },
+        {
+          "persona": "employee",
+          "viewport": "mobile",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "step": "hr-round-wizard-draft",
+      "status": "PASS",
+      "persisted": true,
+      "successFeedback": [
+        "Concept opgeslagen."
+      ],
+      "feedbackProbe": "PASS",
+      "statusTexts": [
+        "Concept opgeslagen."
+      ]
+    },
+    {
+      "step": "hr-wizard-participant-selection-and-scheduled-publish",
+      "status": "PASS",
+      "selectedCount": 1,
+      "testedFilters": [
+        "hrGroupId",
+        "administrationId",
+        "departmentId",
+        "jobId",
+        "locationId",
+        "managerId",
+        "employmentStatus"
+      ],
+      "participantPreviewScreenshot": "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\hr-admin-wizard-participant-preview.png",
+      "statusReadback": "SCHEDULED",
+      "futureTaskCreated": false
+    },
+    {
+      "step": "negative-role-matrix",
+      "status": "PASS",
+      "historyScopeStatuses": [
+        {
+          "persona": "employee",
+          "status": 200,
+          "dossierDenied": true
+        },
+        {
+          "persona": "manager",
+          "status": 200,
+          "dossierDenied": true
+        }
+      ],
+      "testDossierClosed": true
+    },
+    {
+      "step": "soft-deadline-warning-remains-editable",
+      "status": "PASS",
+      "badgeVisible": true,
+      "employeeFormEnabled": true,
+      "screenshot": "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\employee-overdue-soft-deadline.png"
+    },
+    {
+      "step": "employee-self-draft-and-submit-ui",
+      "status": "PASS",
+      "draftRetainedInForm": true,
+      "submissionReadback": true
+    },
+    {
+      "step": "manager-private-note-ui",
+      "status": "PASS",
+      "employeeCannotRead": true
+    },
+    {
+      "step": "manager-document-upload-ui",
+      "status": "PASS"
+    },
+    {
+      "step": "manager-draft-and-submit-ui",
+      "status": "PASS",
+      "draftRetainedInForm": true,
+      "submissionReadback": true
+    },
+    {
+      "step": "employee-detail-conversations-tab",
+      "status": "PASS",
+      "talentPassportRequired": false,
+      "screenshots": [
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\employee-card-conversations-desktop.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\employee-card-conversations-mobile.png"
+      ]
+    },
+    {
+      "step": "employee-history-ui",
+      "status": "PASS",
+      "roundId": "b4f24acf-4b30-4b88-963d-977dbbaa72b8",
+      "dossierId": "311b7522-42fe-4e45-bdba-df2fe8332e2e"
+    },
+    {
+      "step": "manager-private-note-ui",
+      "status": "PASS",
+      "employeeCannotRead": true
+    },
+    {
+      "step": "manager-document-upload-ui",
+      "status": "PASS"
+    },
+    {
+      "step": "manager-rating-ui-required-fields",
+      "status": "PASS",
+      "submitEnabledAfterRequiredFields": true
+    },
+    {
+      "step": "employee-detail-conversations-tab",
+      "status": "PASS",
+      "talentPassportRequired": false,
+      "screenshots": [
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\employee-card-conversations-desktop.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\employee-card-conversations-mobile.png"
+      ]
+    },
+    {
+      "step": "manager-released-document-download",
+      "status": "PASS"
+    },
+    {
+      "step": "role-screenshots",
+      "status": "PASS",
+      "files": [
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\hr-admin-round-detail-desktop.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\hr-admin-round-detail-mobile.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\manager-dossier-desktop.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\manager-dossier-mobile.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\employee-dossier-desktop.png",
+        "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261125\\screenshots\\employee-dossier-mobile.png"
+      ]
+    },
+    {
+      "step": "employee-history-ui",
+      "status": "PASS",
+      "roundId": "7c1411e2-6f60-47b6-938e-d9a9bb8da6d7",
+      "dossierId": "d465acd6-2fe2-431e-83cf-12a3e1451737"
+    },
+    {
+      "step": "round-close-race-and-open-dossier-history",
+      "status": "PASS",
+      "closeResponses": [
+        200,
+        409
+      ],
+      "openDossierPhasePreserved": true
+    }
+  ]
+}
