@@ -39,6 +39,12 @@ describe('performance review service authorization and RPC contracts', () => {
     expect(rpc).toHaveBeenCalledWith('save_performance_review_manager', expect.objectContaining({ requested_dossier: 'dossier', expected_version: 3, submit_now: true }))
   })
 
+  it('returns rating validation failures as client errors', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'PERFORMANCE_RATING_REQUIRED' } })
+    await expect(saveManagerResponse('dossier', { version: 3, body: 'Reactie zonder volledige beoordeling' }, true))
+      .rejects.toMatchObject({ code: 'PERFORMANCE_RATING_REQUIRED', status: 400 })
+  })
+
   it('preserves the canonical authorization failure from permission resolution', async () => {
     requirePermission.mockRejectedValueOnce(new Error('denied'))
     await expect(createPerformanceReviewRound({ title: 'x', introduction: 'y', periodStart: '2026-01-01', periodEnd: '2026-12-31', startDate: '2026-11-22', rating: null })).rejects.toThrow('denied')

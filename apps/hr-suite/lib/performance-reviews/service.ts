@@ -37,7 +37,7 @@ type RoundInput = {
 function toError(error: { message?: string } | null, fallback: PerformanceReviewErrorCode): never {
   const message = error?.message ?? fallback
   const normalized = message.toLocaleUpperCase('en-US')
-  const status = normalized.includes('FORBIDDEN') || normalized.includes('NOT_AUTHORIZED') ? 403 : normalized.includes('NOT_FOUND') ? 404 : normalized.includes('CONFLICT') || normalized.includes('IMMUTABLE') ? 409 : 500
+  const status = normalized.includes('FORBIDDEN') || normalized.includes('NOT_AUTHORIZED') ? 403 : normalized.includes('NOT_FOUND') ? 404 : normalized.includes('CONFLICT') || normalized.includes('IMMUTABLE') ? 409 : /PERFORMANCE_RATING_(?:INVALID|NOT_ALLOWED|REQUIRED)/u.test(normalized) ? 400 : 500
   throw new PerformanceReviewError(normalized.match(/PERFORMANCE_[A-Z0-9_]+/)?.[0] ?? fallback, status)
 }
 
