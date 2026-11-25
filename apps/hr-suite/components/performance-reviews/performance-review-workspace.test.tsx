@@ -60,4 +60,49 @@ describe('PerformanceReviewWorkspace', () => {
     act(() => root.unmount())
     host.remove()
   })
+
+  it('shows manager attachments and exposes only released attachments to employees', async () => {
+    const attachmentRows = [
+      { id: 'attachment-private', original_filename: 'Managerconcept.pdf', content_type: 'application/pdf', file_size: 24, released_at: null },
+      { id: 'attachment-released', original_filename: 'Gespreksafspraken.pdf', content_type: 'application/pdf', file_size: 32, released_at: '2026-11-25T12:00:00.000Z' },
+    ]
+
+    async function renderForRole(role: 'manager' | 'employee') {
+      const dossierId = `dossier-${role}`
+      const summary = { id: dossierId, title: 'Ontwikkelgesprek 2026', employeeName: 'Noah Hendriks', employeeId: 'employee-1', phase: role === 'manager' ? 'WAITING_MANAGER' : 'WAITING_ACKNOWLEDGEMENT', roundStatus: 'ACTIVE', version: 1 }
+      vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url === `/api/performance-reviews?role=${role}`) return jsonResponse({ items: [summary] })
+        if (url === `/api/performance-reviews/dashboard?role=${role}`) return jsonResponse({ phaseCounts: {}, nextActions: [] })
+        if (url === `/api/performance-reviews/dossiers/${dossierId}`) return jsonResponse({
+          ...summary,
+          performance_review_rounds: { title: summary.title, status: 'ACTIVE' },
+          performance_review_submissions: [{ kind: 'MANAGER', body: 'We bespreken de voortgang.', submitted_at: '2026-11-25T12:00:00.000Z' }],
+          performance_review_attachments: attachmentRows,
+        })
+        if (url === `/api/performance-reviews/dossiers/${dossierId}/private-note`) return jsonResponse([])
+        if (url === '/api/continuous-appraisal?employeeId=employee-1') return jsonResponse({ items: [] })
+        return jsonResponse({})
+      }))
+      const host = document.createElement('div')
+      document.body.append(host)
+      const root = createRoot(host)
+      await act(async () => {
+        root.render(createElement(PerformanceReviewWorkspace, { role, summaries: [summary], labels }))
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      })
+      const text = host.textContent ?? ''
+      act(() => root.unmount())
+      host.remove()
+      return text
+    }
+
+    const managerText = await renderForRole('manager')
+    expect(managerText).toContain('Managerconcept.pdf')
+    expect(managerText).toContain('Gespreksafspraken.pdf')
+
+    const employeeText = await renderForRole('employee')
+    expect(employeeText).not.toContain('Managerconcept.pdf')
+    expect(employeeText).toContain('Gespreksafspraken.pdf')
+  })
 })
