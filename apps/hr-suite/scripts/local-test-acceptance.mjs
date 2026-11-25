@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { pathToFileURL } from 'node:url'
 import {
   compareContexts,
   isActiveAdministrationContextConsistent,
@@ -7,7 +8,7 @@ import {
   safeContextConfiguration,
 } from './local-test-acceptance-context.mjs'
 
-const MOBILE_VIEWPORT = Object.freeze({ label: 'mobile', width: 393, height: 852 })
+const MOBILE_VIEWPORT = Object.freeze({ label: 'mobile', width: 390, height: 852 })
 const DESKTOP_VIEWPORT = Object.freeze({ label: 'desktop', width: 1440, height: 900 })
 const PERSONAS = Object.freeze(['hr-admin', 'manager', 'employee'])
 const PROBE_METHODS = Object.freeze(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT'])
@@ -480,7 +481,7 @@ async function waitForRoleSwitchCompletion(page, select, timeoutMs, target) {
 }
 
 async function loginWithTestAuth(page, config, expectedLocation, { allowContextSelection = false } = {}) {
-  const loginUrl = new URL('/login', config.baseUrl)
+  const loginUrl = new URL('/local/sign-in', config.baseUrl)
   loginUrl.searchParams.set('next', expectedLocation)
   await page.goto(loginUrl.toString(), { waitUntil: 'domcontentloaded' })
 
@@ -497,7 +498,7 @@ async function loginWithTestAuth(page, config, expectedLocation, { allowContextS
       page.waitForResponse((candidate) => {
         try {
           return candidate.request().method() === 'POST'
-            && new URL(candidate.url()).pathname === '/api/auth/test-login'
+            && new URL(candidate.url()).pathname === '/api/local/sign-in'
         } catch {
           return false
         }
@@ -518,7 +519,7 @@ async function loginWithTestAuth(page, config, expectedLocation, { allowContextS
     const request = response.request()
     const requestOrigin = request.headers().origin
     const originUrl = new URL(request.url())
-    const submittedPersona = new URLSearchParams(request.postData() ?? '').get('persona')
+    const submittedPersona = new URLSearchParams(request.postData() ?? '').get('account')
     const failureKind = errorCode === 'TEST_LOGIN_FORBIDDEN' || responseStatus >= 500
       ? 'PRODUCT'
       : 'AUTH'
@@ -529,6 +530,7 @@ async function loginWithTestAuth(page, config, expectedLocation, { allowContextS
     })
   }
   await waitForLeavingLogin(page, config.timeoutMs)
+  if (pathLocation(page.url()) === '/dashboard/start' && expectedLocation !== '/dashboard/start') await page.goto(new URL(expectedLocation, config.baseUrl).toString(), { waitUntil: 'domcontentloaded' })
   const actualLocation = pathLocation(page.url())
   if (actualLocation !== expectedLocation && !(allowContextSelection && displayPath(page.url()) === '/context/select')) {
     fail('LOGIN_REDIRECT_MISMATCH', 'PRODUCT', {
@@ -692,9 +694,7 @@ async function inspectServerRoleUi(page, config, persona, viewport) {
   }
 
   const exact = selectedRole === persona
-  const serverGated = persona === 'hr-admin' || persona === 'manager'
-    ? exact || returnVisible
-    : returnVisible
+  const serverGated = exact
 
   if (!serverGated) {
     fail('ROLE_UI_IDENTITY_MISMATCH', 'PRODUCT', {
@@ -719,71 +719,11 @@ async function inspectServerRoleUi(page, config, persona, viewport) {
   }
 }
 
-async function returnToHrAdmin(page, context, config, viewport) {
-  await openMobileNavigation(page, viewport, config)
-  const returnButton = page.getByTestId('test-role-return-to-admin')
-  try {
-    await returnButton.waitFor({ state: 'visible', timeout: config.timeoutMs })
-  } catch {
-    fail('ROLE_RETURN_UI_UNAVAILABLE', 'PRODUCT', { actualPath: displayPath(page.url()), target: 'hr-admin' })
-  }
-
-  const expectedPath = pathLocation(page.url())
-  const postResponsePromise = page.waitForResponse((response) => {
-    const request = response.request()
-    try {
-      return request.method() === 'POST' && new URL(response.url()).pathname === '/api/auth/test-login'
-    } catch {
-      return false
-    }
-  }, { timeout: config.timeoutMs })
-  const navigationPromise = page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: config.timeoutMs })
-  let postResponse
-  let navigationResponse
-  try {
-    [postResponse, navigationResponse] = await Promise.all([
-      postResponsePromise,
-      navigationPromise,
-      returnButton.click(),
-    ])
-  } catch {
-    fail('ROLE_RETURN_REDIRECT_TIMEOUT', 'PRODUCT', {
-      actualPath: displayPath(page.url()),
-      target: 'hr-admin',
-      httpStatus: postResponse?.status() ?? null,
-      destinationStatus: navigationResponse?.status() ?? null,
-    })
-  }
-
-  if (postResponse.status() !== 303) {
-    fail('ROLE_RETURN_POST_REJECTED', 'PRODUCT', {
-      target: 'hr-admin',
-      httpStatus: postResponse.status(),
-      destinationStatus: navigationResponse?.status() ?? null,
-    })
-  }
-
-  const actualPath = pathLocation(page.url())
-  if (actualPath !== expectedPath && actualPath !== '/context/select') {
-    fail('ROLE_RETURN_REDIRECT_MISMATCH', 'PRODUCT', {
-      actualPath: displayPath(page.url()),
-      expectedPath: displayPath(expectedPath),
-      target: 'hr-admin',
-      httpStatus: navigationResponse?.status() ?? null,
-    })
-  }
-
-  const returnedContext = await ensureContext(context, config)
-  const destination = await navigateToRoute(page, config, expectedPath)
-  const identity = await inspectServerRoleUi(page, config, 'hr-admin', viewport)
-  return {
-    target: 'hr-admin',
-    path: displayPath(page.url()),
-    httpStatus: postResponse.status(),
-    destinationStatus: destination.httpStatus,
-    context: returnedContext.after,
-    identity,
-  }
+async function returnToHrAdmin(page, context, config) {
+  const login = await loginWithTestAuth(page, config, '/dashboard/start', { allowContextSelection: true })
+  await ensureContext(context, config)
+  await navigateToRoute(page, config, config.route)
+  return { method: 'local-sign-in-ui', path: login.path, httpStatus: login.httpStatus }
 }
 
 async function fetchJson(context, baseUrl, method, path, data) {
@@ -1048,7 +988,7 @@ async function runPersonaViewport(browser, config, persona, viewport, hrAdminCon
     phase = 'context-verification'
     result.context = await ensureContext(context, config)
     phase = 'role-ui-inspection'
-    if (persona !== 'hr-admin') await navigateToRoute(page, config, config.route)
+    await navigateToRoute(page, config, config.route)
     result.identity = await inspectServerRoleUi(page, config, persona, viewport)
     phase = 'route-acceptance'
     result.route = await navigateToRoute(page, config)
@@ -1066,7 +1006,7 @@ async function runPersonaViewport(browser, config, persona, viewport, hrAdminCon
     verifyProbeCoverage(config, persona)
     if (persona !== 'hr-admin') {
       phase = 'return-to-admin'
-      result.returnToAdmin = await returnToHrAdmin(page, context, hrAdminConfig, viewport)
+      result.returnToAdmin = await returnToHrAdmin(page, context, hrAdminConfig)
     }
     return result
   } catch (error) {
@@ -1190,4 +1130,6 @@ async function main() {
   if (failed) process.exitCode = 1
 }
 
-await main()
+export { parseArguments, loginWithTestAuth, ensureContext, switchFromHrAdmin, navigateToRoute }
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main()

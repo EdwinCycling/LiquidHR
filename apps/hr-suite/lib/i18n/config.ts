@@ -46,6 +46,7 @@ export const MESSAGE_NAMESPACES = [
   'payrollImport',
   'payroll',
   'payrollProfessional',
+  'performanceReviews',
 ] as const
 
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]

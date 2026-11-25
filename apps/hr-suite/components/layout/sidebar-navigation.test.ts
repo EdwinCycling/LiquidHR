@@ -70,6 +70,20 @@ describe('sidebar navigation contract', () => {
     ])
   })
 
+  it('separates manager and employee conversation navigation by permission', () => {
+    const manager = buildSidebarSections([
+      { href: '/workforce/conversations', visible: true },
+      { href: '/my-conversations', visible: false },
+    ], labels, [])
+    const employee = buildSidebarSections([
+      { href: '/workforce/conversations', visible: false },
+      { href: '/my-conversations', visible: true },
+    ], labels, [])
+
+    expect(manager.map((section) => section.items.map((item) => item.href))).toEqual([['/workforce/conversations']])
+    expect(employee.map((section) => section.items.map((item) => item.href))).toEqual([['/my-conversations']])
+  })
+
   it('does not put internal Payroll Lab routes in ordinary navigation', () => {
     const hidden = buildSidebarSections([
       { href: '/payroll-lab', visible: false },

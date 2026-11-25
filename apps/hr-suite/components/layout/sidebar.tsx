@@ -24,6 +24,7 @@ import {
   WalletCards,
   UserRound,
   Users,
+  MessageSquareText,
   X,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
@@ -60,6 +61,7 @@ interface SidebarLabels {
   hrCalendar: string
   insights: string
   workforce: string
+  conversations: string
   work: string
   research: string
   recruitment: string
@@ -94,6 +96,8 @@ interface SidebarProps {
   canReadEmployees: boolean
   canReadStartPage: boolean
   canReadWorkforce: boolean
+  canReadPerformanceReviewWorkspace: boolean
+  canReadMyConversations: boolean
   canReadProcessWork: boolean
   canReadOrganizationChart: boolean
   canReadSettings: boolean
@@ -133,6 +137,8 @@ export function Sidebar({
   canReadEmployees,
   canReadStartPage,
   canReadWorkforce,
+  canReadPerformanceReviewWorkspace,
+  canReadMyConversations,
   canReadProcessWork,
   canReadOrganizationChart,
   canReadSettings,
@@ -182,6 +188,8 @@ export function Sidebar({
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
     { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: canReadOrganizationChart },
     { href: '/workforce', label: labels.workforce, icon: BriefcaseBusiness, visible: canReadWorkforce },
+    { href: '/workforce/conversations', label: labels.conversations, icon: MessageSquareText, visible: canReadPerformanceReviewWorkspace },
+    { href: '/my-conversations', label: labels.conversations, icon: MessageSquareText, visible: canReadMyConversations },
     { href: recruitmentHref, label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
     { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys },
     { href: '/document-studio', label: labels.documentStudio, icon: FileStack, visible: canReadDocumentStudio },

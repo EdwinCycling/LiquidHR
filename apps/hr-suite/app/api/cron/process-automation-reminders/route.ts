@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { runScheduledProcessReminderJobs } from '@/lib/process-automation/workflow-job-service'
+import { runDuePerformanceReviewActivations } from '@/lib/performance-reviews/scheduled-activation-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,12 +13,14 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   try {
     const result = await runScheduledProcessReminderJobs()
+    const performanceReviews = await runDuePerformanceReviewActivations()
     return NextResponse.json({ data: {
       claimed: result.claimed,
       succeeded: result.succeeded,
       retried: result.retried,
       deadLettered: result.deadLettered,
       errorCodes: result.errors,
+      performanceReviewsActivated: performanceReviews.activated,
     } })
   } catch {
     return NextResponse.json({ code: 'PROCESS_REMINDER_SCHEDULER_FAILED' }, { status: 500 })

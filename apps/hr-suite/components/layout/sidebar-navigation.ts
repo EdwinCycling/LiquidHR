@@ -11,11 +11,11 @@ const RECRUITMENT_OVERVIEW_PERMISSIONS = [
 
 export const SIDEBAR_SECTION_DEFINITIONS: readonly { id: SidebarSectionId; hrefs: readonly string[] }[] = [
   { id: 'daily', hrefs: ['/dashboard/start', '/work', '/hr-calendar'] },
-  { id: 'peopleOrganization', hrefs: ['/employees', '/organization-chart', '/workforce'] },
+  { id: 'peopleOrganization', hrefs: ['/employees', '/organization-chart', '/workforce', '/workforce/conversations'] },
   { id: 'hrProcesses', hrefs: ['/recruitment', '/recruitment/assigned', '/journeys', '/research'] },
   { id: 'steering', hrefs: ['/insights'] },
   { id: 'payroll', hrefs: ['/payroll', '/payroll/runs', '/payroll/corrections', '/payroll/compare', '/payroll/arrangements', '/payroll/settings', '/payroll/employees', '/payroll/differences'] },
-  { id: 'selfService', hrefs: ['/my-salary'] },
+  { id: 'selfService', hrefs: ['/my-salary', '/my-conversations'] },
   { id: 'management', hrefs: ['/settings', '/document-studio'] },
 ]
 

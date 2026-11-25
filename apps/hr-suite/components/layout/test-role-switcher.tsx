@@ -64,7 +64,7 @@ export function TestRoleSwitcher({ collapsed = false, currentEmail, labels, opti
   }, [open])
 
   return (
-    <div className="relative">
+    <div className="relative" data-testid="test-role-current-persona" data-persona={currentOption?.key}>
       <IconButton
         aria-controls={open ? 'test-role-switch-popover' : undefined}
         aria-expanded={open}

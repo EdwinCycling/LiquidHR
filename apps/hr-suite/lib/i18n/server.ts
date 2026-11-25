@@ -82,6 +82,8 @@ import payrollNl from '@/messages/nl/payroll.json'
 import payrollEn from '@/messages/en/payroll.json'
 import payrollProfessionalNl from '@/messages/nl/payrollProfessional.json'
 import payrollProfessionalEn from '@/messages/en/payrollProfessional.json'
+import performanceReviewsNl from '@/messages/nl/performanceReviews.json'
+import performanceReviewsEn from '@/messages/en/performanceReviews.json'
 import { getUserPreferences } from '@/lib/preferences/server'
 import {
   type Locale,
@@ -132,6 +134,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     payrollImport: payrollImportNl,
     payroll: payrollNl,
     payrollProfessional: payrollProfessionalNl,
+    performanceReviews: performanceReviewsNl,
   },
   en: {
     auth: authEn,
@@ -175,6 +178,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     payrollImport: payrollImportEn,
     payroll: payrollEn,
     payrollProfessional: payrollProfessionalEn,
+    performanceReviews: performanceReviewsEn,
   },
 }
 

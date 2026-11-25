@@ -55,6 +55,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     authContext.employeeId !== null
     && (authContext.permissions.includes('self:continuous-appraisal:read') || authContext.permissions.includes('self:talent:read'))
   )
+  const canReadPerformanceReviewWorkspace = authContext.permissions.some((permission) => ['performance-review:manage', 'performance-review:read', 'performance-review:team-read'].includes(permission))
+  const canReadMyConversations = authContext.employeeId !== null && authContext.permissions.includes('self:performance-review:read')
   const canReadProcessWork = authContext.permissions.includes('process-task:read')
     || authContext.permissions.includes('self:process-task:read')
     || authContext.permissions.includes('process-instance:read')
@@ -165,6 +167,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadEmployees={canReadEmployees}
         canReadStartPage={canReadStartPage}
         canReadWorkforce={canReadWorkforce}
+        canReadPerformanceReviewWorkspace={canReadPerformanceReviewWorkspace}
+        canReadMyConversations={canReadMyConversations}
         canReadProcessWork={canReadProcessWork}
         canReadOrganizationChart={canReadOrganizationChart}
         canReadSettings={canReadSettings}
@@ -191,6 +195,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           hrCalendar: navigation('hrCalendar'),
           insights: navigation('insights'),
           workforce: navigation('workforce'),
+          conversations: navigation('conversations'),
           work: navigation('work'),
           research: navigation('research'),
           recruitment: navigation('recruitment'),

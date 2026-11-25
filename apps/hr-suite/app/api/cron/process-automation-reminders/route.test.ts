@@ -5,12 +5,14 @@ const mocks = vi.hoisted(() => ({
   createAdminRpcClient: vi.fn(),
   createClient: vi.fn(),
   requireAuthContext: vi.fn(),
+  runDuePerformanceReviewActivations: vi.fn(),
   rpc: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/admin', () => ({ createAdminRpcClient: mocks.createAdminRpcClient }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }))
 vi.mock('@/lib/auth/permissions', () => ({ requireAuthContext: mocks.requireAuthContext }))
+vi.mock('@/lib/performance-reviews/scheduled-activation-service', () => ({ runDuePerformanceReviewActivations: mocks.runDuePerformanceReviewActivations }))
 vi.mock('server-only', () => ({}))
 
 import { GET } from './route'
@@ -42,6 +44,7 @@ beforeEach(() => {
   mocks.createClient.mockReset()
   mocks.requireAuthContext.mockReset()
   mocks.createAdminRpcClient.mockReset().mockReturnValue({ rpc: mocks.rpc })
+  mocks.runDuePerformanceReviewActivations.mockReset().mockResolvedValue({ activated: 2 })
 })
 
 afterEach(() => vi.unstubAllEnvs())
@@ -57,6 +60,7 @@ describe('process automation reminder scheduler route', () => {
     expect(response.status).toBe(503)
     expect(await response.json()).toEqual({ code: 'CRON_UNAVAILABLE' })
     expect(mocks.createAdminRpcClient).not.toHaveBeenCalled()
+    expect(mocks.runDuePerformanceReviewActivations).not.toHaveBeenCalled()
   })
 
   it('rejects requests without the configured scheduler bearer', async () => {
@@ -68,6 +72,7 @@ describe('process automation reminder scheduler route', () => {
     }))
     expect(wrongSecretResponse.status).toBe(401)
     expect(mocks.createAdminRpcClient).not.toHaveBeenCalled()
+    expect(mocks.runDuePerformanceReviewActivations).not.toHaveBeenCalled()
   })
 
   it('uses the actual scheduled worker without a human session and drains the claimed reminder job', async () => {
@@ -89,8 +94,9 @@ describe('process automation reminder scheduler route', () => {
 
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ data: {
-      claimed: 1, succeeded: 1, retried: 0, deadLettered: 0, errorCodes: [],
+      claimed: 1, succeeded: 1, retried: 0, deadLettered: 0, errorCodes: [], performanceReviewsActivated: 2,
     } })
+    expect(mocks.runDuePerformanceReviewActivations).toHaveBeenCalledTimes(1)
     expect(mocks.createAdminRpcClient).toHaveBeenCalledTimes(1)
     expect(mocks.requireAuthContext).not.toHaveBeenCalled()
     expect(mocks.rpc.mock.calls.map(([name]) => name)).toEqual([

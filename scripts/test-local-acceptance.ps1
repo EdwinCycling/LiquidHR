@@ -237,7 +237,7 @@ try {
     $statusText = Invoke-GitText -RepositoryPath $gitRoot -Arguments @('status', '--porcelain', '--untracked-files=all')
     $statusLines = @($statusText -split '\r?\n' | Where-Object { $_.Length -gt 0 })
 
-    $launcher = Join-Path $gitRoot 'scripts/start-test-worktree.ps1'
+    $launcher = Join-Path $gitRoot 'scripts/start-test-acceptance-runtime.ps1'
     $browserRunner = Join-Path $gitRoot 'apps/hr-suite/scripts/local-test-acceptance.mjs'
     if (-not (Test-Path -LiteralPath $launcher -PathType Leaf) -or
         -not (Test-Path -LiteralPath $browserRunner -PathType Leaf)) {
@@ -283,8 +283,7 @@ try {
         $runtimeLines = @(& $launcher -Mode Development -TestRunner -ReadyTimeoutSeconds $ReadyTimeoutSeconds 2>&1 6>$null)
         $runtimeInvocationFailed = $LASTEXITCODE -ne 0
     } catch {
-        $runtimeLines = @($_.Exception.Message)
-        $runtimeInvocationFailed = $true
+        throw
     }
     if ($runtimeInvocationFailed) {
         $failure = Get-LauncherFailure -Output @($runtimeLines | ForEach-Object { [string]$_ })
