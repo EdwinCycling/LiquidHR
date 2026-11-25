@@ -86,6 +86,7 @@ describe('voorlopige databasegrens', () => {
       await db.exec(readFileSync('supabase/migrations/20261123214500_performance_review_draft_status.sql', 'utf8'))
       await db.exec(readFileSync('supabase/migrations/20261125133606_performance_review_draft_update.sql', 'utf8'))
       await db.exec(readFileSync('supabase/migrations/20261125150432_performance_review_scheduled_activation.sql', 'utf8'))
+      await db.exec(readFileSync('supabase/migrations/20261125201505_performance_review_close_conflict.sql', 'utf8'))
       const result = await db.query<{ relname: string; relrowsecurity: boolean; readable: boolean }>(`
         select c.relname, c.relrowsecurity, has_table_privilege('authenticated', c.oid, 'SELECT') as readable
         from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -300,9 +301,12 @@ describe('voorlopige databasegrens', () => {
       await expect(db.query(`select * from public.create_performance_review_round($1, 'Onbevoegd', 'Geen', '2026-01-01', '2026-12-31', '2000-01-01', null, null::jsonb)`, [group])).rejects.toThrow(/PERFORMANCE_FORBIDDEN/)
       await db.query("select set_config('test.hr', 'true', false)")
       await expect(db.query(`select * from public.add_performance_review_dossier($1, $2, $3, $4)`, [activeRound?.id, otherEmployee, reviewer, admin])).rejects.toThrow(/PERFORMANCE_SCOPE_INVALID/)
+      await db.query("select set_config('test.hr', 'false', false)")
+      await expect(db.query(`select * from public.close_performance_review_round($1, 'Onbevoegd sluiten', $2)`, [activeRound?.id, activeRound?.version])).rejects.toThrow(/PERFORMANCE_FORBIDDEN/)
+      await db.query("select set_config('test.hr', 'true', false)")
       const closed = await db.query<{ version: number }>(`select * from public.close_performance_review_round($1, 'Testsluiting na akkoord', $2)`, [activeRound?.id, activeRound?.version])
       expect(closed.rows[0]?.version).toBe(3)
-      await expect(db.query(`select * from public.close_performance_review_round($1, 'Dubbele sluiting', $2)`, [activeRound?.id, activeRound?.version])).rejects.toThrow(/PERFORMANCE_CLOSE_FORBIDDEN_OR_CONFLICT/)
+      await expect(db.query(`select * from public.close_performance_review_round($1, 'Dubbele sluiting', $2)`, [activeRound?.id, activeRound?.version])).rejects.toThrow(/PERFORMANCE_ROUND_CONFLICT/)
       const cancelCandidate = await db.query<{ id: string; version: number }>(`select * from public.create_performance_review_round($1, 'Annuleren 2026', 'Administratieve test', '2026-01-01', '2026-12-31', '2000-01-01', null, null::jsonb)`, [group])
       const cancelPublished = await db.query<{ id: string; version: number }>(`select * from public.publish_performance_review_round($1, $2)`, [cancelCandidate.rows[0]?.id, cancelCandidate.rows[0]?.version])
       const cancelled = await db.query<{ version: number }>(`select * from public.cancel_performance_review_round($1, 'Test annulering', $2)`, [cancelPublished.rows[0]?.id, cancelPublished.rows[0]?.version])
