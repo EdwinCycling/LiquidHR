@@ -1,12 +1,13 @@
 # AA-CURRENT — Current LiquidHR State
 
-## PERF-MVP-01 technische closeout — 26-11-2026
+## PERF-MVP-01 GitHub-integratie — 26-11-2026
 
-- Geteste lokale featurekandidaat: `a965c18ee131a43938d8886abac38a4720ca349b` op `work/perf-mvp-01-20261122`. De volledige relevante Vitest-suite, TypeScript, ESLint, NL/EN i18n en geïsoleerde production-build zijn geslaagd; ESLint meldt 9 bestaande waarschuwingen en 0 fouten.
-- De acceptatiematrix staat op **31 PASS, 1 NOT_RUN, 2 BLOCKED, 0 FAIL**. A30 is PASS op gecombineerd bewijs: bestaande desktop/390px-, axe- en statuschecks; NL keyboardroute voor drie rollen; en Engelse browserkoppen, toetsenbordroute en teruggezette voorkeur voor HR Admin, Manager en Employee op kandidaat-SHA. A13, A26 en A27 blijven OPEN; dit is geen volledige securityacceptatie of productiegeschiktheid.
-- Integratie naar GitHub `main` is **niet uitgevoerd**. GitHub `main` is read-only bevestigd op `b2dd65090acb6a371cf6597fe3fade8b68a61bdb`. Vercel-projectinstellingen erven Deployment Sources van het team; de effectieve teaminstelling kon niet worden geverifieerd en webhookreadback gaf 403. Daarom geen push of merge. Geen Vercel-release of remote databasewrite.
-- Read-only PMUX-readback: 8 `PROCESS_REMINDER:READY`-jobs bij 2 `CANCELLED` procesinstanties, 0 `RUNNING` en 0 afleveringen; een derde eerder geregistreerde proces-ID ontbreekt nu. Geen queue-cleanup uitgevoerd. De bestaande reminderfunctie slaat niet-lopende processen en niet-actieve taken over.
-- Detail, A01–A34-matrix en bronverwijzingen: [PERF-MVP-01 technische closeout](../quality/acceptance/runs/PERF-MVP-01-TECH-CLOSEOUT-20261126-a965c18.md). Nieuwe A30-screenshots staan in de map `PERF-MVP-01-20261126/screenshots/`.
+- De geteste MVP-codekandidaat `a965c18ee131a43938d8886abac38a4720ca349b` is via een gewone fast-forwardpush geïntegreerd in GitHub `main`. De integratiecommit was `68493eb20e2b6ab9109edcf4f922cf34b686280a`; de exacte huidige `main`-SHA staat in het [integratierapport](../quality/acceptance/runs/PERF-MVP-01-GITHUB-INTEGRATION-20261126.md).
+- Vercel-project `liquidhr` gebruikt Root Directory `apps/hr-suite`. De featurebranchconfiguratie `apps/hr-suite/vercel.json` is gelijk aan `main` en bevat `git.deploymentEnabled: false`; daardoor is de file-based Git-deploymentbeveiliging op de effectieve project-root van toepassing. Na de push bleven de bestaande READY-deployment en drie aliassen ongewijzigd; geen Vercel-release gestart.
+- Acceptatiematrix: **31 PASS, 1 NOT_RUN, 2 BLOCKED, 0 FAIL**. A30 PASS; A13, A26 en A27 blijven OPEN voor latere handmatige/securityacceptatie. Geen volledige securityacceptatie of productiegeschiktheidsclaim.
+- De bestaande relevante Vitest-suite (4.302 PASS plus 2 aparte kalendercontracttests), TypeScript, i18n en geïsoleerde production-build waren groen op de kandidaat vóór integratie; deze tests zijn zonder codewijziging niet herhaald. ESLint: 0 fouten en 9 bestaande waarschuwingen.
+- Geen remote SQL/datawrite, nieuwe fixtures of Vercel-release. Bestaande dirty bestanden in lokale worktrees zijn niet meegenomen.
+- Bewijs: [GitHub-integratierapport](../quality/acceptance/runs/PERF-MVP-01-GITHUB-INTEGRATION-20261126.md) en [technische acceptatiecloseout](../quality/acceptance/runs/PERF-MVP-01-TECH-CLOSEOUT-20261126-a965c18.md).
 
 > 21-11-2026 — De geconsolideerde operationele TEST-baseline is door Edwin geaccepteerd en de consolidatie is COMPLETE. De release blijft LIMITED TEST; gehoste functionele personaacceptatie blijft PARTIAL. De app draait op het vaste TEST-domein met versie 1.20261120.1. Deze status vervangt oudere actuele koppen in historische documentatie.
 
@@ -16,7 +17,7 @@
 - Vercel-project: liquidhr; het technische target production is hier de synthetische TEST-runtime.
 - TEST-URL: https://liquid-hr-hr-suite.vercel.app
 - Appversie: 1.20261120.1; deze releaseversie is eenmaal verhoogd.
-- Bij de release-readback op 20-11-2026 waren lokale main, GitHub main, Vercel platformSourceSha en runtime sourceSha exact gelijk aan `3b76be2c614d4e1abbac5f7289925ef8d75eddbd`. De huidige closeout wijzigt alleen bestaande documentatie; de actieve applicatiebron blijft die geaccepteerde code-SHA.
+- Bij de release-readback op 20-11-2026 waren lokale main, GitHub main, Vercel platformSourceSha en runtime sourceSha exact gelijk aan `3b76be2c614d4e1abbac5f7289925ef8d75eddbd`. Op 26-11 is de MVP-code in GitHub main geïntegreerd; de actieve Vercel-applicatiebron bleef `3b76be2c614d4e1abbac5f7289925ef8d75eddbd` omdat geen deployment is uitgevoerd.
 - Cloudbuildstatus READY; runtime-provenance en aliasreadback bevestigden de bedoelde project- en database-identiteit. Automatische Git-deploys bleven uitgeschakeld.
 
 ## Releasebesluit en acceptatie
