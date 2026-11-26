@@ -16,7 +16,10 @@
     "testSupabaseProject": "wnpfloqpjvaacobppbpk",
     "personas": ["hr-admin", "manager", "employee"],
     "personaAuth": "existing local role-switcher; no auth account or permission changes",
-    "remoteWrites": false,
+    "remoteSqlWrites": false,
+    "syntheticAppApiWrites": "Approved TEST rounds, dossiers, private note, and attachment fixtures were created through normal app APIs and retained.",
+    "authAccountWrites": false,
+    "permissionChanges": false,
     "serviceRoleUsedForAuthorizationProof": false
   },
   "evidence": {
