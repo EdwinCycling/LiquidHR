@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "runDate": "2026-11-26",
+  "candidateCodeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+  "previousAcceptedCodeSha": "07444df5dc163dbf070f6b3115fa49282ab70463",
+  "decision": "NO-GO",
+  "criteriaCounts": {
+    "PASS": 30,
+    "NOT_RUN": 2,
+    "BLOCKED": 2,
+    "FAIL": 0,
+    "NOT_IMPLEMENTED": 0
+  },
+  "environment": {
+    "localWorktree": "C:/Users/Edwin/.codex/worktrees/perf-mvp-01/LiquidHR",
+    "testSupabaseProject": "wnpfloqpjvaacobppbpk",
+    "personas": ["hr-admin", "manager", "employee"],
+    "personaAuth": "existing local role-switcher; no auth account or permission changes",
+    "remoteWrites": false,
+    "serviceRoleUsedForAuthorizationProof": false
+  },
+  "evidence": {
+    "priorFinalReport": {
+      "path": "PERF-MVP-01-FINAL-20261125-07444df5.md",
+      "codeSha": "07444df5dc163dbf070f6b3115fa49282ab70463",
+      "reusedFor": "unaffected A01-A12, A15-A18, A20-A22, A24, A28, A31-A33"
+    },
+    "currentPersonaCloseout": {
+      "path": "PERF-MVP-01-20261126/persona-browser-final-closeout-c3d5fa8e.json",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "covered": ["A13 same-dossier Storage/mutations", "A14", "A19", "A23", "A25", "A32"]
+    },
+    "uiAttempt": {
+      "path": "PERF-MVP-01-20261126/persona-browser-ui-closeout-c3d5fa8e-final.json",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "status": "INCONCLUSIVE",
+      "resultCode": "LOCALE_SAVE_READBACK_MISMATCH_EN",
+      "recordedResults": 0,
+      "interpretation": "Do not count the English readback as PASS or assert a product defect without reliable reproduction."
+    }
+  },
+  "criteria": {
+    "A13": {
+      "status": "BLOCKED",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "sameDossierStorage": {
+        "managerDirectStorageGet": 200,
+        "employeeDirectStorageGet": 400,
+        "employeeUpload": 403,
+        "employeeDelete": 403,
+        "employeeAttachmentApiRead": 404,
+        "unreleasedAttachmentDenied": true
+      },
+      "missingFixture": "A second existing employee-owned dossier attachment and an already authorized Employee session for the owner; no new Auth account."
+    },
+    "A14": {
+      "status": "PASS",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "employeeCanaryAbsentFrom": ["dossier API", "Continuous Appraisal API", "history API", "general Documents API", "self-export response"],
+      "privateNoteEndpointEmployeeStatus": 403
+    },
+    "A19": {
+      "status": "PASS",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "testedOpenPhases": ["WAITING_EMPLOYEE", "WAITING_MANAGER", "WAITING_ACKNOWLEDGEMENT"],
+      "historyStatus": "CLOSED_OPEN",
+      "historyPhasePreserved": true,
+      "readOnlyTestDatabaseCounts": {
+        "processInstancesCancelled": 3,
+        "workItemsCancelled": 3,
+        "workItemsCompleted": 3,
+        "reminderDeliveries": 0,
+        "readyProcessReminderJobsRemain": 12
+      },
+      "guardBehavior": "Reminder function skips instances not RUNNING, inactive/completed steps, and non-open/non-claimed work items; contract tests cover skip behavior. Queue rows themselves were not cancelled."
+    },
+    "A23": {
+      "status": "PASS",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "authorTimestamps": true,
+      "finalContent": true,
+      "releasedAttachments": 2,
+      "agreementAndDisagreement": true,
+      "prematureCloseHistory": true,
+      "regression": "Acknowledgement PostgREST relation may be object or array; history completedAt now handles both."
+    },
+    "A25": {
+      "status": "PASS",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "employeeCanaryAbsentFrom": ["Continuous Appraisal", "general Documents", "dossier", "history", "self-export"]
+    },
+    "A26": {
+      "status": "NOT_RUN",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "completedWithExistingPersonas": ["cross-employee", "cross-team", "cross-HR-group", "same-dossier Storage mutation/read denials"],
+      "contractCoverage": "PGlite role/scope contracts; not a live cross-tenant persona substitute.",
+      "missingFixture": "One already authorized identity in a second tenant and an existing object in that tenant for a cross-tenant denial probe."
+    },
+    "A27": {
+      "status": "BLOCKED",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "existingManagerDirectReports": 6,
+      "managedEmployeesWithActiveDeputy": 0,
+      "missingFixture": "One existing employee with an active manager/deputy relation and two already authorized Manager identities reachable through the role switcher."
+    },
+    "A29": {
+      "status": "PASS",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "logWindowUtc": ["2026-11-26T07:00:00Z", "2026-11-26T08:51:28Z"],
+      "logSources": {
+        "auth_audit_logs": {"entries": 72, "canaryHits": 0},
+        "auth_logs": {"entries": 271, "canaryHits": 0},
+        "edge_logs": {"entries": 18598, "canaryHits": 0},
+        "pgbouncer_logs": {"entries": 292, "canaryHits": 0},
+        "postgres_logs": {"entries": 56, "canaryHits": 0},
+        "postgrest_logs": {"entries": 10, "canaryHits": 0},
+        "storage_logs": {"entries": 197, "canaryHits": 0}
+      },
+      "auditNoteBodyProjected": false,
+      "notificationAndAiSourceReview": "No review private-note projection found in the inspected notification/export/AI paths; no external AI request was made."
+    },
+    "A30": {
+      "status": "NOT_RUN",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "reusedPriorEvidence": {
+        "codeSha": "07444df5dc163dbf070f6b3115fa49282ab70463",
+        "responsive390px": true,
+        "axeScans": 6,
+        "axeViolations": 0,
+        "conflictStatusCoverage": [403, 404, 409]
+      },
+      "currentAttempt": {
+        "hrAdminKeyboardReachedConversationRoute": true,
+        "hrAdminDutchHeading": true,
+        "englishReadback": "LOCALE_SAVE_READBACK_MISMATCH_EN",
+        "fullNlEnKeyboardMatrix": false
+      }
+    }
+  },
+  "targetedChecksOnCandidate": [
+    {"command": "npm.cmd exec -- vitest run lib/performance-reviews/service.test.ts supabase/migrations/20261023083349_pmux06b_process_reminders_escalations.contract.test.ts", "status": "PASS", "files": 2, "tests": 13},
+    {"command": "npm.cmd run type-check", "status": "PASS"},
+    {"command": "npm.cmd exec -- eslint lib/performance-reviews/service.ts lib/performance-reviews/service.test.ts scripts/performance-review-final-closeout.mjs", "status": "PASS"}
+  ],
+  "protectedState": {
+    "nextEnvSha256": "B8B3A344484B959AF5E4E3FC1A1609DAC3CB9ECE0CDEB6C145BE29BC4C491000",
+    "nextEnvRestored": true,
+    "pushMergeOrRelease": false,
+    "newAccountsTenantsOrRights": false
+  },
+  "integrationAdvice": "NO-GO",
+  "requiredRemainingEvidence": [
+    "A13: existing second employee-owned attachment and authorized Employee actor",
+    "A26: existing authorized second-tenant persona and existing target object",
+    "A27: existing active deputy relation and second authorized Manager identity",
+    "A30: reliable complete NL/EN and keyboard browser run on candidate SHA"
+  ]
+}
