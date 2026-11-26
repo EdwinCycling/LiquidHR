@@ -361,7 +361,7 @@ export async function listPerformanceReviewHistory(employeeId: string) {
     phase: string
     performance_review_rounds: { title: string; due_date: string | null; period_start: string; period_end: string; status: string } | null
     performance_review_submissions: Array<{ kind: string; score: number | null; submitted_at: string | null }> | null
-    performance_review_acknowledgements: Array<{ decision: string; created_at: string }> | null
+    performance_review_acknowledgements: { decision: string; created_at: string } | Array<{ decision: string; created_at: string }> | null
   }>
   const employeeIds = Array.from(new Set(rows.map((row) => row.reviewer_employee_id)))
   const { data: employees, error: employeesError } = employeeIds.length
@@ -371,7 +371,9 @@ export async function listPerformanceReviewHistory(employeeId: string) {
   const reviewerNames = new Map(((employees ?? []) as unknown as Array<{ id: string; first_name: string; birth_name: string; employee_number: string }>).map((item) => [item.id, [item.first_name, item.birth_name].filter(Boolean).join(' ') || item.employee_number]))
   return rows.map((row) => {
     const managerSubmission = row.performance_review_submissions?.find((submission) => submission.kind === 'MANAGER' && submission.submitted_at !== null)
-    const acknowledgement = row.performance_review_acknowledgements?.[0]
+    const acknowledgement = Array.isArray(row.performance_review_acknowledgements)
+      ? row.performance_review_acknowledgements[0]
+      : row.performance_review_acknowledgements
     return {
       id: row.id,
       title: row.performance_review_rounds?.title ?? 'Performance review',

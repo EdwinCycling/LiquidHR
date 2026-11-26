@@ -108,6 +108,9 @@ try {
   const hrWizardPage = pages.get('hr-admin')
   await hrWizardPage.goto(new URL('/workforce/conversations/new', config.baseUrl).toString())
   await waitForUi(hrWizardPage.getByRole('heading', { name: 'Nieuwe gespreksronde', exact: true }), 'HR_WIZARD_SCREEN_TIMEOUT', config.timeoutMs)
+  await hrWizardPage.waitForLoadState('networkidle')
+  await hrWizardPage.getByRole('button', { name: 'Volgende stap', exact: true }).click()
+  await hrWizardPage.waitForFunction(() => [...document.querySelectorAll('[role="status"]')].some((element) => Boolean(element.textContent?.trim())), undefined, { timeout: Math.min(config.timeoutMs, 5000) })
   const wizardTitle = `Ontwikkelcyclus proef 2026 · ${runLabel}`
   await fillWizardField(hrWizardPage, 'Titel', wizardTitle, 'HR_WIZARD_TITLE_FIELD_UNAVAILABLE')
   await fillWizardField(hrWizardPage, 'Aanhef en uitleg', 'Een rustige terugblik op resultaten, samenwerking en passende ontwikkeling voor het komende jaar.', 'HR_WIZARD_INTRODUCTION_FIELD_UNAVAILABLE')

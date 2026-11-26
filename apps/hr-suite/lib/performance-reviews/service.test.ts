@@ -10,7 +10,7 @@ vi.mock('@/lib/auth/permissions', () => ({
   requireAnyPermission,
 }))
 
-import { createPerformanceReviewRound, saveManagerResponse, saveSelfReflection, updatePerformanceReviewRound } from './service'
+import { createPerformanceReviewRound, listPerformanceReviewHistory, saveManagerResponse, saveSelfReflection, updatePerformanceReviewRound } from './service'
 
 describe('performance review service authorization and RPC contracts', () => {
   beforeEach(() => {
@@ -55,5 +55,42 @@ describe('performance review service authorization and RPC contracts', () => {
     requirePermission.mockRejectedValueOnce(Object.assign(new Error('Je bent niet ingelogd.'), { status: 401 }))
     await expect(createPerformanceReviewRound({ title: 'x', introduction: 'y', periodStart: '2026-01-01', periodEnd: '2026-12-31', startDate: '2026-11-22', rating: null })).rejects.toMatchObject({ status: 401 })
     expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('includes the acknowledgement timestamp from a one-to-one PostgREST relation in employee history', async () => {
+    const acknowledgementTime = '2026-11-26T07:29:44.959Z'
+    const makeQuery = (data: unknown) => {
+      const query = {
+        select: vi.fn(),
+        eq: vi.fn(),
+        order: vi.fn(),
+        in: vi.fn(),
+        then: (onFulfilled: (value: { data: unknown; error: null }) => unknown, onRejected?: (reason: unknown) => unknown) =>
+          Promise.resolve({ data, error: null }).then(onFulfilled, onRejected),
+      }
+      query.select.mockReturnValue(query)
+      query.eq.mockReturnValue(query)
+      query.order.mockReturnValue(query)
+      query.in.mockReturnValue(query)
+      return query
+    }
+    from.mockImplementation((table: string) => {
+      if (table === 'performance_review_dossiers') return makeQuery([{
+        id: 'dossier',
+        employee_id: 'employee',
+        reviewer_employee_id: 'reviewer',
+        phase: 'COMPLETED_AGREED',
+        performance_review_rounds: { title: 'Jaarlijks gesprek', due_date: '2026-12-18', period_start: '2026-01-01', period_end: '2026-12-31', status: 'ACTIVE' },
+        performance_review_submissions: [{ kind: 'MANAGER', score: null, submitted_at: '2026-11-26T07:20:00.000Z' }],
+        performance_review_acknowledgements: { decision: 'AGREE', created_at: acknowledgementTime },
+      }])
+      return makeQuery([{ id: 'reviewer', first_name: 'Test', birth_name: 'Manager', employee_number: 'TEST-001' }])
+    })
+
+    await expect(listPerformanceReviewHistory('employee')).resolves.toEqual([expect.objectContaining({
+      id: 'dossier',
+      phase: 'COMPLETED_AGREED',
+      completedAt: acknowledgementTime,
+    })])
   })
 })
