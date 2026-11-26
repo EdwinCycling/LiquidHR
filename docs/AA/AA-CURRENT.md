@@ -1,5 +1,13 @@
 # AA-CURRENT — Current LiquidHR State
 
+## PERF-MVP-01 technische closeout — 26-11-2026
+
+- Geteste lokale featurekandidaat: `a965c18ee131a43938d8886abac38a4720ca349b` op `work/perf-mvp-01-20261122`. De volledige relevante Vitest-suite, TypeScript, ESLint, NL/EN i18n en geïsoleerde production-build zijn geslaagd; ESLint meldt 9 bestaande waarschuwingen en 0 fouten.
+- De acceptatiematrix staat op **31 PASS, 1 NOT_RUN, 2 BLOCKED, 0 FAIL**. A30 is PASS op gecombineerd bewijs: bestaande desktop/390px-, axe- en statuschecks; NL keyboardroute voor drie rollen; en Engelse browserkoppen, toetsenbordroute en teruggezette voorkeur voor HR Admin, Manager en Employee op kandidaat-SHA. A13, A26 en A27 blijven OPEN; dit is geen volledige securityacceptatie of productiegeschiktheid.
+- Integratie naar GitHub `main` is **niet uitgevoerd**. GitHub `main` is read-only bevestigd op `b2dd65090acb6a371cf6597fe3fade8b68a61bdb`. Vercel-projectinstellingen erven Deployment Sources van het team; de effectieve teaminstelling kon niet worden geverifieerd en webhookreadback gaf 403. Daarom geen push of merge. Geen Vercel-release of remote databasewrite.
+- Read-only PMUX-readback: 8 `PROCESS_REMINDER:READY`-jobs bij 2 `CANCELLED` procesinstanties, 0 `RUNNING` en 0 afleveringen; een derde eerder geregistreerde proces-ID ontbreekt nu. Geen queue-cleanup uitgevoerd. De bestaande reminderfunctie slaat niet-lopende processen en niet-actieve taken over.
+- Detail, A01–A34-matrix en bronverwijzingen: [PERF-MVP-01 technische closeout](../quality/acceptance/runs/PERF-MVP-01-TECH-CLOSEOUT-20261126-a965c18.md). Nieuwe A30-screenshots staan in de map `PERF-MVP-01-20261126/screenshots/`.
+
 > 21-11-2026 — De geconsolideerde operationele TEST-baseline is door Edwin geaccepteerd en de consolidatie is COMPLETE. De release blijft LIMITED TEST; gehoste functionele personaacceptatie blijft PARTIAL. De app draait op het vaste TEST-domein met versie 1.20261120.1. Deze status vervangt oudere actuele koppen in historische documentatie.
 
 ## Canonieke release

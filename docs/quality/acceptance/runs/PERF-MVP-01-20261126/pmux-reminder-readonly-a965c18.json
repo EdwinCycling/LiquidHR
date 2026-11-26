@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "observedOn": "2026-11-26",
+  "candidateCodeSha": "a965c18ee131a43938d8886abac38a4720ca349b",
+  "environment": {
+    "mode": "read-only Supabase TEST query",
+    "projectRef": "wnpfloqpjvaacobppbpk",
+    "writes": false,
+    "queueCleanup": false
+  },
+  "previousReportedReadyJobs": 12,
+  "currentReadback": {
+    "readyProcessReminderJobs": 8,
+    "runningProcessReminderJobs": 0,
+    "reminderDeliveries": 0,
+    "processInstances": [
+      {
+        "id": "74185a63-0572-483a-b91b-59be5f52c356",
+        "status": "CANCELLED",
+        "readyReminderJobs": 6
+      },
+      {
+        "id": "bddf9b09-4773-4c18-8f16-aa42af95ea08",
+        "status": "CANCELLED",
+        "readyReminderJobs": 2
+      }
+    ],
+    "previouslyReportedProcessInstanceNowAbsent": "f15bda03-257e-4b6e-aea4-e53ba555a85a",
+    "absentInstanceHasJobsInReadGroup": false
+  },
+  "guardEvidence": {
+    "migration": "apps/hr-suite/supabase/migrations/20261023202553_pmux06b_process_reminders_escalations.sql",
+    "behavior": "Reminder creation skips process instances not RUNNING, inactive or completed steps, and work items not OPEN or CLAIMED.",
+    "contractTest": "apps/hr-suite/supabase/migrations/20261023083349_pmux06b_process_reminders_escalations.contract.test.ts"
+  }
+}

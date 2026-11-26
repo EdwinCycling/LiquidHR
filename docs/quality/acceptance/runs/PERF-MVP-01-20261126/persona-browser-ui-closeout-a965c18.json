@@ -1,0 +1,36 @@
+{
+  "mode": "local-existing-personas",
+  "codeSha": "a965c18ee131a43938d8886abac38a4720ca349b",
+  "results": [
+    {
+      "actor": "hr-admin",
+      "status": "PASS",
+      "originalLocale": "nl",
+      "keyboardRoute": true,
+      "dutchHeading": "Gespreksrondes",
+      "englishHeading": "Conversation rounds",
+      "localeRestored": true,
+      "screenshot": "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261126\\screenshots\\hr-admin-en-desktop.png"
+    },
+    {
+      "actor": "manager",
+      "status": "PASS",
+      "originalLocale": "nl",
+      "keyboardRoute": true,
+      "dutchHeading": "Mijn team",
+      "englishHeading": "My team",
+      "localeRestored": true,
+      "screenshot": "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261126\\screenshots\\manager-en-desktop.png"
+    },
+    {
+      "actor": "employee",
+      "status": "PASS",
+      "originalLocale": "nl",
+      "keyboardRoute": true,
+      "dutchHeading": "Mijn gesprekken",
+      "englishHeading": "My conversations",
+      "localeRestored": true,
+      "screenshot": "C:\\Users\\Edwin\\.codex\\worktrees\\perf-mvp-01\\LiquidHR\\docs\\quality\\acceptance\\runs\\PERF-MVP-01-20261126\\screenshots\\employee-en-desktop.png"
+    }
+  ]
+}
