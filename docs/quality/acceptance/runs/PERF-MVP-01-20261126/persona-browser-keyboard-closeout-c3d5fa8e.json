@@ -1,0 +1,36 @@
+{
+  "mode": "local-existing-personas-read-only",
+  "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+  "viewport": {"width": 1440, "height": 900},
+  "results": [
+    {
+      "actor": "hr-admin",
+      "status": "PASS",
+      "locale": "nl",
+      "keyboardRoute": true,
+      "focusVisible": true,
+      "heading": "Gespreksrondes",
+      "screenshot": "PERF-MVP-01-20261126/screenshots/hr-admin-keyboard-c3.png"
+    },
+    {
+      "actor": "manager",
+      "status": "PASS",
+      "locale": "nl",
+      "keyboardRoute": true,
+      "focusVisible": true,
+      "heading": "Mijn team",
+      "screenshot": "PERF-MVP-01-20261126/screenshots/manager-keyboard-c3.png"
+    },
+    {
+      "actor": "employee",
+      "status": "PASS",
+      "locale": "nl",
+      "keyboardRoute": true,
+      "focusVisible": true,
+      "heading": "Mijn gesprekken",
+      "screenshot": "PERF-MVP-01-20261126/screenshots/employee-keyboard-c3.png"
+    }
+  ],
+  "writes": false,
+  "result": "PASS keyboard and NL heading submatrix; complete A30 remains NOT_RUN because English save/readback was inconclusive."
+}

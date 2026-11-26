@@ -1,0 +1,12 @@
+{
+  "mode": "local-existing-personas",
+  "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+  "actor": "manager",
+  "probe": "cross-administration dossier GET",
+  "target": "existing dossier in a different administration and outside the Manager's direct reports",
+  "httpStatus": 404,
+  "denied": true,
+  "responseBodyRecorded": false,
+  "auth": "existing HR Admin login followed by normal Manager role switch",
+  "writes": false
+}

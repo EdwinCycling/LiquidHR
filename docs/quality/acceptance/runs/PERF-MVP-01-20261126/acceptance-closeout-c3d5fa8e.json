@@ -30,6 +30,12 @@
       "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
       "covered": ["A13 same-dossier Storage/mutations", "A14", "A19", "A23", "A25", "A32"]
     },
+    "keyboardCloseout": {
+      "path": "PERF-MVP-01-20261126/persona-browser-keyboard-closeout-c3d5fa8e.json",
+      "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
+      "results": "PASS for all three personas on NL route navigation and visible focus",
+      "screenshots": "PERF-MVP-01-20261126/screenshots/"
+    },
     "uiAttempt": {
       "path": "PERF-MVP-01-20261126/persona-browser-ui-closeout-c3d5fa8e-final.json",
       "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
@@ -92,7 +98,8 @@
     "A26": {
       "status": "NOT_RUN",
       "codeSha": "c3d5fa8e13124b0d3555c7d3d391505ddcb2b244",
-      "completedWithExistingPersonas": ["cross-employee", "cross-team", "cross-HR-group", "same-dossier Storage mutation/read denials"],
+      "completedWithExistingPersonas": ["cross-employee", "cross-team", "cross-HR-group", "cross-administration dossier GET denied with HTTP 404", "same-dossier Storage mutation/read denials"],
+      "crossAdministrationEvidence": "PERF-MVP-01-20261126/persona-browser-cross-administration-c3d5fa8e.json",
       "contractCoverage": "PGlite role/scope contracts; not a live cross-tenant persona substitute.",
       "missingFixture": "One already authorized identity in a second tenant and an existing object in that tenant for a cross-tenant denial probe."
     },
@@ -132,6 +139,7 @@
       "currentAttempt": {
         "hrAdminKeyboardReachedConversationRoute": true,
         "hrAdminDutchHeading": true,
+        "allThreeRoleKeyboardAndDutchHeading": "PASS; see persona-browser-keyboard-closeout-c3d5fa8e.json",
         "englishReadback": "LOCALE_SAVE_READBACK_MISMATCH_EN",
         "fullNlEnKeyboardMatrix": false
       }
