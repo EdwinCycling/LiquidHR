@@ -46,9 +46,9 @@ export type Database = {
         ]
       }
       performance_review_submissions: {
-        Row: { id: string; tenant_id: string; dossier_id: string; kind: string; author_user_id: string; body: string; score: number | null; rating_explanation: string | null; meeting_date: string | null; submitted_at: string | null; version: number }
-        Insert: { id?: string; tenant_id: string; dossier_id: string; kind: string; author_user_id: string; body: string; score?: number | null; rating_explanation?: string | null; meeting_date?: string | null; submitted_at?: string | null; version?: number }
-        Update: { id?: string; tenant_id?: string; dossier_id?: string; kind?: string; author_user_id?: string; body?: string; score?: number | null; rating_explanation?: string | null; meeting_date?: string | null; submitted_at?: string | null; version?: number }
+        Row: { id: string; tenant_id: string; dossier_id: string; kind: string; author_user_id: string; body: string; score: number | null; rating_explanation: string | null; meeting_date: string | null; submitted_at: string | null; question_answers: Json; version: number }
+        Insert: { id?: string; tenant_id: string; dossier_id: string; kind: string; author_user_id: string; body: string; score?: number | null; rating_explanation?: string | null; meeting_date?: string | null; submitted_at?: string | null; question_answers?: Json; version?: number }
+        Update: { id?: string; tenant_id?: string; dossier_id?: string; kind?: string; author_user_id?: string; body?: string; score?: number | null; rating_explanation?: string | null; meeting_date?: string | null; submitted_at?: string | null; question_answers?: Json; version?: number }
         Relationships: [{ foreignKeyName: "performance_review_submissions_tenant_id_dossier_id_fkey"; columns: ["tenant_id", "dossier_id"]; isOneToOne: false; referencedRelation: "performance_review_dossiers"; referencedColumns: ["tenant_id", "id"] }]
       }
       performance_review_private_notes: {
@@ -22173,6 +22173,7 @@ export type Database = {
           score: number | null
           tenant_id: string
           version: number
+          question_answers: Json
         }
         Insert: {
           archived_at?: string
@@ -22188,6 +22189,7 @@ export type Database = {
           score?: number | null
           tenant_id: string
           version: number
+          question_answers?: Json
         }
         Update: {
           archived_at?: string
@@ -22203,6 +22205,7 @@ export type Database = {
           score?: number | null
           tenant_id?: string
           version?: number
+          question_answers?: Json
         }
         Relationships: [
           {
@@ -22212,6 +22215,52 @@ export type Database = {
             referencedRelation: "performance_review_dossiers"
             referencedColumns: ["tenant_id", "id"]
           },
+        ]
+      }
+      performance_review_question_sets: {
+        Row: { id: string; tenant_id: string; hr_group_id: string; name: string; description: string; status: string; questions: Json; version: number; created_by: string; updated_by: string; created_at: string; updated_at: string }
+        Insert: { id?: string; tenant_id: string; hr_group_id: string; name: string; description?: string; status?: string; questions: Json; version?: number; created_by: string; updated_by: string; created_at?: string; updated_at?: string }
+        Update: { id?: string; tenant_id?: string; hr_group_id?: string; name?: string; description?: string; status?: string; questions?: Json; version?: number; created_by?: string; updated_by?: string; created_at?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: "performance_review_question_sets_tenant_id_fkey"; columns: ["tenant_id"]; isOneToOne: false; referencedRelation: "tenants"; referencedColumns: ["id"] },
+          { foreignKeyName: "performance_review_question_sets_tenant_id_hr_group_id_fkey"; columns: ["tenant_id", "hr_group_id"]; isOneToOne: false; referencedRelation: "hr_groups"; referencedColumns: ["tenant_id", "id"] }
+        ]
+      }
+      performance_review_question_set_audit_events: {
+        Row: { id: string; tenant_id: string; hr_group_id: string; question_set_id: string; actor_user_id: string; action: string; version: number; details: Json; created_at: string }
+        Insert: { id?: string; tenant_id: string; hr_group_id: string; question_set_id: string; actor_user_id: string; action: string; version: number; details?: Json; created_at?: string }
+        Update: { id?: string; tenant_id?: string; hr_group_id?: string; question_set_id?: string; actor_user_id?: string; action?: string; version?: number; details?: Json; created_at?: string }
+        Relationships: [
+          { foreignKeyName: "performance_review_question_set_audit_events_question_set_id_fkey"; columns: ["question_set_id"]; isOneToOne: false; referencedRelation: "performance_review_question_sets"; referencedColumns: ["id"] },
+          { foreignKeyName: "performance_review_question_set_audit_events_tenant_id_hr_group_id_fkey"; columns: ["tenant_id", "hr_group_id"]; isOneToOne: false; referencedRelation: "hr_groups"; referencedColumns: ["tenant_id", "id"] }
+        ]
+      }
+      performance_review_round_question_sets: {
+        Row: { round_id: string; tenant_id: string; hr_group_id: string; enabled: boolean; defaults: Json; participant_overrides: Json; published_defaults_snapshot: Json | null; published_at: string | null; updated_by: string; updated_at: string }
+        Insert: { round_id: string; tenant_id: string; hr_group_id: string; enabled?: boolean; defaults: Json; participant_overrides?: Json; published_defaults_snapshot?: Json | null; published_at?: string | null; updated_by: string; updated_at?: string }
+        Update: { round_id?: string; tenant_id?: string; hr_group_id?: string; enabled?: boolean; defaults?: Json; participant_overrides?: Json; published_defaults_snapshot?: Json | null; published_at?: string | null; updated_by?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: "performance_review_round_question_sets_round_id_fkey"; columns: ["round_id"]; isOneToOne: true; referencedRelation: "performance_review_rounds"; referencedColumns: ["id"] },
+          { foreignKeyName: "performance_review_round_question_sets_tenant_id_hr_group_id_fkey"; columns: ["tenant_id", "hr_group_id"]; isOneToOne: false; referencedRelation: "hr_groups"; referencedColumns: ["tenant_id", "id"] }
+        ]
+      }
+      performance_review_dossier_question_snapshots: {
+        Row: { tenant_id: string; hr_group_id: string; round_id: string; dossier_id: string; respondent_role: string; selection_source: string; source_set_id: string | null; source_set_name: string | null; source_set_version: number | null; definition_json: Json | null; created_at: string }
+        Insert: { tenant_id: string; hr_group_id: string; round_id: string; dossier_id: string; respondent_role: string; selection_source: string; source_set_id?: string | null; source_set_name?: string | null; source_set_version?: number | null; definition_json?: Json | null; created_at?: string }
+        Update: { tenant_id?: string; hr_group_id?: string; round_id?: string; dossier_id?: string; respondent_role?: string; selection_source?: string; source_set_id?: string | null; source_set_name?: string | null; source_set_version?: number | null; definition_json?: Json | null; created_at?: string }
+        Relationships: [
+          { foreignKeyName: "performance_review_dossier_question_snapshots_round_id_fkey"; columns: ["round_id"]; isOneToOne: false; referencedRelation: "performance_review_rounds"; referencedColumns: ["id"] },
+          { foreignKeyName: "performance_review_dossier_question_snapshots_source_set_id_fkey"; columns: ["source_set_id"]; isOneToOne: false; referencedRelation: "performance_review_question_sets"; referencedColumns: ["id"] },
+          { foreignKeyName: "performance_review_dossier_question_snapshots_tenant_id_dossier_id_fkey"; columns: ["tenant_id", "dossier_id"]; isOneToOne: false; referencedRelation: "performance_review_dossiers"; referencedColumns: ["tenant_id", "id"] },
+          { foreignKeyName: "performance_review_dossier_question_snapshots_tenant_id_hr_group_id_fkey"; columns: ["tenant_id", "hr_group_id"]; isOneToOne: false; referencedRelation: "hr_groups"; referencedColumns: ["tenant_id", "id"] }
+        ]
+      }
+      performance_review_pending_question_overrides: {
+        Row: { round_id: string; employee_id: string; overrides: Json; actor_user_id: string }
+        Insert: { round_id: string; employee_id: string; overrides?: Json; actor_user_id: string }
+        Update: { round_id?: string; employee_id?: string; overrides?: Json; actor_user_id?: string }
+        Relationships: [
+          { foreignKeyName: "performance_review_pending_question_overrides_round_id_fkey"; columns: ["round_id"]; isOneToOne: false; referencedRelation: "performance_review_rounds"; referencedColumns: ["id"] }
         ]
       }
       performance_review_role_flip_commands: {
@@ -22357,6 +22406,13 @@ export type Database = {
       activate_performance_review_round: { Args: { requested_round: string }; Returns: Json }
       run_due_performance_review_activations: { Args: Record<PropertyKey, never>; Returns: number }
       cancel_performance_review_round: { Args: { requested_round: string; requested_reason: string; expected_version: number }; Returns: Json }
+      save_performance_review_question_set: { Args: { requested_hr_group: string; requested_id: string | null; requested_name: string; requested_description: string; requested_status: string; requested_questions: Json; expected_version: number | null }; Returns: Database["public"]["Tables"]["performance_review_question_sets"]["Row"] }
+      duplicate_performance_review_question_set: { Args: { requested_id: string; requested_name: string }; Returns: Database["public"]["Tables"]["performance_review_question_sets"]["Row"] }
+      archive_performance_review_question_set: { Args: { requested_id: string; expected_version: number }; Returns: Database["public"]["Tables"]["performance_review_question_sets"]["Row"] }
+      save_performance_review_round_question_sets: { Args: { requested_round: string; requested_enabled: boolean; requested_defaults: Json; requested_overrides?: Json }; Returns: Database["public"]["Tables"]["performance_review_round_question_sets"]["Row"] }
+      save_performance_review_dossier_question_overrides: { Args: { requested_dossier: string; requested_overrides: Json }; Returns: undefined }
+      add_performance_review_dossier_with_question_overrides: { Args: { requested_round: string; requested_employee: string; requested_reviewer: string; requested_administration: string; requested_idempotency_key: string; requested_additional_reviewer: string | null; requested_overrides: Json }; Returns: Database["public"]["Tables"]["performance_review_dossiers"]["Row"] }
+      save_performance_review_response_with_questions: { Args: { requested_dossier: string; requested_role: string; requested_body: string; requested_answers: Json; expected_version: number; submit_now: boolean; requested_meeting_date?: string | null; requested_score?: number | null; requested_rating_explanation?: string | null }; Returns: Database["public"]["Tables"]["performance_review_dossiers"]["Row"] }
       wvp_case_for_process: {
         Args: { requested_process_instance_id: string }
         Returns: string

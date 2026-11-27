@@ -410,6 +410,10 @@
         "name": "Payroll",
         "description": "Connect and manage payroll providers within the active HR group."
       },
+      "PERFORMANCE_REVIEW_QUESTION_SETS": {
+        "name": "Conversation question sets",
+        "description": "Optional HR-managed questions for review rounds."
+      },
       "LEAVE": {
         "name": "Leave",
         "description": "Leave registration and balances in the employee calendar."

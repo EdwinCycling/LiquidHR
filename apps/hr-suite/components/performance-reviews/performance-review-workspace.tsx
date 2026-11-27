@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { CalendarDays, CheckCircle2, Download, FileText, LockKeyhole, MessageSquareText, Send, UserRound } from 'lucide-react'
 import { PageShell } from '@/components/layout/page-shell'
@@ -12,24 +13,33 @@ import { Button, buttonClasses } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PerformanceReviewDashboard } from './performance-review-dashboard'
 import { isSoftDeadlineOverdue } from '@/lib/performance-reviews/performance-domain'
+import type { Locale } from '@/lib/i18n/config'
+import { PerformanceReviewQuestionFields } from './performance-review-question-fields'
+import { validatePerformanceReviewAnswers, type PerformanceReviewQuestion, type QuestionAnswers } from '@/lib/performance-reviews/question-set-schema'
+import nlQuestionSetMessages from '@/messages/nl/performanceReviewQuestionSets.json'
+import enQuestionSetMessages from '@/messages/en/performanceReviewQuestionSets.json'
 
 export type PerformanceReviewRole = 'hr' | 'manager' | 'employee' | 'additional-reviewer'
-type Submission = { kind: 'SELF' | 'MANAGER' | 'ADDITIONAL_REVIEWER'; body: string; meeting_date?: string | null; score?: number | null; rating_explanation?: string | null; submitted_at?: string | null }
+type Submission = { kind: 'SELF' | 'MANAGER' | 'ADDITIONAL_REVIEWER'; body: string; meeting_date?: string | null; score?: number | null; rating_explanation?: string | null; submitted_at?: string | null; question_answers?: QuestionAnswers | null }
+type QuestionSnapshot = { respondent_role: 'EMPLOYEE' | 'GV' | 'AB'; source_set_name?: string | null; definition_json: PerformanceReviewQuestion[] | null }
 type Acknowledgement = { decision: 'AGREE' | 'DISAGREE'; reason?: string | null; created_at?: string }
 type RoundDetails = { title?: string; due_date?: string | null; status?: string; additional_reviewer_enabled?: boolean; rating_snapshot?: { options?: Array<{ score: number; label: string; description: string }> } | null }
 type ReviewAttachment = { id: string; original_filename: string; content_type: string; file_size: number; released_at?: string | null }
-export type PerformanceReviewSummary = { id: string; title: string; employeeName?: string; reviewerName?: string; employeeId?: string; reviewer_employee_id?: string; additional_reviewer_employee_id?: string | null; additional_reviewer_workflow?: boolean; phase: string; dueDate?: string | null; roundStatus?: string; submitted?: boolean; version?: number; attachments?: ReviewAttachment[]; performance_review_attachments?: ReviewAttachment[]; appraisalLinks?: Array<{ appraisal_item_id: string }>; performance_review_rounds?: RoundDetails | RoundDetails[] | null; performance_review_submissions?: Submission[]; performance_review_acknowledgements?: Acknowledgement[] }
+export type PerformanceReviewSummary = { id: string; title: string; employeeName?: string; reviewerName?: string; employeeId?: string; reviewer_employee_id?: string; additional_reviewer_employee_id?: string | null; additional_reviewer_workflow?: boolean; phase: string; dueDate?: string | null; roundStatus?: string; submitted?: boolean; version?: number; attachments?: ReviewAttachment[]; performance_review_attachments?: ReviewAttachment[]; appraisalLinks?: Array<{ appraisal_item_id: string }>; performance_review_rounds?: RoundDetails | RoundDetails[] | null; performance_review_submissions?: Submission[]; performance_review_dossier_question_snapshots?: QuestionSnapshot[]; performance_review_acknowledgements?: Acknowledgement[] }
 type AppraisalItem = { id: string; title: string; occurred_on?: string; item_status?: string }
 type RoundSummary = { id: string; title: string; status: string; period_start: string; period_end: string; due_date?: string | null }
 type Labels = { title: string; subtitle: string; newRound: string; rounds: string; roundsEmpty: string; myTeam: string; myConversations: string; myAdditionalReviews: string; open: string; empty: string; employee: string; status: string; dueDate: string; overdue: string; action: string; selfReflection: string; managerResponse: string; additionalReviewerResponse: string; acknowledgement: string; saveDraft: string; submit: string; submitContribution: string; agree: string; disagree: string; disagreementReason: string; privateInfo: string; privateInfoHint: string; closed: string; error: string; saved: string; search: string; filter: string; allStatuses: string; attachments: string; upload: string; appraisalLink: string; link: string; dashboard: string; waitingEmployee: string; waitingAdditionalReviewer: string; waitingManager: string; waitingAcknowledgement: string; waitingReviewerClose: string; completedAgreed: string; completedDisagreed: string; closedOpen: string; nextActions: string; noActions: string; meetingDate: string; rating: string; ratingScore: string; ratingExplanation: string; remove: string; reassignReviewer: string; newReviewer: string; reviewerSearch: string; conversationLead: string; additionalReviewer: string; additionalReviewerOptional: string; assignReviewers: string; reviewerRoleReason: string; preserveDrafts: string; draftArchiveWarning: string; saveAssignments: string; swapRoles: string; releaseAdditionalReviewer: string; releaseReason: string; closeConversation: string; additionalReviewerHidden: string; confirmSubmit: string; confirmSubmitTitle: string; cancel: string; phaseCancelled: string; roundDraft: string; roundScheduled: string; roundActive: string; roundClosed: string; roundCancelled: string }
 
-type Props = { role: PerformanceReviewRole; summaries: PerformanceReviewSummary[]; labels: Labels }
+type Props = { role: PerformanceReviewRole; summaries: PerformanceReviewSummary[]; labels: Labels; questionSetsHref?: string; questionSetsLabel?: string; locale?: Locale }
 
-export function PerformanceReviewWorkspace({ labels, role, summaries: initialSummaries }: Props) {
+export function PerformanceReviewWorkspace({ labels, role, summaries: initialSummaries, questionSetsHref, questionSetsLabel, locale = 'nl' }: Props) {
+  const questionSetMessages = locale === 'nl' ? nlQuestionSetMessages : enQuestionSetMessages
   const [summaries, setSummaries] = useState(initialSummaries)
   const [rounds, setRounds] = useState<RoundSummary[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(initialSummaries[0]?.id ?? null)
   const [body, setBody] = useState('')
+  const [questionAnswers, setQuestionAnswers] = useState<QuestionAnswers>({})
+  const [invalidQuestionIds, setInvalidQuestionIds] = useState<string[]>([])
   const [meetingDate, setMeetingDate] = useState('')
   const [score, setScore] = useState('')
   const [ratingExplanation, setRatingExplanation] = useState('')
@@ -53,6 +63,9 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
   const [today, setToday] = useState<string | null>(null)
   const draftEditRevisions = useRef({ body: 0, meetingDate: 0, score: 0, ratingExplanation: 0 })
   const selected = summaries.find((item) => item.id === selectedId) ?? null
+  const respondentRole = role === 'employee' ? 'EMPLOYEE' : role === 'manager' ? 'GV' : role === 'additional-reviewer' ? 'AB' : null
+  const activeQuestionSnapshot = respondentRole ? selected?.performance_review_dossier_question_snapshots?.find((snapshot) => snapshot.respondent_role === respondentRole && Array.isArray(snapshot.definition_json)) ?? null : null
+  const activeQuestions = activeQuestionSnapshot?.definition_json ?? []
   const dossierAttachments = selected?.performance_review_attachments ?? selected?.attachments ?? []
   const visibleAttachments = role === 'employee' ? dossierAttachments.filter((item) => item.released_at != null) : role === 'additional-reviewer' ? [] : dossierAttachments
 
@@ -81,12 +94,15 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
         const manager = result.performance_review_submissions?.find((item) => item.kind === 'MANAGER')
         const additional = result.performance_review_submissions?.find((item) => item.kind === 'ADDITIONAL_REVIEWER')
         const editable = role === 'employee' ? self : role === 'additional-reviewer' ? additional : manager
+        const questionSubmission = role === 'employee' ? self : role === 'additional-reviewer' ? additional : manager
         setAssignedReviewerId(result.reviewer_employee_id ?? '')
         setAssignedAdditionalReviewerId(result.additional_reviewer_employee_id ?? '')
         if (draftEditRevisions.current.body === editRevisionsAtRequest.body) setBody(editable?.body ?? '')
         if (draftEditRevisions.current.meetingDate === editRevisionsAtRequest.meetingDate) setMeetingDate(manager?.meeting_date ?? '')
         if (draftEditRevisions.current.score === editRevisionsAtRequest.score) setScore(manager?.score == null ? '' : String(manager.score))
         if (draftEditRevisions.current.ratingExplanation === editRevisionsAtRequest.ratingExplanation) setRatingExplanation(manager?.rating_explanation ?? '')
+        setQuestionAnswers(questionSubmission?.question_answers ?? {})
+        setInvalidQuestionIds([])
       })
       .catch(() => undefined)
     return () => { active = false }
@@ -97,6 +113,16 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
 
   async function submit(action: string, payload: Record<string, string | number | null> = {}) {
     if (!selected) return
+    if (activeQuestionSnapshot && ['save-self', 'submit-self', 'save-manager', 'submit-manager', 'save-additional-reviewer', 'submit-additional-reviewer'].includes(action)) {
+      const finalSubmission = action.startsWith('submit-')
+      const validation = validatePerformanceReviewAnswers(activeQuestions, questionAnswers, finalSubmission)
+      if (!validation.valid) {
+        setInvalidQuestionIds(validation.missingQuestionIds)
+        setMessage(locale === 'nl' ? 'Controleer de antwoorden op de extra vragen.' : 'Check the answers to the additional questions.')
+        return
+      }
+      setInvalidQuestionIds([])
+    }
     if (action === 'submit-self' || action === 'submit-manager' || action === 'submit-additional-reviewer' || action === 'acknowledge') {
       setConfirmation({ action, payload })
       return
@@ -107,7 +133,8 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
     if (!selected) return
     setBusy(true); setMessage(null)
     try {
-      const response = await fetch('/api/performance-reviews', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, dossierId: selected.id, version: selected.version ?? 1, body, reason, privateNote, ...payload }) })
+      const questionSaveAction = ['save-self', 'submit-self', 'save-manager', 'submit-manager', 'save-additional-reviewer', 'submit-additional-reviewer'].includes(action)
+      const response = await fetch('/api/performance-reviews', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, dossierId: selected.id, version: selected.version ?? 1, body, reason, privateNote, ...(activeQuestionSnapshot && questionSaveAction ? { questionAnswers } : {}), ...payload }) })
       if (!response.ok) throw new Error('request')
       const mutation = await response.json() as { version?: number; phase?: string }
       setSummaries((current) => current.map((item) => item.id === selected.id ? { ...item, ...(typeof mutation.version === 'number' ? { version: mutation.version } : {}), ...(typeof mutation.phase === 'string' ? { phase: mutation.phase } : {}) } : item))
@@ -137,6 +164,7 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
   const selfSubmission = selected?.performance_review_submissions?.find((item) => item.kind === 'SELF')
   const managerSubmission = selected?.performance_review_submissions?.find((item) => item.kind === 'MANAGER')
   const additionalReviewerSubmission = selected?.performance_review_submissions?.find((item) => item.kind === 'ADDITIONAL_REVIEWER')
+  const respondentSubmission = role === 'employee' ? selfSubmission : role === 'additional-reviewer' ? additionalReviewerSubmission : managerSubmission
   const acknowledgement = selected?.performance_review_acknowledgements?.[0]
   const phaseLabel = (phase: string) => ({ WAITING_EMPLOYEE: labels.waitingEmployee, WAITING_MANAGER: labels.waitingManager, WAITING_ACKNOWLEDGEMENT: labels.waitingAcknowledgement, COMPLETED_AGREED: labels.completedAgreed, COMPLETED_DISAGREED: labels.completedDisagreed, CANCELLED: labels.phaseCancelled } as Record<string, string>)[phase] ?? phase
   const roundStatusLabel = (status: string) => ({ DRAFT: labels.roundDraft, SCHEDULED: labels.roundScheduled, ACTIVE: labels.roundActive, CLOSED: labels.roundClosed, CANCELLED: labels.roundCancelled } as Record<string, string>)[status] ?? status
@@ -146,7 +174,7 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
 
   return (
     <PageShell className="space-y-6 py-6 sm:py-8" width="wide">
-      <PageHeader title={roleTitle} description={labels.subtitle} actions={role === 'hr' ? <Link className={buttonClasses({ size: 'sm' })} href="/workforce/conversations/new"><MessageSquareText aria-hidden="true" />{labels.newRound}</Link> : role === 'employee' ? <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/my-additional-reviews">{labels.myAdditionalReviews}</Link> : role === 'additional-reviewer' ? <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/my-conversations">{labels.myConversations}</Link> : undefined} />
+      <PageHeader title={roleTitle} description={labels.subtitle} actions={role === 'hr' ? <div className="flex flex-wrap gap-2">{questionSetsHref && questionSetsLabel ? <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href={questionSetsHref}>{questionSetsLabel}</Link> : null}<Link className={buttonClasses({ size: 'sm' })} href="/workforce/conversations/new"><MessageSquareText aria-hidden="true" />{labels.newRound}</Link></div> : role === 'employee' ? <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/my-additional-reviews">{labels.myAdditionalReviews}</Link> : role === 'additional-reviewer' ? <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/my-conversations">{labels.myConversations}</Link> : undefined} />
       <PerformanceReviewDashboard role={role} labels={{ dashboard: labels.dashboard, waitingEmployee: labels.waitingEmployee, waitingAdditionalReviewer: labels.waitingAdditionalReviewer, waitingManager: labels.waitingManager, waitingAcknowledgement: labels.waitingAcknowledgement, waitingReviewerClose: labels.waitingReviewerClose, completedAgreed: labels.completedAgreed, completedDisagreed: labels.completedDisagreed, closedOpen: labels.closedOpen, nextActions: labels.nextActions, noActions: labels.noActions, open: labels.open, cancelled: labels.phaseCancelled }} />
       {role === 'hr' ? <Surface className="overflow-hidden"><div className="border-b border-border-subtle px-4 py-3"><SectionHeader title={labels.rounds} description={String(rounds.length)} /></div>{rounds.length ? <ul className="divide-y divide-border-subtle">{rounds.map((round) => <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" key={round.id}><div className="min-w-0"><p className="break-words font-medium">{round.title}</p><p className="mt-1 text-xs text-muted-foreground">{round.period_start} – {round.period_end} · {roundStatusLabel(round.status)}</p></div><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href={`/workforce/conversations/rounds/${round.id}`}>{labels.open}</Link></li>)}</ul> : <p className="p-4 text-sm text-muted-foreground">{labels.roundsEmpty}</p>}</Surface> : null}
       <div className="grid gap-5 lg:grid-cols-[minmax(16rem,0.35fr)_minmax(0,1fr)]">
@@ -194,23 +222,32 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
               {role === 'additional-reviewer' && selfSubmission?.submitted_at ? <ReadOnlyText label={labels.selfReflection} value={selfSubmission.body} /> : null}
               {role === 'hr' && selfSubmission?.submitted_at ? <ReadOnlyText label={labels.selfReflection} value={selfSubmission.body} /> : null}
               {role === 'employee' && selfSubmission?.submitted_at && selected.phase !== 'WAITING_EMPLOYEE' ? <ReadOnlyText label={labels.selfReflection} value={selfSubmission.body} /> : null}
+              {role === 'manager' && managerSubmission?.submitted_at && selected.phase !== 'WAITING_MANAGER' ? <ReadOnlyText label={labels.managerResponse} value={managerSubmission.body} /> : null}
               {role === 'employee' && managerSubmission?.submitted_at ? <ReadOnlyText label={labels.managerResponse} value={managerSubmission.body} /> : null}
               {(role === 'manager' || role === 'hr' || (role === 'employee' && Boolean(managerSubmission?.submitted_at)) || role === 'additional-reviewer') && additionalReviewerSubmission?.submitted_at ? <ReadOnlyText label={labels.additionalReviewerResponse} value={additionalReviewerSubmission.body} /> : null}
               {role === 'employee' && selected.additional_reviewer_workflow && !managerSubmission?.submitted_at ? <p className="mt-4 text-xs text-muted-foreground">{labels.additionalReviewerHidden}</p> : null}
               {role === 'employee' && managerSubmission?.submitted_at && managerSubmission.score != null ? <div className="mt-4 grid gap-3 sm:grid-cols-2"><Info icon={<FileText />} label={labels.ratingScore} value={String(managerSubmission.score)} />{managerSubmission.rating_explanation ? <ReadOnlyText label={labels.ratingExplanation} value={managerSubmission.rating_explanation} /> : null}</div> : null}
+              {role === 'hr' ? (selected.performance_review_dossier_question_snapshots ?? []).map((snapshot) => {
+                const kind = snapshot.respondent_role === 'EMPLOYEE' ? 'SELF' : snapshot.respondent_role === 'GV' ? 'MANAGER' : 'ADDITIONAL_REVIEWER'
+                const submission = selected.performance_review_submissions?.find((item) => item.kind === kind)
+                const roleLabel = snapshot.respondent_role === 'EMPLOYEE' ? questionSetMessages.employeeRole : snapshot.respondent_role === 'GV' ? questionSetMessages.gvRole : questionSetMessages.abRole
+                return submission?.submitted_at && snapshot.definition_json ? <QuestionSetReadback key={snapshot.respondent_role} snapshot={snapshot} submission={submission} locale={locale} labels={{ required: questionSetMessages.required, optional: questionSetMessages.optional }} title={`${roleLabel} · ${snapshot.source_set_name ?? questionSetMessages.questionSection}`} /> : null
+              }) : respondentSubmission?.submitted_at && activeQuestionSnapshot ? <QuestionSetReadback snapshot={activeQuestionSnapshot} submission={respondentSubmission} locale={locale} labels={{ required: questionSetMessages.required, optional: questionSetMessages.optional }} title={activeQuestionSnapshot.source_set_name ?? questionSetMessages.questionSection} /> : null}
               {(role === 'employee' || role === 'manager' || role === 'hr') && acknowledgement ? <ReadOnlyText label={labels.acknowledgement} value={acknowledgement.decision === 'AGREE' ? labels.agree : `${labels.disagree}${acknowledgement.reason ? `: ${acknowledgement.reason}` : ''}`} /> : null}
               {visibleAttachments.length ? <div className="mt-6 space-y-2"><p className="text-sm font-medium">{labels.attachments}</p><ul className="divide-y divide-border-subtle rounded-[var(--radius-control)] border border-border-subtle">{visibleAttachments.map((item) => <li className="flex items-center justify-between gap-3 px-3 py-2 text-sm" key={item.id}><span className="min-w-0 truncate">{item.original_filename}</span><span className="flex shrink-0 items-center gap-3"><button className="inline-flex items-center gap-1 text-xs underline-offset-4 hover:underline" onClick={() => void downloadAttachment(item.id)} type="button"><Download aria-hidden="true" className="size-3.5" />{labels.action}</button>{role === 'manager' && selected.phase === 'WAITING_MANAGER' && selected.roundStatus !== 'CLOSED' ? <button className="text-xs text-destructive underline-offset-4 hover:underline" onClick={() => void removeAttachment(item.id)} type="button">{labels.remove}</button> : null}</span></li>)}</ul></div> : null}
-              {role === 'employee' && selected.phase === 'WAITING_EMPLOYEE' && selected.roundStatus !== 'CLOSED' ? <Form label={labels.selfReflection} value={body} onChange={(value) => { draftEditRevisions.current.body += 1; setBody(value) }} onSubmit={() => submit('submit-self')} busy={busy} submitLabel={labels.submit} draftLabel={labels.saveDraft} onDraft={() => submit('save-self')} /> : null}
-              {role === 'additional-reviewer' && selected.phase === 'WAITING_ADDITIONAL_REVIEWER' && selected.roundStatus === 'ACTIVE' ? <Form label={labels.additionalReviewerResponse} hint={labels.additionalReviewerOptional} value={body} onChange={(value) => { draftEditRevisions.current.body += 1; setBody(value) }} onSubmit={() => submit('submit-additional-reviewer')} busy={busy} submitLabel={labels.submitContribution} draftLabel={labels.saveDraft} onDraft={() => submit('save-additional-reviewer')} /> : null}
+              {role === 'employee' && selected.phase === 'WAITING_EMPLOYEE' && selected.roundStatus !== 'CLOSED' ? <Form label={labels.selfReflection} value={body} onChange={(value) => { draftEditRevisions.current.body += 1; setBody(value) }} onSubmit={() => submit('submit-self')} busy={busy} submitLabel={labels.submit} draftLabel={labels.saveDraft} onDraft={() => submit('save-self')}>{activeQuestions.length ? <PerformanceReviewQuestionFields questions={activeQuestions} answers={questionAnswers} onChange={(questionId, value) => { setQuestionAnswers((current) => ({ ...current, [questionId]: value })); setInvalidQuestionIds((current) => current.filter((id) => id !== questionId)) }} locale={locale} labels={{ required: questionSetMessages.required, optional: questionSetMessages.optional }} invalidQuestionIds={invalidQuestionIds} /> : null}</Form> : null}
+              {role === 'additional-reviewer' && selected.phase === 'WAITING_ADDITIONAL_REVIEWER' && selected.roundStatus === 'ACTIVE' ? <Form label={labels.additionalReviewerResponse} hint={labels.additionalReviewerOptional} value={body} onChange={(value) => { draftEditRevisions.current.body += 1; setBody(value) }} onSubmit={() => submit('submit-additional-reviewer')} busy={busy} submitLabel={labels.submitContribution} draftLabel={labels.saveDraft} onDraft={() => submit('save-additional-reviewer')}>{activeQuestions.length ? <PerformanceReviewQuestionFields questions={activeQuestions} answers={questionAnswers} onChange={(questionId, value) => { setQuestionAnswers((current) => ({ ...current, [questionId]: value })); setInvalidQuestionIds((current) => current.filter((id) => id !== questionId)) }} locale={locale} labels={{ required: questionSetMessages.required, optional: questionSetMessages.optional }} invalidQuestionIds={invalidQuestionIds} /> : null}</Form> : null}
               {role === 'manager' && selected.phase === 'WAITING_REVIEWER_CLOSE' && selected.roundStatus === 'ACTIVE' ? <div className="mt-6 border-t border-border-subtle pt-5"><Button disabled={busy} onClick={() => void closeConversation()}>{labels.closeConversation}</Button></div> : null}
               {role === 'manager' && selected.phase === 'WAITING_MANAGER' && selected.roundStatus !== 'CLOSED' ? (
                 <>
-                  <Form label={labels.managerResponse} value={body} onChange={(value) => { draftEditRevisions.current.body += 1; setBody(value) }} onSubmit={() => submit('submit-manager', { meetingDate: meetingDate || null, ...(ratingOptions.length ? { score: score ? Number(score) : null, ratingExplanation } : {}) })} busy={busy} submitLabel={labels.submit} submitDisabled={ratingOptions.length > 0 && (!score || !ratingExplanation.trim())} draftLabel={labels.saveDraft} onDraft={() => submit('save-manager', { meetingDate: meetingDate || null, ...(ratingOptions.length ? { score: score ? Number(score) : null, ratingExplanation } : {}) })} />
+                  <Form label={labels.managerResponse} value={body} onChange={(value) => { draftEditRevisions.current.body += 1; setBody(value) }} onSubmit={() => submit('submit-manager', { meetingDate: meetingDate || null, ...(ratingOptions.length ? { score: score ? Number(score) : null, ratingExplanation } : {}) })} busy={busy} submitLabel={labels.submit} submitDisabled={ratingOptions.length > 0 && (!score || !ratingExplanation.trim())} draftLabel={labels.saveDraft} onDraft={() => submit('save-manager', { meetingDate: meetingDate || null, ...(ratingOptions.length ? { score: score ? Number(score) : null, ratingExplanation } : {}) })}>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <label className="block text-sm font-medium">{labels.meetingDate}<input type="date" className="mt-1 block w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2" value={meetingDate} onChange={(event) => { draftEditRevisions.current.meetingDate += 1; setMeetingDate(event.target.value) }} /></label>
                     {ratingOptions.length ? <label className="block text-sm font-medium">{labels.ratingScore}<select required className="mt-1 block w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2" value={score} onChange={(event) => { draftEditRevisions.current.score += 1; setScore(event.target.value) }}><option value="">{labels.rating}</option>{ratingOptions.map((option) => <option key={option.score} value={option.score}>{option.score} · {option.label}</option>)}</select></label> : null}
                   </div>
                   {ratingOptions.length ? <label className="mt-4 block text-sm font-medium">{labels.ratingExplanation}<textarea required className="mt-1 min-h-28 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm" value={ratingExplanation} onChange={(event) => { draftEditRevisions.current.ratingExplanation += 1; setRatingExplanation(event.target.value) }} /></label> : null}
+                  {activeQuestions.length ? <PerformanceReviewQuestionFields questions={activeQuestions} answers={questionAnswers} onChange={(questionId, value) => { setQuestionAnswers((current) => ({ ...current, [questionId]: value })); setInvalidQuestionIds((current) => current.filter((id) => id !== questionId)) }} locale={locale} labels={{ required: questionSetMessages.required, optional: questionSetMessages.optional }} invalidQuestionIds={invalidQuestionIds} /> : null}
+                  </Form>
                   <div className="mt-6 space-y-3 border-t border-border-subtle pt-5"><p className="text-sm font-medium">{labels.attachments}</p><div className="flex flex-wrap items-center gap-2"><input aria-label={labels.attachments} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => { setAttachment(event.target.files?.[0] ?? null); setAttachmentRequestKey(crypto.randomUUID()) }} /><Button disabled={busy || !attachment} onClick={() => void uploadAttachment()} variant="secondary">{labels.upload}</Button></div><div className="flex flex-wrap items-center gap-2"><select aria-label={labels.appraisalLink} className="min-h-10 min-w-0 flex-1 rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm" value={appraisalId} onChange={(event) => setAppraisalId(event.target.value)}><option value="">{labels.appraisalLink}</option>{appraisalItems.map((item) => <option key={item.id} value={item.id}>{item.title}{item.occurred_on ? ` · ${item.occurred_on}` : ''}</option>)}</select><Button disabled={busy || !appraisalId} onClick={() => void linkAppraisal()} variant="secondary">{labels.link}</Button></div></div>
                 </>
               ) : null}
@@ -228,5 +265,9 @@ export function PerformanceReviewWorkspace({ labels, role, summaries: initialSum
 }
 
 function Info({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) { return <div className="rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle p-3"><div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}{label}</div><p className="mt-2 text-sm font-medium">{value}</p></div> }
-function Form({ label, hint, value, onChange, onSubmit, onDraft, busy, submitLabel, draftLabel, submitDisabled = false }: { label: string; hint?: string; value: string; onChange: (value: string) => void; onSubmit: () => void; onDraft?: () => void; busy: boolean; submitLabel: string; draftLabel?: string; submitDisabled?: boolean }) { return <div className="mt-6 space-y-2">{hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}<label className="block text-sm font-medium">{label}<textarea required aria-label={label} className="mt-1 min-h-36 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm" value={value} onChange={(event) => onChange(event.target.value)} /></label><div className="flex flex-wrap gap-2">{onDraft && draftLabel ? <Button disabled={busy} onClick={onDraft} variant="secondary">{draftLabel}</Button> : null}<Button disabled={busy || !value.trim() || submitDisabled} onClick={onSubmit}>{submitLabel}</Button></div></div> }
+function Form({ label, hint, value, onChange, onSubmit, onDraft, busy, submitLabel, draftLabel, submitDisabled = false, children }: { label: string; hint?: string; value: string; onChange: (value: string) => void; onSubmit: () => void; onDraft?: () => void; busy: boolean; submitLabel: string; draftLabel?: string; submitDisabled?: boolean; children?: ReactNode }) { return <div className="mt-6 space-y-2">{hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}<label className="block text-sm font-medium">{label}<textarea required aria-label={label} className="mt-1 min-h-36 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm" value={value} onChange={(event) => onChange(event.target.value)} /></label>{children ? <div className="space-y-4">{children}</div> : null}<div className="flex flex-wrap gap-2">{onDraft && draftLabel ? <Button disabled={busy} onClick={onDraft} variant="secondary">{draftLabel}</Button> : null}<Button disabled={busy || !value.trim() || submitDisabled} onClick={onSubmit}>{submitLabel}</Button></div></div> }
 function ReadOnlyText({ label, value }: { label: string; value: string }) { return <section className="mt-6 space-y-2"><h3 className="text-sm font-semibold">{label}</h3><p className="whitespace-pre-wrap rounded-[var(--radius-control)] border border-border-subtle p-3 text-sm">{value}</p></section> }
+function QuestionSetReadback({ snapshot, submission, locale, labels, title }: { snapshot: QuestionSnapshot; submission: Submission; locale: Locale; labels: { required: string; optional: string }; title: string }) {
+  if (!snapshot.definition_json?.length) return null
+  return <section className="mt-6 space-y-2"><h3 className="text-sm font-semibold">{title}</h3><PerformanceReviewQuestionFields questions={snapshot.definition_json} answers={submission.question_answers ?? {}} onChange={() => undefined} locale={locale} labels={labels} disabled /></section>
+}

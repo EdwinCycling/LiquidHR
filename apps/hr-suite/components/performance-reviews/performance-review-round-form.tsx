@@ -5,6 +5,8 @@ import { CalendarDays, CheckCircle2, Users } from 'lucide-react'
 import type { Locale } from '@/lib/i18n/config'
 import nlMessages from '@/messages/nl/performanceReviews.json'
 import enMessages from '@/messages/en/performanceReviews.json'
+import nlQuestionSetMessages from '@/messages/nl/performanceReviewQuestionSets.json'
+import enQuestionSetMessages from '@/messages/en/performanceReviewQuestionSets.json'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { Surface } from '@/components/ui/surface'
@@ -19,9 +21,15 @@ type EmployeePage = { items?: Employee[]; nextCursor?: string | null; total?: nu
 type FacetOption = { id: string; label: string }
 type EmployeeFacets = { hrGroups?: FacetOption[]; administrations?: FacetOption[]; departments?: FacetOption[]; jobs?: FacetOption[]; locations?: FacetOption[]; managers?: FacetOption[]; employmentStatuses?: FacetOption[] }
 type Filters = { hrGroupId: string; administrationId: string; departmentId: string; jobId: string; locationId: string; managerId: string; employmentStatus: string }
+type QuestionSetRole = 'EMPLOYEE' | 'GV' | 'AB'
+type QuestionSetOption = { id: string; name: string; status: 'DRAFT' | 'AVAILABLE' | 'ARCHIVED' }
+type QuestionSetChoice = 'DEFAULT' | 'NONE' | string
+type ParticipantQuestionSetOverrides = Partial<Record<QuestionSetRole, { mode: 'NONE' } | { mode: 'SET'; questionSetId: string }>>
+const questionSetRoles: QuestionSetRole[] = ['EMPLOYEE', 'GV', 'AB']
 
-export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
+export function PerformanceReviewRoundForm({ locale, questionSetsEnabled = false }: { locale: Locale; questionSetsEnabled?: boolean }) {
   const messages = locale === 'nl' ? nlMessages : enMessages
+  const questionSetMessages = locale === 'nl' ? nlQuestionSetMessages : enQuestionSetMessages
   const [title, setTitle] = useState('')
   const [roundType, setRoundType] = useState('development')
   const [introduction, setIntroduction] = useState('')
@@ -48,6 +56,20 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
   const [savedDraft, setSavedDraft] = useState<{ id: string; version: number } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [wizardStep, setWizardStep] = useState(1)
+  const [questionSets, setQuestionSets] = useState<QuestionSetOption[]>([])
+  const [useQuestionSets, setUseQuestionSets] = useState(false)
+  const [questionSetDefaults, setQuestionSetDefaults] = useState<Record<QuestionSetRole, string | null>>({ EMPLOYEE: null, GV: null, AB: null })
+  const [participantQuestionSetChoices, setParticipantQuestionSetChoices] = useState<Map<string, Partial<Record<QuestionSetRole, QuestionSetChoice>>>>(new Map())
+
+  useEffect(() => {
+    if (!questionSetsEnabled) return
+    let active = true
+    void fetch('/api/performance-reviews/question-sets')
+      .then((response) => response.ok ? response.json() as Promise<{ items?: QuestionSetOption[] }> : Promise.reject(new Error('question sets')))
+      .then((result) => { if (active) setQuestionSets((result.items ?? []).filter((item) => item.status === 'AVAILABLE')) })
+      .catch(() => { if (active) setQuestionSets([]) })
+    return () => { active = false }
+  }, [questionSetsEnabled])
 
   useEffect(() => {
     let active = true
@@ -127,6 +149,30 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
     if (!enabled) setSelected((current) => new Map([...current].map(([id, employee]) => [id, { ...employee, additionalReviewerEmployeeId: null }])))
   }
 
+  function setQuestionSetChoice(employeeId: string, role: QuestionSetRole, value: QuestionSetChoice) {
+    setParticipantQuestionSetChoices((current) => {
+      const next = new Map(current)
+      const values = { ...(next.get(employeeId) ?? {}) }
+      if (value === 'DEFAULT') delete values[role]
+      else values[role] = value === 'NONE' ? 'NONE' : value
+      next.set(employeeId, values)
+      return next
+    })
+  }
+
+  function questionSetOverrides(employeeId: string): ParticipantQuestionSetOverrides | undefined {
+    const choices = participantQuestionSetChoices.get(employeeId)
+    if (!choices) return undefined
+    const result: ParticipantQuestionSetOverrides = {}
+    for (const role of questionSetRoles) {
+      if (role === 'AB' && !additionalReviewerEnabled) continue
+      const choice = choices[role]
+      if (choice === 'NONE') result[role] = { mode: 'NONE' }
+      else if (choice && choice !== 'DEFAULT') result[role] = { mode: 'SET', questionSetId: choice }
+    }
+    return Object.keys(result).length ? result : undefined
+  }
+
   async function save(action: 'save-draft' | 'publish') {
     setMessage(null)
     if (periodStart && periodEnd && periodStart > periodEnd) { setMessage(messages.periodInvalid); return }
@@ -143,7 +189,7 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
       setIdempotencyKey(requestKey)
       const length = scale
       const rating = withRating ? { options: Array.from({ length }, (_, index) => ({ score: index + 1, label: ratingLabels[index + 1]?.trim() || `${messages.level} ${index + 1}`, description: ratingDescriptions[index + 1]?.trim() || `${messages.level} ${index + 1}` })) } : null
-      const roundInput = { title, roundType, introduction, periodStart, periodEnd, startDate, dueDate: dueDate || null, rating, additionalReviewerEnabled }
+      const roundInput = { title, roundType, introduction, periodStart, periodEnd, startDate, dueDate: dueDate || null, rating, additionalReviewerEnabled, ...(questionSetsEnabled ? { questionSets: { enabled: useQuestionSets, defaults: useQuestionSets ? questionSetDefaults : { EMPLOYEE: null, GV: null, AB: null } } } : {}) }
       if (savedDraft) {
         const response = await fetch(`/api/performance-reviews/rounds/${savedDraft.id}`, {
           method: 'PATCH',
@@ -158,7 +204,7 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
             const participantResponse = await fetch(`/api/performance-reviews/rounds/${updatedDraft.id}/dossiers`, {
               method: 'POST',
               headers: { 'content-type': 'application/json', 'Idempotency-Key': `${requestKey}:dossier:${employee.id}` },
-              body: JSON.stringify({ employeeId: employee.id, reviewerEmployeeId: employee.reviewerEmployeeId, additionalReviewerEmployeeId: employee.additionalReviewerEmployeeId, administrationId: employee.administrationId }),
+              body: JSON.stringify({ employeeId: employee.id, reviewerEmployeeId: employee.reviewerEmployeeId, additionalReviewerEmployeeId: employee.additionalReviewerEmployeeId, administrationId: employee.administrationId, questionSetOverrides: useQuestionSets ? questionSetOverrides(employee.id) : undefined }),
             })
             if (!participantResponse.ok) throw new Error('participant')
           }
@@ -174,7 +220,7 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
         const response = await fetch('/api/performance-reviews', {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'Idempotency-Key': requestKey },
-          body: JSON.stringify({ action, ...roundInput, participants: [...selected.values()].map(({ id, reviewerEmployeeId, additionalReviewerEmployeeId, administrationId }) => ({ employeeId: id, reviewerEmployeeId, additionalReviewerEmployeeId, administrationId })) }),
+          body: JSON.stringify({ action, ...roundInput, participants: [...selected.values()].map(({ id, reviewerEmployeeId, additionalReviewerEmployeeId, administrationId }) => ({ employeeId: id, reviewerEmployeeId, additionalReviewerEmployeeId, administrationId, questionSetOverrides: useQuestionSets ? questionSetOverrides(id) : undefined })) }),
         })
         if (!response.ok) throw new Error('request')
         if (action === 'save-draft') {
@@ -246,6 +292,13 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
           <label className="flex items-center gap-3 text-sm"><Checkbox checked={withRating} onChange={(event) => setWithRating(event.target.checked)} />{messages.includeRating}</label>
           {withRating ? <><label className="block text-sm font-medium">{messages.scale}<select className="mt-1 block rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2" value={scale} onChange={(event) => setScale(Number(event.target.value))}><option value={4}>4</option><option value={5}>5</option><option value={10}>10</option></select></label><div className="space-y-3">{ratingScores.map((score) => <fieldset className="grid gap-3 rounded-[var(--radius-control)] border border-border-subtle p-3 sm:grid-cols-[3rem_minmax(0,1fr)_minmax(0,1fr)]" key={score}><legend className="sr-only">{messages.score} {score}</legend><span className="self-center text-sm font-semibold">{score}</span><TextField label={messages.ratingLabel} value={ratingLabels[score] ?? ''} onChange={(value) => setRatingLabels((current) => ({ ...current, [score]: value }))} required={false} /><TextField label={messages.ratingDescription} value={ratingDescriptions[score] ?? ''} onChange={(value) => setRatingDescriptions((current) => ({ ...current, [score]: value }))} required={false} /></fieldset>)}</div></> : null}
         </Surface></> : null}
+        {questionSetsEnabled ? <Surface className="space-y-4 p-5">
+          <div className="space-y-1"><h2 className="text-lg font-semibold">{questionSetMessages.extraSet}</h2><p className="text-sm text-muted-foreground">{questionSetMessages.extraSetHint}</p></div>
+          <label className="flex items-start gap-3 text-sm"><Checkbox checked={useQuestionSets} onChange={(event) => setUseQuestionSets(event.target.checked)} /><span>{questionSetMessages.extraSet}</span></label>
+          {useQuestionSets ? <div className="grid gap-3 sm:grid-cols-3">
+            {questionSetRoles.map((role) => <label className="block text-sm font-medium" key={role}>{role === 'EMPLOYEE' ? questionSetMessages.employeeRole : role === 'GV' ? questionSetMessages.gvRole : questionSetMessages.abRole}<DropdownSelect aria-label={role === 'EMPLOYEE' ? questionSetMessages.employeeRole : role === 'GV' ? questionSetMessages.gvRole : questionSetMessages.abRole} className="mt-1 text-sm" searchable searchPlaceholder={questionSetMessages.selectSet} value={questionSetDefaults[role] ?? ''} onChange={(event) => setQuestionSetDefaults((current) => ({ ...current, [role]: event.target.value || null }))}><option value="">{questionSetMessages.noSet}</option>{questionSets.map((set) => <option key={set.id} value={set.id}>{set.name}</option>)}</DropdownSelect></label>)}
+          </div> : null}
+        </Surface> : null}
       </div>
       {wizardStep === 2 ? <aside className="space-y-4">
         <Surface className="space-y-4 p-5">
@@ -274,6 +327,13 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
               <div className="flex items-start justify-between gap-3"><span className="min-w-0"><span className="block break-words font-medium">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')}</span>{employee.administrationName ? <span className="block text-xs text-muted-foreground">{employee.administrationName}</span> : null}</span><button className="shrink-0 text-xs underline underline-offset-4" onClick={() => toggle(employee)} type="button">{messages.remove}</button></div>
               <label className="block text-xs font-medium">{messages.conversationLead}<DropdownSelect aria-label={`${messages.conversationLead}: ${employee.first_name}`} className="mt-1 text-sm" searchable searchPlaceholder={messages.roleCandidates} value={employee.reviewerEmployeeId ?? ''} onChange={(event) => setParticipantRole(employee.id, 'reviewerEmployeeId', event.target.value || null)}><option value="">{messages.reviewerRequired}</option>{candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{[candidate.first_name, candidate.birth_name].filter(Boolean).join(' ')} ({candidate.employee_number})</option>)}</DropdownSelect></label>
               {additionalReviewerEnabled ? <label className="block text-xs font-medium">{messages.additionalReviewer}<DropdownSelect aria-label={`${messages.additionalReviewer}: ${employee.first_name}`} className="mt-1 text-sm" searchable searchPlaceholder={messages.roleCandidates} value={employee.additionalReviewerEmployeeId ?? ''} onChange={(event) => setParticipantRole(employee.id, 'additionalReviewerEmployeeId', event.target.value || null)}><option value="">{messages.flipBlocked}</option>{candidates.filter((candidate) => candidate.id !== employee.reviewerEmployeeId).map((candidate) => <option key={candidate.id} value={candidate.id}>{[candidate.first_name, candidate.birth_name].filter(Boolean).join(' ')} ({candidate.employee_number})</option>)}</DropdownSelect></label> : null}
+              {useQuestionSets ? <fieldset className="space-y-2 border-t border-border-subtle pt-3"><legend className="text-xs font-semibold">{questionSetMessages.individualOverrides}</legend>
+                {questionSetRoles.filter((role) => role !== 'AB' || additionalReviewerEnabled).map((role) => {
+                  const roleLabel = role === 'EMPLOYEE' ? questionSetMessages.employeeRole : role === 'GV' ? questionSetMessages.gvRole : questionSetMessages.abRole
+                  const selectedChoice = participantQuestionSetChoices.get(employee.id)?.[role] ?? 'DEFAULT'
+                  return <label className="block text-xs font-medium" key={role}>{roleLabel}<DropdownSelect aria-label={`${roleLabel}: ${employee.first_name}`} className="mt-1 text-sm" value={selectedChoice} onChange={(event) => setQuestionSetChoice(employee.id, role, event.target.value)}><option value="DEFAULT">{questionSetMessages.overrideInherit}</option><option value="NONE">{questionSetMessages.overrideNone}</option>{questionSets.map((set) => <option key={set.id} value={set.id}>{set.name}</option>)}</DropdownSelect></label>
+                })}
+              </fieldset> : null}
             </li>
           })}</ul> : null}
           {hasAmbiguousAssignment ? <p className="text-sm text-destructive" role="alert">{messages.assignmentInvalid}</p> : null}
@@ -295,6 +355,13 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
         </Surface>
         <Surface className="space-y-3 p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="font-semibold">{messages.participants}</h3><span className="text-sm text-muted-foreground">{selected.size} {messages.selected}</span></div>
+          {useQuestionSets ? <div className="space-y-3 rounded-[var(--radius-control)] border border-border-subtle p-3"><h4 className="font-medium">{questionSetMessages.effectiveSets}</h4>{[...selected.values()].map((employee) => <div className="border-t border-border-subtle pt-2 text-sm" key={employee.id}><p className="font-medium">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')}</p><ul className="mt-1 grid gap-1 sm:grid-cols-3">{questionSetRoles.filter((role) => role !== 'AB' || additionalReviewerEnabled).map((role) => {
+              const roleLabel = role === 'EMPLOYEE' ? questionSetMessages.employeeRole : role === 'GV' ? questionSetMessages.gvRole : questionSetMessages.abRole
+              const choice = participantQuestionSetChoices.get(employee.id)?.[role] ?? 'DEFAULT'
+              const setId = choice === 'DEFAULT' ? questionSetDefaults[role] : choice === 'NONE' ? null : choice
+              const setName = questionSets.find((set) => set.id === setId)?.name
+              return <li key={role}><span className="text-muted-foreground">{roleLabel}: </span>{setName ?? questionSetMessages.noQuestionSet}<span className="ml-1 text-xs text-muted-foreground">({choice === 'DEFAULT' ? questionSetMessages.inherited : questionSetMessages.override})</span></li>
+            })}</ul></div>)}</div> : null}
           <ul className="divide-y divide-border-subtle rounded-[var(--radius-control)] border border-border-subtle">
             {[...selected.values()].map((employee) => <li className="grid gap-1 px-3 py-3 text-sm sm:grid-cols-3" key={employee.id}><span className="break-words font-medium">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')}</span><span className="text-muted-foreground">{roleCandidates.get(employee.id)?.find((candidate) => candidate.id === employee.reviewerEmployeeId)?.first_name ?? employee.reviewerName ?? messages.reviewerRequired}</span><span className="text-muted-foreground">{additionalReviewerEnabled ? roleCandidates.get(employee.id)?.find((candidate) => candidate.id === employee.additionalReviewerEmployeeId)?.first_name ?? messages.additionalReviewerOptional : employee.administrationName ?? messages.administrationRequired}</span></li>)}
           </ul>

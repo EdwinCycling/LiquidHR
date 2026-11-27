@@ -1,4 +1,4 @@
-export type ToggleableModuleCode = 'HERA' | 'REMINDERS' | 'TALENT' | 'SURVEYS' | 'ENPS' | 'TEAM_COMPASS' | 'JOURNEYS' | 'RECRUITMENT' | 'PAYROLL'
+export type ToggleableModuleCode = 'HERA' | 'REMINDERS' | 'TALENT' | 'SURVEYS' | 'ENPS' | 'TEAM_COMPASS' | 'JOURNEYS' | 'RECRUITMENT' | 'PAYROLL' | 'PERFORMANCE_REVIEW_QUESTION_SETS'
 export type BuiltInModuleCode = 'LEAVE' | 'ABSENCE'
 export type FutureModuleCode = 'ASSETS' | 'WORKFLOWS' | 'TRAINING'
 
@@ -18,6 +18,7 @@ const MODULE_CATALOG: readonly ModuleDefinition[] = [
   { code: 'JOURNEYS', status: 'AVAILABLE', toggleable: true },
   { code: 'RECRUITMENT', status: 'AVAILABLE', toggleable: true },
   { code: 'PAYROLL', status: 'AVAILABLE', toggleable: true },
+  { code: 'PERFORMANCE_REVIEW_QUESTION_SETS', status: 'AVAILABLE', toggleable: true },
   { code: 'LEAVE', status: 'AVAILABLE', toggleable: false },
   { code: 'ABSENCE', status: 'AVAILABLE', toggleable: false },
   { code: 'ASSETS', status: 'COMING_SOON', toggleable: false },
@@ -25,7 +26,7 @@ const MODULE_CATALOG: readonly ModuleDefinition[] = [
   { code: 'TRAINING', status: 'COMING_SOON', toggleable: false },
 ]
 
-const TOGGLEABLE_MODULES = new Set<ToggleableModuleCode>(['HERA', 'REMINDERS', 'TALENT', 'SURVEYS', 'ENPS', 'TEAM_COMPASS', 'JOURNEYS', 'RECRUITMENT', 'PAYROLL'])
+const TOGGLEABLE_MODULES = new Set<ToggleableModuleCode>(['HERA', 'REMINDERS', 'TALENT', 'SURVEYS', 'ENPS', 'TEAM_COMPASS', 'JOURNEYS', 'RECRUITMENT', 'PAYROLL', 'PERFORMANCE_REVIEW_QUESTION_SETS'])
 
 export function getModuleCatalog(): readonly ModuleDefinition[] {
   return MODULE_CATALOG

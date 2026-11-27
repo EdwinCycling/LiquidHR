@@ -9,6 +9,9 @@ import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { Surface } from '@/components/ui/surface'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import type { Locale } from '@/lib/i18n/config'
+import nlQuestionSetMessages from '@/messages/nl/performanceReviewQuestionSets.json'
+import enQuestionSetMessages from '@/messages/en/performanceReviewQuestionSets.json'
 
 type Participant = {
   id: string
@@ -21,6 +24,9 @@ type Participant = {
   phase?: string
   version?: number
 }
+type QuestionSetRole = 'EMPLOYEE' | 'GV' | 'AB'
+type QuestionSetOption = { id: string; name: string; status: 'DRAFT' | 'AVAILABLE' | 'ARCHIVED' }
+type QuestionSetOverride = { mode: 'NONE' } | { mode: 'SET'; questionSetId: string }
 type Round = {
   id: string
   title: string
@@ -31,6 +37,7 @@ type Round = {
   period_end: string
   due_date?: string | null
   additional_reviewer_enabled?: boolean
+  questionSetConfig?: { enabled?: boolean; defaults?: Record<QuestionSetRole, string | null>; published_defaults_snapshot?: Record<QuestionSetRole, { sourceSetName?: string; questions?: unknown[] } | null> | null }
   participants?: Participant[]
   dossiers?: Participant[]
 }
@@ -47,7 +54,8 @@ function phaseLabel(phase: string, labels: Labels) {
   return ({ WAITING_EMPLOYEE: labels.waitingEmployee, WAITING_ADDITIONAL_REVIEWER: labels.waitingAdditionalReviewer, WAITING_MANAGER: labels.waitingManager, WAITING_ACKNOWLEDGEMENT: labels.waitingAcknowledgement, WAITING_REVIEWER_CLOSE: labels.waitingReviewerClose, COMPLETED_AGREED: labels.completedAgreed, COMPLETED_DISAGREED: labels.completedDisagreed, CANCELLED: labels.phaseCancelled } as Record<string, string>)[phase] ?? phase
 }
 
-export function PerformanceReviewRoundDetail({ roundId, labels }: { roundId: string; labels: Labels }) {
+export function PerformanceReviewRoundDetail({ roundId, labels, locale = 'nl', questionSetsEnabled = false }: { roundId: string; labels: Labels; locale?: Locale; questionSetsEnabled?: boolean }) {
+  const questionSetMessages = locale === 'nl' ? nlQuestionSetMessages : enQuestionSetMessages
   const [round, setRound] = useState<Round | null>(null)
   const [closeReason, setCloseReason] = useState('')
   const [employeeSearch, setEmployeeSearch] = useState('')
@@ -66,6 +74,9 @@ export function PerformanceReviewRoundDetail({ roundId, labels }: { roundId: str
   const [confirmFlip, setConfirmFlip] = useState(false)
   const [flipResult, setFlipResult] = useState<{ changed?: number; blocked?: number } | null>(null)
   const [participantQuery, setParticipantQuery] = useState('')
+  const [questionSets, setQuestionSets] = useState<QuestionSetOption[]>([])
+  const [pendingEmployee, setPendingEmployee] = useState<(typeof employees)[number] | null>(null)
+  const [pendingQuestionSetChoices, setPendingQuestionSetChoices] = useState<Partial<Record<QuestionSetRole, 'DEFAULT' | 'NONE' | string>>>({})
 
   async function refresh() {
     const response = await fetch('/api/performance-reviews/rounds/' + encodeURIComponent(roundId))
@@ -73,24 +84,49 @@ export function PerformanceReviewRoundDetail({ roundId, labels }: { roundId: str
   }
   useEffect(() => { let active = true; void fetch('/api/performance-reviews/rounds/' + encodeURIComponent(roundId)).then((response) => response.ok ? response.json() as Promise<Round | null> : null).then((value) => { if (active) setRound(value) }).catch(() => undefined); return () => { active = false } }, [roundId])
   useEffect(() => {
+    if (!questionSetsEnabled) return
+    let active = true
+    void fetch('/api/performance-reviews/question-sets').then((response) => response.ok ? response.json() as Promise<{ items?: QuestionSetOption[] }> : { items: [] })
+      .then((result) => { if (active) setQuestionSets((result.items ?? []).filter((item) => item.status === 'AVAILABLE')) })
+      .catch(() => { if (active) setQuestionSets([]) })
+    return () => { active = false }
+  }, [questionSetsEnabled])
+  useEffect(() => {
     let active = true
     if (!employeeSearch.trim()) { window.setTimeout(() => { if (active) setEmployees([]) }, 0); return () => { active = false } }
     const timer = window.setTimeout(() => { void fetch('/api/performance-reviews/employees?search=' + encodeURIComponent(employeeSearch)).then((response) => response.ok ? response.json() as Promise<{ items?: typeof employees }> : { items: [] }).then((result) => { if (active) setEmployees(result.items ?? []) }).catch(() => undefined) }, 250)
     return () => { active = false; window.clearTimeout(timer) }
   }, [employeeSearch])
 
-  async function addParticipant(employee: (typeof employees)[number]) {
+  async function addParticipant(employee: (typeof employees)[number], overrides?: Partial<Record<QuestionSetRole, QuestionSetOverride>>) {
     setBusy(true); setMessage(null)
     try {
       const requestKey = addIdempotencyKey || crypto.randomUUID()
       setAddIdempotencyKey(requestKey)
       const response = await fetch('/api/performance-reviews/rounds/' + encodeURIComponent(roundId) + '/dossiers', {
         method: 'POST', headers: { 'content-type': 'application/json', 'Idempotency-Key': requestKey },
-        body: JSON.stringify({ employeeId: employee.id, reviewerEmployeeId: employee.reviewerEmployeeId, administrationId: employee.administrationId }),
+        body: JSON.stringify({ employeeId: employee.id, reviewerEmployeeId: employee.reviewerEmployeeId, administrationId: employee.administrationId, questionSetOverrides: overrides }),
       })
       if (!response.ok) throw new Error('add')
-      setAddIdempotencyKey(''); setEmployeeSearch(''); setEmployees([]); setMessage(labels.saved); await refresh()
+      setAddIdempotencyKey(''); setEmployeeSearch(''); setEmployees([]); setPendingEmployee(null); setPendingQuestionSetChoices({}); setMessage(labels.saved); await refresh()
     } catch { setMessage(labels.error) } finally { setBusy(false) }
+  }
+  function selectEmployee(employee: (typeof employees)[number]) {
+    if (questionSetsEnabled && round?.questionSetConfig?.enabled) {
+      setPendingEmployee(employee)
+      setPendingQuestionSetChoices({})
+    } else void addParticipant(employee)
+  }
+  async function addPendingEmployee() {
+    if (!pendingEmployee) return
+    const overrides: Partial<Record<QuestionSetRole, QuestionSetOverride>> = {}
+    for (const role of ['EMPLOYEE', 'GV', 'AB'] as const) {
+      if (role === 'AB' && !round?.additional_reviewer_enabled) continue
+      const choice = pendingQuestionSetChoices[role] ?? 'DEFAULT'
+      if (choice === 'NONE') overrides[role] = { mode: 'NONE' }
+      else if (choice !== 'DEFAULT') overrides[role] = { mode: 'SET', questionSetId: choice }
+    }
+    await addParticipant(pendingEmployee, Object.keys(overrides).length ? overrides : undefined)
   }
   async function closeRound() {
     if (!round || !closeReason.trim()) return
@@ -159,7 +195,15 @@ export function PerformanceReviewRoundDetail({ roundId, labels }: { roundId: str
         </Surface>
         <Surface className="space-y-4 p-5">
           <div className="flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-semibold"><UserPlus aria-hidden="true" className="size-4" />{labels.participants}</h2><span className="text-sm text-muted-foreground">{participants.length}</span></div>
-          <div className="relative"><input aria-label={labels.employee} className="min-h-10 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm" placeholder={labels.employee} value={employeeSearch} onChange={(event) => setEmployeeSearch(event.target.value)} />{employees.length ? <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-[var(--radius-control)] border border-border bg-surface">{employees.map((employee) => <button className="block w-full px-3 py-2 text-left text-sm hover:bg-surface-raised" key={employee.id} onClick={() => void addParticipant(employee)} type="button">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')} <span className="text-xs text-muted-foreground">({employee.employee_number})</span></button>)}</div> : null}</div>
+          <div className="relative"><input aria-label={labels.employee} className="min-h-10 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm" placeholder={labels.employee} value={employeeSearch} onChange={(event) => { setEmployeeSearch(event.target.value); setPendingEmployee(null) }} />{employees.length ? <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-[var(--radius-control)] border border-border bg-surface">{employees.map((employee) => <button className="block w-full px-3 py-2 text-left text-sm hover:bg-surface-raised" key={employee.id} onClick={() => selectEmployee(employee)} type="button">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')} <span className="text-xs text-muted-foreground">({employee.employee_number})</span></button>)}</div> : null}</div>
+          {pendingEmployee && round.questionSetConfig?.enabled ? <Surface className="space-y-3 p-4" variant="subtle">
+            <div><h3 className="font-semibold">{questionSetMessages.individualOverrides}</h3><p className="mt-1 text-sm text-muted-foreground">{[pendingEmployee.first_name, pendingEmployee.birth_name].filter(Boolean).join(' ')}</p></div>
+            {(['EMPLOYEE', 'GV', ...(round.additional_reviewer_enabled ? ['AB'] : [])] as QuestionSetRole[]).map((role) => {
+              const roleLabel = role === 'EMPLOYEE' ? questionSetMessages.employeeRole : role === 'GV' ? questionSetMessages.gvRole : questionSetMessages.abRole
+              return <label className="block text-sm font-medium" key={role}>{roleLabel}<select className="mt-1 min-h-10 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3" value={pendingQuestionSetChoices[role] ?? 'DEFAULT'} onChange={(event) => setPendingQuestionSetChoices((current) => ({ ...current, [role]: event.target.value }))}><option value="DEFAULT">{questionSetMessages.overrideInherit}</option><option value="NONE">{questionSetMessages.overrideNone}</option>{questionSets.map((set) => <option key={set.id} value={set.id}>{set.name}</option>)}</select></label>
+            })}
+            <div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void addPendingEmployee()}>{labels.add}</Button><Button disabled={busy} onClick={() => setPendingEmployee(null)} variant="secondary">{questionSetMessages.back}</Button></div>
+          </Surface> : null}
           {round.additional_reviewer_enabled ? <Surface className="space-y-2 p-4" variant="subtle">
             <div className="flex items-center gap-2"><RotateCcw aria-hidden="true" className="size-4" /><h3 className="font-semibold">{labels.bulkFlip}</h3></div>
             <label className="block text-sm font-medium">{labels.bulkFlip}<select className="mt-1 min-h-10 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3" value={flipScope} onChange={(event) => { setFlipScope(event.target.value as typeof flipScope); setPreview(null); setFlipRequestKey('') }}><option value="ALL">{labels.flipAll}</option><option value="FILTERED">{labels.flipFiltered}</option><option value="SELECTED">{labels.flipSelected}</option></select></label>

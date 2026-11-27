@@ -4,6 +4,10 @@ const date = z.iso.date()
 const text = z.string().trim().min(1).max(10000)
 const version = z.number().int().positive()
 const ratingOption = z.object({ score: z.number().int().positive(), label: z.string().trim().min(1).max(160), description: text }).strict()
+const questionSetRoundConfig = z.object({
+  enabled: z.boolean(),
+  defaults: z.object({ EMPLOYEE: z.uuid().nullable(), GV: z.uuid().nullable(), AB: z.uuid().nullable() }).strict(),
+}).strict()
 
 export const roundSchema = z.object({
   title: z.string().trim().min(1).max(160),
@@ -15,6 +19,7 @@ export const roundSchema = z.object({
   dueDate: date.nullable().optional(),
   rating: z.object({ options: z.array(ratingOption) }).strict().nullable(),
   additionalReviewerEnabled: z.boolean().default(false),
+  questionSets: questionSetRoundConfig.optional(),
 }).strict().superRefine((value, ctx) => {
   if (value.periodStart > value.periodEnd) ctx.addIssue({ code: 'custom', path: ['periodEnd'], message: 'PERIOD_ORDER_INVALID' })
   if (value.dueDate && value.dueDate < value.startDate) ctx.addIssue({ code: 'custom', path: ['dueDate'], message: 'DUE_DATE_BEFORE_START' })

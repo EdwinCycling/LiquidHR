@@ -410,6 +410,10 @@
         "name": "Payroll",
         "description": "Verbind en beheer salarisproviders binnen de actieve HR-groep."
       },
+      "PERFORMANCE_REVIEW_QUESTION_SETS": {
+        "name": "Vragensets voor gesprekken",
+        "description": "Optionele, door HR beheerde vragen bij gespreksrondes."
+      },
       "LEAVE": {
         "name": "Verlof",
         "description": "Verlofregistratie en verlofsaldi in de medewerkerskalender."
