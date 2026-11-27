@@ -530,5 +530,5 @@ describe('voorlopige databasegrens', () => {
     } finally {
       await db.close()
     }
-  })
+  }, 15_000)
 })

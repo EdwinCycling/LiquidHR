@@ -14,6 +14,232 @@ export type Database = {
   }
   public: {
     Tables: {
+      performance_review_rounds: {
+        Row: { id: string; tenant_id: string; hr_group_id: string; title: string; round_type: string; introduction: string; period_start: string; period_end: string; start_date: string; due_date: string | null; rating_snapshot: Json | null; status: string; version: number; created_by: string; created_at: string ; additional_reviewer_enabled: boolean;}
+        Insert: { id?: string; tenant_id: string; hr_group_id: string; title: string; round_type?: string; introduction: string; period_start: string; period_end: string; start_date: string; due_date?: string | null; rating_snapshot?: Json | null; status?: string; version?: number; created_by: string; created_at?: string ; additional_reviewer_enabled?: boolean;}
+        Update: { id?: string; tenant_id?: string; hr_group_id?: string; title?: string; round_type?: string; introduction?: string; period_start?: string; period_end?: string; start_date?: string; due_date?: string | null; rating_snapshot?: Json | null; status?: string; version?: number; created_by?: string; created_at?: string ; additional_reviewer_enabled?: boolean;}
+        Relationships: [
+          { foreignKeyName: "performance_review_rounds_tenant_id_fkey"; columns: ["tenant_id"]; isOneToOne: false; referencedRelation: "tenants"; referencedColumns: ["id"] },
+          { foreignKeyName: "performance_review_rounds_tenant_id_hr_group_id_fkey"; columns: ["tenant_id", "hr_group_id"]; isOneToOne: false; referencedRelation: "hr_groups"; referencedColumns: ["tenant_id", "id"] }
+        ]
+      }
+      performance_review_dossiers: {
+        Row: { id: string; tenant_id: string; round_id: string; hr_group_id: string; administration_id: string; employee_id: string; reviewer_employee_id: string; phase: string; process_instance_id: string | null; version: number; created_at: string ; additional_reviewer_employee_id: string | null; additional_reviewer_released_at: string | null; additional_reviewer_released_by: string | null; additional_reviewer_workflow: boolean; reviewer_assignment_override: boolean;}
+        Insert: { id?: string; tenant_id: string; round_id: string; hr_group_id: string; administration_id: string; employee_id: string; reviewer_employee_id: string; phase?: string; process_instance_id?: string | null; version?: number; created_at?: string ; additional_reviewer_employee_id?: string | null; additional_reviewer_released_at?: string | null; additional_reviewer_released_by?: string | null; additional_reviewer_workflow?: boolean; reviewer_assignment_override?: boolean;}
+        Update: { id?: string; tenant_id?: string; round_id?: string; hr_group_id?: string; administration_id?: string; employee_id?: string; reviewer_employee_id?: string; phase?: string; process_instance_id?: string | null; version?: number; created_at?: string ; additional_reviewer_employee_id?: string | null; additional_reviewer_released_at?: string | null; additional_reviewer_released_by?: string | null; additional_reviewer_workflow?: boolean; reviewer_assignment_override?: boolean;}
+        Relationships: [
+          { foreignKeyName: "performance_review_dossiers_tenant_id_hr_group_id_administ_fkey"; columns: ["tenant_id", "hr_group_id", "administration_id"]; isOneToOne: false; referencedRelation: "administrations"; referencedColumns: ["tenant_id", "hr_group_id", "id"] },
+          { foreignKeyName: "performance_review_dossiers_tenant_id_hr_group_id_employee_fkey"; columns: ["tenant_id", "hr_group_id", "employee_id"]; isOneToOne: false; referencedRelation: "employees"; referencedColumns: ["tenant_id", "hr_group_id", "id"] },
+          { foreignKeyName: "performance_review_dossiers_tenant_id_hr_group_id_reviewer_fkey"; columns: ["tenant_id", "hr_group_id", "reviewer_employee_id"]; isOneToOne: false; referencedRelation: "employees"; referencedColumns: ["tenant_id", "hr_group_id", "id"] },
+          { foreignKeyName: "performance_review_dossiers_tenant_id_hr_group_id_round_id_fkey"; columns: ["tenant_id", "hr_group_id", "round_id"]; isOneToOne: false; referencedRelation: "performance_review_rounds"; referencedColumns: ["tenant_id", "hr_group_id", "id"] },
+          {
+            foreignKeyName: "performance_review_dossiers_additional_reviewer_fk"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "additional_reviewer_employee_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      performance_review_submissions: {
+        Row: { id: string; tenant_id: string; dossier_id: string; kind: string; author_user_id: string; body: string; score: number | null; rating_explanation: string | null; meeting_date: string | null; submitted_at: string | null; version: number }
+        Insert: { id?: string; tenant_id: string; dossier_id: string; kind: string; author_user_id: string; body: string; score?: number | null; rating_explanation?: string | null; meeting_date?: string | null; submitted_at?: string | null; version?: number }
+        Update: { id?: string; tenant_id?: string; dossier_id?: string; kind?: string; author_user_id?: string; body?: string; score?: number | null; rating_explanation?: string | null; meeting_date?: string | null; submitted_at?: string | null; version?: number }
+        Relationships: [{ foreignKeyName: "performance_review_submissions_tenant_id_dossier_id_fkey"; columns: ["tenant_id", "dossier_id"]; isOneToOne: false; referencedRelation: "performance_review_dossiers"; referencedColumns: ["tenant_id", "id"] }]
+      }
+      performance_review_private_notes: {
+        Row: { id: string; tenant_id: string; dossier_id: string; author_user_id: string; body: string; version: number; created_at: string }
+        Insert: { id?: string; tenant_id: string; dossier_id: string; author_user_id: string; body: string; version: number; created_at?: string }
+        Update: { id?: string; tenant_id?: string; dossier_id?: string; author_user_id?: string; body?: string; version?: number; created_at?: string }
+        Relationships: [{ foreignKeyName: "performance_review_private_notes_tenant_id_dossier_id_fkey"; columns: ["tenant_id", "dossier_id"]; isOneToOne: false; referencedRelation: "performance_review_dossiers"; referencedColumns: ["tenant_id", "id"] }]
+      }
+      performance_review_acknowledgements: {
+        Row: { tenant_id: string; dossier_id: string; actor_user_id: string; decision: string; reason: string | null; created_at: string }
+        Insert: { tenant_id: string; dossier_id: string; actor_user_id: string; decision: string; reason?: string | null; created_at?: string }
+        Update: { tenant_id?: string; dossier_id?: string; actor_user_id?: string; decision?: string; reason?: string | null; created_at?: string }
+        Relationships: [{ foreignKeyName: "performance_review_acknowledgements_tenant_id_dossier_id_fkey"; columns: ["tenant_id", "dossier_id"]; isOneToOne: true; referencedRelation: "performance_review_dossiers"; referencedColumns: ["tenant_id", "id"] }]
+      }
+      performance_review_attachments: {
+        Row: { id: string; tenant_id: string; dossier_id: string; uploaded_by: string; storage_key: string; original_filename: string; content_type: string; file_size: number; checksum_sha256: string; released_at: string | null; created_at: string }
+        Insert: { id?: string; tenant_id: string; dossier_id: string; uploaded_by: string; storage_key: string; original_filename: string; content_type: string; file_size: number; checksum_sha256: string; released_at?: string | null; created_at?: string }
+        Update: { id?: string; tenant_id?: string; dossier_id?: string; uploaded_by?: string; storage_key?: string; original_filename?: string; content_type?: string; file_size?: number; checksum_sha256?: string; released_at?: string | null; created_at?: string }
+        Relationships: [{ foreignKeyName: "performance_review_attachments_tenant_id_dossier_id_fkey"; columns: ["tenant_id", "dossier_id"]; isOneToOne: false; referencedRelation: "performance_review_dossiers"; referencedColumns: ["tenant_id", "id"] }]
+      }
+      performance_review_appraisal_links: {
+        Row: { tenant_id: string; dossier_id: string; appraisal_item_id: string; created_by: string; created_at: string }
+        Insert: { tenant_id: string; dossier_id: string; appraisal_item_id: string; created_by: string; created_at?: string }
+        Update: { tenant_id?: string; dossier_id?: string; appraisal_item_id?: string; created_by?: string; created_at?: string }
+        Relationships: [
+          { foreignKeyName: "performance_review_appraisal_l_tenant_id_appraisal_item_id_fkey"; columns: ["tenant_id", "appraisal_item_id"]; isOneToOne: false; referencedRelation: "continuous_appraisal_items"; referencedColumns: ["tenant_id", "id"] },
+          { foreignKeyName: "performance_review_appraisal_links_tenant_id_dossier_id_fkey"; columns: ["tenant_id", "dossier_id"]; isOneToOne: false; referencedRelation: "performance_review_dossiers"; referencedColumns: ["tenant_id", "id"] }
+        ]
+      }
+      performance_review_audit_events: {
+        Row: { id: string; tenant_id: string; round_id: string | null; dossier_id: string | null; actor_user_id: string | null; actor_kind: string; action: string; reason: string | null; created_at: string ; details: Json;}
+        Insert: { id?: string; tenant_id: string; round_id?: string | null; dossier_id?: string | null; actor_user_id?: string | null; actor_kind?: string; action: string; reason?: string | null; created_at?: string ; details?: Json;}
+        Update: { id?: string; tenant_id?: string; round_id?: string | null; dossier_id?: string | null; actor_user_id?: string | null; actor_kind?: string; action?: string; reason?: string | null; created_at?: string ; details?: Json;}
+        Relationships: [
+          { foreignKeyName: "performance_review_audit_events_tenant_id_dossier_id_fkey"; columns: ["tenant_id", "dossier_id"]; isOneToOne: false; referencedRelation: "performance_review_dossiers"; referencedColumns: ["tenant_id", "id"] },
+          { foreignKeyName: "performance_review_audit_events_tenant_id_round_id_fkey"; columns: ["tenant_id", "round_id"]; isOneToOne: false; referencedRelation: "performance_review_rounds"; referencedColumns: ["tenant_id", "id"] }
+        ]
+      }
+      performance_review_command_results: {
+        Row: { tenant_id: string; actor_user_id: string; operation: string; idempotency_key: string; request_hash: string; result_id: string; result_version: number | null; created_at: string }
+        Insert: { tenant_id: string; actor_user_id: string; operation: string; idempotency_key: string; request_hash: string; result_id: string; result_version?: number | null; created_at?: string }
+        Update: { tenant_id?: string; actor_user_id?: string; operation?: string; idempotency_key?: string; request_hash?: string; result_id?: string; result_version?: number | null; created_at?: string }
+        Relationships: []
+      }
+      absence_guidance: {
+        Row: { case_id: string; tenant_id: string; hr_group_id: string; administration_id: string; process_instance_id: string; closed_at: string | null; created_at: string }
+        Insert: { case_id: string; tenant_id: string; hr_group_id: string; administration_id: string; process_instance_id: string; closed_at?: string | null; created_at?: string }
+        Update: { case_id?: string; tenant_id?: string; hr_group_id?: string; administration_id?: string; process_instance_id?: string; closed_at?: string | null; created_at?: string }
+        Relationships: [
+          { foreignKeyName: "absence_guidance_case_id_fkey"; columns: ["case_id"]; isOneToOne: true; referencedRelation: "absence_cases"; referencedColumns: ["id"] },
+          { foreignKeyName: "absence_guidance_tenant_id_hr_group_id_case_id_fkey"; columns: ["tenant_id", "hr_group_id", "case_id"]; isOneToOne: false; referencedRelation: "absence_cases"; referencedColumns: ["tenant_id", "hr_group_id", "id"] },
+          { foreignKeyName: "absence_guidance_tenant_id_hr_group_id_administration_id_fkey"; columns: ["tenant_id", "hr_group_id", "administration_id"]; isOneToOne: false; referencedRelation: "administrations"; referencedColumns: ["tenant_id", "hr_group_id", "id"] },
+          { foreignKeyName: "absence_guidance_tenant_id_hr_group_id_process_instance_id_fkey"; columns: ["tenant_id", "hr_group_id", "process_instance_id"]; isOneToOne: false; referencedRelation: "process_instances"; referencedColumns: ["tenant_id", "hr_group_id", "id"] }
+        ]
+      }
+      absence_guidance_events: {
+        Row: { id: string; case_id: string; event_type: string; occurred_on: string; task_id: string | null; agreement_code: string | null; review_on: string | null; agreement_id: string | null; actor_user_id: string; idempotency_key: string; created_at: string }
+        Insert: { id?: string; case_id: string; event_type: string; occurred_on: string; task_id?: string | null; agreement_code?: string | null; review_on?: string | null; agreement_id?: string | null; actor_user_id: string; idempotency_key: string; created_at?: string }
+        Update: { id?: string; case_id?: string; event_type?: string; occurred_on?: string; task_id?: string | null; agreement_code?: string | null; review_on?: string | null; agreement_id?: string | null; actor_user_id?: string; idempotency_key?: string; created_at?: string }
+        Relationships: [
+          { foreignKeyName: "absence_guidance_events_case_id_fkey"; columns: ["case_id"]; isOneToOne: false; referencedRelation: "absence_guidance"; referencedColumns: ["case_id"] },
+          { foreignKeyName: "absence_guidance_events_task_id_fkey"; columns: ["task_id"]; isOneToOne: false; referencedRelation: "absence_tasks"; referencedColumns: ["id"] },
+          { foreignKeyName: "absence_guidance_events_agreement_id_fkey"; columns: ["agreement_id"]; isOneToOne: false; referencedRelation: "absence_guidance_events"; referencedColumns: ["id"] }
+        ]
+      }
+      wvp_document_links: {
+        Row: { id: string; case_id: string; task_id: string; document_id: string; created_by_user_id: string; created_at: string; removed_at: string | null; removed_by_user_id: string | null }
+        Insert: { id?: string; case_id: string; task_id: string; document_id: string; created_by_user_id?: string; created_at?: string; removed_at?: string | null; removed_by_user_id?: string | null }
+        Update: { id?: string; case_id?: string; task_id?: string; document_id?: string; created_by_user_id?: string; created_at?: string; removed_at?: string | null; removed_by_user_id?: string | null }
+        Relationships: [
+          { foreignKeyName: "wvp_document_links_case_id_fkey"; columns: ["case_id"]; isOneToOne: false; referencedRelation: "absence_guidance"; referencedColumns: ["case_id"] },
+          { foreignKeyName: "wvp_document_links_task_id_fkey"; columns: ["task_id"]; isOneToOne: false; referencedRelation: "absence_tasks"; referencedColumns: ["id"] },
+          { foreignKeyName: "wvp_document_links_document_id_fkey"; columns: ["document_id"]; isOneToOne: false; referencedRelation: "employee_documents"; referencedColumns: ["id"] }
+        ]
+      }
+      work_calendars: {
+        Row: {
+          id: string
+          tenant_id: string
+          hr_group_id: string
+          administration_id: string | null
+          current_revision: number
+          current_version_id: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          hr_group_id: string
+          administration_id?: string | null
+          current_revision?: number
+          current_version_id?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          hr_group_id?: string
+          administration_id?: string | null
+          current_revision?: number
+          current_version_id?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "work_calendars_current_version_fk"; columns: ["tenant_id","hr_group_id","id","current_version_id"]; isOneToOne: false; referencedRelation: "work_calendar_versions"; referencedColumns: ["tenant_id","hr_group_id","calendar_id","id"] },
+          { foreignKeyName: "work_calendars_tenant_id_hr_group_id_fkey"; columns: ["tenant_id","hr_group_id"]; isOneToOne: false; referencedRelation: "hr_groups"; referencedColumns: ["tenant_id","id"] },
+          { foreignKeyName: "work_calendars_tenant_id_hr_group_id_administration_id_fkey"; columns: ["tenant_id","hr_group_id","administration_id"]; isOneToOne: false; referencedRelation: "administrations"; referencedColumns: ["tenant_id","hr_group_id","id"] },
+        ]
+      }
+      work_calendar_versions: {
+        Row: {
+          id: string
+          tenant_id: string
+          hr_group_id: string
+          calendar_id: string
+          revision: number
+          name: string
+          time_zone: string
+          weekdays: number[]
+          valid_from: string
+          valid_until: string
+          holiday_selection_confirmed: boolean
+          reason: string
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          hr_group_id: string
+          calendar_id: string
+          revision: number
+          name: string
+          time_zone: string
+          weekdays: number[]
+          valid_from: string
+          valid_until: string
+          holiday_selection_confirmed: boolean
+          reason: string
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          hr_group_id?: string
+          calendar_id?: string
+          revision?: number
+          name?: string
+          time_zone?: string
+          weekdays?: number[]
+          valid_from?: string
+          valid_until?: string
+          holiday_selection_confirmed?: boolean
+          reason?: string
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "work_calendar_versions_tenant_id_hr_group_id_calendar_id_fkey"; columns: ["tenant_id","hr_group_id","calendar_id"]; isOneToOne: false; referencedRelation: "work_calendars"; referencedColumns: ["tenant_id","hr_group_id","id"] },
+        ]
+      }
+      work_calendar_exceptions: {
+        Row: {
+          tenant_id: string
+          hr_group_id: string
+          version_id: string
+          exception_date: string
+          is_workday: boolean
+          label: string
+          source_holiday_id: string | null
+        }
+        Insert: {
+          tenant_id: string
+          hr_group_id: string
+          version_id: string
+          exception_date: string
+          is_workday: boolean
+          label: string
+          source_holiday_id?: string | null
+        }
+        Update: {
+          tenant_id?: string
+          hr_group_id?: string
+          version_id?: string
+          exception_date?: string
+          is_workday?: boolean
+          label?: string
+          source_holiday_id?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "work_calendar_exceptions_tenant_id_hr_group_id_version_id_fkey"; columns: ["tenant_id","hr_group_id","version_id"]; isOneToOne: false; referencedRelation: "work_calendar_versions"; referencedColumns: ["tenant_id","hr_group_id","id"] },
+        ]
+      }
       absence_capacity_changes: {
         Row: {
           absence_hours_per_week: number | null
@@ -330,129 +556,6 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      absence_guidance: {
-        Row: {
-          administration_id: string
-          case_id: string
-          closed_at: string | null
-          created_at: string
-          hr_group_id: string
-          process_instance_id: string
-          tenant_id: string
-        }
-        Insert: {
-          administration_id: string
-          case_id: string
-          closed_at?: string | null
-          created_at?: string
-          hr_group_id: string
-          process_instance_id: string
-          tenant_id: string
-        }
-        Update: {
-          administration_id?: string
-          case_id?: string
-          closed_at?: string | null
-          created_at?: string
-          hr_group_id?: string
-          process_instance_id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "absence_guidance_case_id_fkey"
-            columns: ["case_id"]
-            isOneToOne: true
-            referencedRelation: "absence_cases"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "absence_guidance_tenant_id_hr_group_id_administration_id_fkey"
-            columns: ["tenant_id", "hr_group_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "absence_guidance_tenant_id_hr_group_id_case_id_fkey"
-            columns: ["tenant_id", "hr_group_id", "case_id"]
-            isOneToOne: false
-            referencedRelation: "absence_cases"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "absence_guidance_tenant_id_hr_group_id_process_instance_id_fkey"
-            columns: ["tenant_id", "hr_group_id", "process_instance_id"]
-            isOneToOne: false
-            referencedRelation: "process_instances"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-        ]
-      }
-      absence_guidance_events: {
-        Row: {
-          actor_user_id: string
-          agreement_code: string | null
-          agreement_id: string | null
-          case_id: string
-          created_at: string
-          event_type: string
-          id: string
-          idempotency_key: string
-          occurred_on: string
-          review_on: string | null
-          task_id: string | null
-        }
-        Insert: {
-          actor_user_id: string
-          agreement_code?: string | null
-          agreement_id?: string | null
-          case_id: string
-          created_at?: string
-          event_type: string
-          id?: string
-          idempotency_key: string
-          occurred_on: string
-          review_on?: string | null
-          task_id?: string | null
-        }
-        Update: {
-          actor_user_id?: string
-          agreement_code?: string | null
-          agreement_id?: string | null
-          case_id?: string
-          created_at?: string
-          event_type?: string
-          id?: string
-          idempotency_key?: string
-          occurred_on?: string
-          review_on?: string | null
-          task_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "absence_guidance_events_agreement_id_fkey"
-            columns: ["agreement_id"]
-            isOneToOne: false
-            referencedRelation: "absence_guidance_events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "absence_guidance_events_case_id_fkey"
-            columns: ["case_id"]
-            isOneToOne: false
-            referencedRelation: "absence_guidance"
-            referencedColumns: ["case_id"]
-          },
-          {
-            foreignKeyName: "absence_guidance_events_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "absence_tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -823,340 +926,6 @@ export type Database = {
           },
         ]
       }
-      actual_work_payroll_approvals: {
-        Row: {
-          administration_id: string
-          approved_at: string
-          approved_by: string
-          content_fingerprint: string
-          employee_id: string
-          employment_id: string
-          entry_id: string
-          entry_revision_number: number
-          hr_group_id: string
-          id: string
-          payroll_period_end: string
-          payroll_period_id: string
-          payroll_period_start: string
-          payroll_periodicity: string
-          reviewed_revision_number: number
-          tenant_id: string
-        }
-        Insert: {
-          administration_id: string
-          approved_at?: string
-          approved_by: string
-          content_fingerprint: string
-          employee_id: string
-          employment_id: string
-          entry_id: string
-          entry_revision_number: number
-          hr_group_id: string
-          id?: string
-          payroll_period_end: string
-          payroll_period_id: string
-          payroll_period_start: string
-          payroll_periodicity: string
-          reviewed_revision_number: number
-          tenant_id: string
-        }
-        Update: {
-          administration_id?: string
-          approved_at?: string
-          approved_by?: string
-          content_fingerprint?: string
-          employee_id?: string
-          employment_id?: string
-          entry_id?: string
-          entry_revision_number?: number
-          hr_group_id?: string
-          id?: string
-          payroll_period_end?: string
-          payroll_period_id?: string
-          payroll_period_start?: string
-          payroll_periodicity?: string
-          reviewed_revision_number?: number
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "actual_work_payroll_approvals_employment_fkey"
-            columns: [
-              "tenant_id",
-              "administration_id",
-              "employee_id",
-              "employment_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "employments"
-            referencedColumns: [
-              "tenant_id",
-              "administration_id",
-              "employee_id",
-              "id",
-            ]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_approvals_entry_fkey"
-            columns: ["tenant_id", "hr_group_id", "entry_id"]
-            isOneToOne: false
-            referencedRelation: "employment_work_hour_entries"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_approvals_group_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_approvals_reviewed_revision_fkey"
-            columns: ["entry_id", "reviewed_revision_number"]
-            isOneToOne: false
-            referencedRelation: "actual_work_revisions"
-            referencedColumns: ["entry_id", "revision_number"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_approvals_revision_fkey"
-            columns: ["entry_id", "entry_revision_number"]
-            isOneToOne: true
-            referencedRelation: "actual_work_revisions"
-            referencedColumns: ["entry_id", "revision_number"]
-          },
-        ]
-      }
-      actual_work_payroll_mappings: {
-        Row: {
-          administration_id: string
-          calculation_rule: string
-          created_at: string
-          created_by: string
-          factor: number | null
-          hr_group_id: string
-          id: string
-          processing_target: string
-          salary_component_code: string | null
-          salary_component_id: string | null
-          salary_component_output: string | null
-          salary_component_version: string | null
-          supersedes_mapping_id: string | null
-          tenant_id: string
-          updated_at: string
-          updated_by: string | null
-          valid_from: string
-          valid_until: string | null
-          version_number: number
-          work_hour_type_id: string
-        }
-        Insert: {
-          administration_id: string
-          calculation_rule: string
-          created_at?: string
-          created_by: string
-          factor?: number | null
-          hr_group_id: string
-          id?: string
-          processing_target: string
-          salary_component_code?: string | null
-          salary_component_id?: string | null
-          salary_component_output?: string | null
-          salary_component_version?: string | null
-          supersedes_mapping_id?: string | null
-          tenant_id: string
-          updated_at?: string
-          updated_by?: string | null
-          valid_from: string
-          valid_until?: string | null
-          version_number?: number
-          work_hour_type_id: string
-        }
-        Update: {
-          administration_id?: string
-          calculation_rule?: string
-          created_at?: string
-          created_by?: string
-          factor?: number | null
-          hr_group_id?: string
-          id?: string
-          processing_target?: string
-          salary_component_code?: string | null
-          salary_component_id?: string | null
-          salary_component_output?: string | null
-          salary_component_version?: string | null
-          supersedes_mapping_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          valid_from?: string
-          valid_until?: string | null
-          version_number?: number
-          work_hour_type_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "actual_work_payroll_mappings_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_mappings_group_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_mappings_successor_fkey"
-            columns: ["supersedes_mapping_id"]
-            isOneToOne: false
-            referencedRelation: "actual_work_payroll_mappings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_mappings_type_fkey"
-            columns: ["tenant_id", "hr_group_id", "work_hour_type_id"]
-            isOneToOne: false
-            referencedRelation: "work_hour_types"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-        ]
-      }
-      actual_work_payroll_releases: {
-        Row: {
-          administration_id: string
-          content_fingerprint: string
-          employee_id: string
-          employment_id: string
-          entry_id: string
-          entry_revision_number: number
-          hr_group_id: string
-          id: string
-          mapping_id: string
-          payroll_period_end: string | null
-          payroll_period_id: string | null
-          payroll_period_start: string
-          payroll_periodicity: string | null
-          release_class: string
-          released_at: string
-          released_by: string
-          supersedes_release_id: string | null
-          tenant_id: string
-          work_hour_type_updated_at: string
-        }
-        Insert: {
-          administration_id: string
-          content_fingerprint: string
-          employee_id: string
-          employment_id: string
-          entry_id: string
-          entry_revision_number: number
-          hr_group_id: string
-          id?: string
-          mapping_id: string
-          payroll_period_end?: string | null
-          payroll_period_id?: string | null
-          payroll_period_start: string
-          payroll_periodicity?: string | null
-          release_class?: string
-          released_at?: string
-          released_by: string
-          supersedes_release_id?: string | null
-          tenant_id: string
-          work_hour_type_updated_at: string
-        }
-        Update: {
-          administration_id?: string
-          content_fingerprint?: string
-          employee_id?: string
-          employment_id?: string
-          entry_id?: string
-          entry_revision_number?: number
-          hr_group_id?: string
-          id?: string
-          mapping_id?: string
-          payroll_period_end?: string | null
-          payroll_period_id?: string | null
-          payroll_period_start?: string
-          payroll_periodicity?: string | null
-          release_class?: string
-          released_at?: string
-          released_by?: string
-          supersedes_release_id?: string | null
-          tenant_id?: string
-          work_hour_type_updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "actual_work_payroll_releases_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_releases_employee_fkey"
-            columns: ["tenant_id", "hr_group_id", "employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_releases_employment_fkey"
-            columns: ["tenant_id", "hr_group_id", "employment_id"]
-            isOneToOne: false
-            referencedRelation: "employments"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_releases_entry_fkey"
-            columns: ["tenant_id", "hr_group_id", "entry_id"]
-            isOneToOne: false
-            referencedRelation: "employment_work_hour_entries"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_releases_group_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_releases_mapping_fkey"
-            columns: [
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "mapping_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "actual_work_payroll_mappings"
-            referencedColumns: [
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "id",
-            ]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_releases_revision_fkey"
-            columns: ["entry_id", "entry_revision_number"]
-            isOneToOne: false
-            referencedRelation: "actual_work_revisions"
-            referencedColumns: ["entry_id", "revision_number"]
-          },
-          {
-            foreignKeyName: "actual_work_payroll_releases_supersedes_release_id_fkey"
-            columns: ["supersedes_release_id"]
-            isOneToOne: false
-            referencedRelation: "actual_work_payroll_releases"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       actual_work_periods: {
         Row: {
           administration_id: string | null
@@ -1294,6 +1063,198 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
         ]
+      }
+      actual_work_payroll_mappings: {
+        Row: {
+          administration_id: string
+          calculation_rule: string
+          created_at: string
+          created_by: string
+          factor: number | null
+          hr_group_id: string
+          id: string
+          processing_target: string
+          salary_component_code: string | null
+          salary_component_id: string | null
+          salary_component_output: string | null
+          salary_component_version: string | null
+          supersedes_mapping_id: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          valid_from: string
+          valid_until: string | null
+          version_number: number
+          work_hour_type_id: string
+        }
+        Insert: {
+          administration_id: string
+          calculation_rule: string
+          created_at?: string
+          created_by: string
+          factor?: number | null
+          hr_group_id: string
+          id?: string
+          processing_target: string
+          salary_component_code?: string | null
+          salary_component_id?: string | null
+          salary_component_output?: string | null
+          salary_component_version?: string | null
+          supersedes_mapping_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from: string
+          valid_until?: string | null
+          version_number?: number
+          work_hour_type_id: string
+        }
+        Update: {
+          administration_id?: string
+          calculation_rule?: string
+          created_at?: string
+          created_by?: string
+          factor?: number | null
+          hr_group_id?: string
+          id?: string
+          processing_target?: string
+          salary_component_code?: string | null
+          salary_component_id?: string | null
+          salary_component_output?: string | null
+          salary_component_version?: string | null
+          supersedes_mapping_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string
+          valid_until?: string | null
+          version_number?: number
+          work_hour_type_id?: string
+        }
+        Relationships: []
+      }
+      actual_work_payroll_releases: {
+        Row: {
+          administration_id: string
+          content_fingerprint: string
+          employee_id: string
+          employment_id: string
+          entry_id: string
+          entry_revision_number: number
+          hr_group_id: string
+          id: string
+          mapping_id: string
+          payroll_period_start: string
+          payroll_period_id: string | null
+          payroll_period_end: string | null
+          payroll_periodicity: string | null
+          release_class: string
+          released_at: string
+          released_by: string
+          supersedes_release_id: string | null
+          tenant_id: string
+          work_hour_type_updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          content_fingerprint: string
+          employee_id: string
+          employment_id: string
+          entry_id: string
+          entry_revision_number: number
+          hr_group_id: string
+          id?: string
+          mapping_id: string
+          payroll_period_start: string
+          payroll_period_id?: string | null
+          payroll_period_end?: string | null
+          payroll_periodicity?: string | null
+          release_class?: string
+          released_at?: string
+          released_by: string
+          supersedes_release_id?: string | null
+          tenant_id: string
+          work_hour_type_updated_at: string
+        }
+        Update: {
+          administration_id?: string
+          content_fingerprint?: string
+          employee_id?: string
+          employment_id?: string
+          entry_id?: string
+          entry_revision_number?: number
+          hr_group_id?: string
+          id?: string
+          mapping_id?: string
+          payroll_period_start?: string
+          payroll_period_id?: string | null
+          payroll_period_end?: string | null
+          payroll_periodicity?: string | null
+          release_class?: string
+          released_at?: string
+          released_by?: string
+          supersedes_release_id?: string | null
+          tenant_id?: string
+          work_hour_type_updated_at?: string
+        }
+        Relationships: []
+      }
+      actual_work_payroll_approvals: {
+        Row: {
+          administration_id: string
+          approved_at: string
+          approved_by: string
+          content_fingerprint: string
+          employee_id: string
+          employment_id: string
+          entry_id: string
+          entry_revision_number: number
+          hr_group_id: string
+          id: string
+          payroll_period_end: string
+          payroll_period_id: string
+          payroll_period_start: string
+          payroll_periodicity: string
+          reviewed_revision_number: number
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          approved_at?: string
+          approved_by: string
+          content_fingerprint: string
+          employee_id: string
+          employment_id: string
+          entry_id: string
+          entry_revision_number: number
+          hr_group_id: string
+          id?: string
+          payroll_period_end: string
+          payroll_period_id: string
+          payroll_period_start: string
+          payroll_periodicity: string
+          reviewed_revision_number: number
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          approved_at?: string
+          approved_by?: string
+          content_fingerprint?: string
+          employee_id?: string
+          employment_id?: string
+          entry_id?: string
+          entry_revision_number?: number
+          hr_group_id?: string
+          id?: string
+          payroll_period_end?: string
+          payroll_period_id?: string
+          payroll_period_start?: string
+          payroll_periodicity?: string
+          reviewed_revision_number?: number
+          tenant_id?: string
+        }
+        Relationships: []
       }
       actual_work_type_limits: {
         Row: {
@@ -3326,6 +3287,57 @@ export type Database = {
           },
         ]
       }
+      // Local compatibility type: this table exists in the application rollout but not in remote test schema introspection.
+      company_activities: {
+        Row: {
+          activity_date: string
+          administration_id: string | null
+          created_at: string
+          created_by: string | null
+          hr_group_id: string
+          id: string
+          is_active: boolean
+            name: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activity_date: string
+          administration_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+            name: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activity_date?: string
+          administration_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+            name?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_activities_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       company_documents: {
         Row: {
           administration_id: string | null
@@ -3549,8 +3561,6 @@ export type Database = {
           created_by_employee_id: string
           created_by_label: string
           created_by_user_id?: string | null
-          deleted_at?: string | null
-          deleted_by_user_id?: string | null
           due_on?: string | null
           employee_id: string
           feedback_direction?: string | null
@@ -3576,8 +3586,6 @@ export type Database = {
           created_by_employee_id?: string
           created_by_label?: string
           created_by_user_id?: string | null
-          deleted_at?: string | null
-          deleted_by_user_id?: string | null
           due_on?: string | null
           employee_id?: string
           feedback_direction?: string | null
@@ -7336,6 +7344,141 @@ export type Database = {
           },
         ]
       }
+      employment_payroll_tax_profile_audit: {
+        Row: {
+          action: string
+          actor_user_id: string
+          administration_id: string
+          audit_payload: Json
+          employee_id: string
+          employment_id: string
+          hr_group_id: string
+          id: string
+          income_relationship_id: string
+          recorded_at: string
+          request_key: string
+          tax_profile_id: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          administration_id: string
+          audit_payload: Json
+          employee_id: string
+          employment_id: string
+          hr_group_id: string
+          id?: string
+          income_relationship_id: string
+          recorded_at?: string
+          request_key: string
+          tax_profile_id: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          administration_id?: string
+          audit_payload?: Json
+          employee_id?: string
+          employment_id?: string
+          hr_group_id?: string
+          id?: string
+          income_relationship_id?: string
+          recorded_at?: string
+          request_key?: string
+          tax_profile_id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      employment_payroll_tax_profiles: {
+        Row: {
+          administration_id: string
+          confirmed_at: string
+          confirmed_by_user_id: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          employee_id: string
+          employment_id: string
+          employment_income_relationship_id: string
+          full_period_only: boolean
+          has_special_situation: boolean
+          herleiding_code: string
+          hr_group_id: string
+          id: string
+          idempotency_key: string
+          income_relationship_id: string
+          payroll_tax_credit_applies: boolean
+          regular_wage_only: boolean
+          residence_country_code: string
+          source_classification: string
+          source_reference: string
+          supersedes_profile_id: string | null
+          tenant_id: string
+          time_period: string
+          version_number: number
+          wage_tax_table: string
+        }
+        Insert: {
+          administration_id: string
+          confirmed_at?: string
+          confirmed_by_user_id: string
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          employee_id: string
+          employment_id: string
+          employment_income_relationship_id: string
+          full_period_only?: boolean
+          has_special_situation?: boolean
+          herleiding_code?: string
+          hr_group_id: string
+          id?: string
+          idempotency_key: string
+          income_relationship_id: string
+          payroll_tax_credit_applies: boolean
+          regular_wage_only?: boolean
+          residence_country_code?: string
+          source_classification?: string
+          source_reference: string
+          supersedes_profile_id?: string | null
+          tenant_id: string
+          time_period?: string
+          version_number: number
+          wage_tax_table?: string
+        }
+        Update: {
+          administration_id?: string
+          confirmed_at?: string
+          confirmed_by_user_id?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          employee_id?: string
+          employment_id?: string
+          employment_income_relationship_id?: string
+          full_period_only?: boolean
+          has_special_situation?: boolean
+          herleiding_code?: string
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string
+          income_relationship_id?: string
+          payroll_tax_credit_applies?: boolean
+          regular_wage_only?: boolean
+          residence_country_code?: string
+          source_classification?: string
+          source_reference?: string
+          supersedes_profile_id?: string | null
+          tenant_id?: string
+          time_period?: string
+          version_number?: number
+          wage_tax_table?: string
+        }
+        Relationships: []
+      }
       employment_labor_conditions: {
         Row: {
           administration_id: string
@@ -7540,317 +7683,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leave_profiles"
             referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-        ]
-      }
-      employment_payroll_tax_profile_audit: {
-        Row: {
-          action: string
-          actor_user_id: string
-          administration_id: string
-          audit_payload: Json
-          employee_id: string
-          employment_id: string
-          hr_group_id: string
-          id: string
-          income_relationship_id: string
-          recorded_at: string
-          request_key: string
-          tax_profile_id: string
-          tenant_id: string
-        }
-        Insert: {
-          action: string
-          actor_user_id: string
-          administration_id: string
-          audit_payload: Json
-          employee_id: string
-          employment_id: string
-          hr_group_id: string
-          id?: string
-          income_relationship_id: string
-          recorded_at?: string
-          request_key: string
-          tax_profile_id: string
-          tenant_id: string
-        }
-        Update: {
-          action?: string
-          actor_user_id?: string
-          administration_id?: string
-          audit_payload?: Json
-          employee_id?: string
-          employment_id?: string
-          hr_group_id?: string
-          id?: string
-          income_relationship_id?: string
-          recorded_at?: string
-          request_key?: string
-          tax_profile_id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employment_payroll_tax_profile_audit_profile_scope_fkey"
-            columns: [
-              "tax_profile_id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "employment_id",
-              "income_relationship_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "employment_payroll_tax_profiles"
-            referencedColumns: [
-              "id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "employment_id",
-              "income_relationship_id",
-            ]
-          },
-        ]
-      }
-      employment_payroll_tax_profiles: {
-        Row: {
-          administration_id: string
-          confirmed_at: string
-          confirmed_by_user_id: string
-          created_at: string
-          effective_from: string
-          effective_to: string | null
-          employee_id: string
-          employment_id: string
-          employment_income_relationship_id: string
-          full_period_only: boolean
-          has_special_situation: boolean
-          herleiding_code: string
-          hr_group_id: string
-          id: string
-          idempotency_key: string
-          income_relationship_id: string
-          payroll_tax_credit_applies: boolean
-          regular_wage_only: boolean
-          residence_country_code: string
-          source_classification: string
-          source_reference: string
-          supersedes_profile_id: string | null
-          tenant_id: string
-          time_period: string
-          version_number: number
-          wage_tax_table: string
-        }
-        Insert: {
-          administration_id: string
-          confirmed_at?: string
-          confirmed_by_user_id: string
-          created_at?: string
-          effective_from: string
-          effective_to?: string | null
-          employee_id: string
-          employment_id: string
-          employment_income_relationship_id: string
-          full_period_only?: boolean
-          has_special_situation?: boolean
-          herleiding_code?: string
-          hr_group_id: string
-          id?: string
-          idempotency_key: string
-          income_relationship_id: string
-          payroll_tax_credit_applies: boolean
-          regular_wage_only?: boolean
-          residence_country_code?: string
-          source_classification?: string
-          source_reference: string
-          supersedes_profile_id?: string | null
-          tenant_id: string
-          time_period?: string
-          version_number: number
-          wage_tax_table?: string
-        }
-        Update: {
-          administration_id?: string
-          confirmed_at?: string
-          confirmed_by_user_id?: string
-          created_at?: string
-          effective_from?: string
-          effective_to?: string | null
-          employee_id?: string
-          employment_id?: string
-          employment_income_relationship_id?: string
-          full_period_only?: boolean
-          has_special_situation?: boolean
-          herleiding_code?: string
-          hr_group_id?: string
-          id?: string
-          idempotency_key?: string
-          income_relationship_id?: string
-          payroll_tax_credit_applies?: boolean
-          regular_wage_only?: boolean
-          residence_country_code?: string
-          source_classification?: string
-          source_reference?: string
-          supersedes_profile_id?: string | null
-          tenant_id?: string
-          time_period?: string
-          version_number?: number
-          wage_tax_table?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employment_payroll_tax_profiles_employment_scope_fkey"
-            columns: [
-              "tenant_id",
-              "administration_id",
-              "employee_id",
-              "employment_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "employments"
-            referencedColumns: [
-              "tenant_id",
-              "administration_id",
-              "employee_id",
-              "id",
-            ]
-          },
-          {
-            foreignKeyName: "employment_payroll_tax_profiles_income_link_fkey"
-            columns: ["employment_income_relationship_id"]
-            isOneToOne: false
-            referencedRelation: "employment_income_relationships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employment_payroll_tax_profiles_income_scope_fkey"
-            columns: [
-              "tenant_id",
-              "administration_id",
-              "employee_id",
-              "income_relationship_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "income_relationships"
-            referencedColumns: [
-              "tenant_id",
-              "administration_id",
-              "employee_id",
-              "id",
-            ]
-          },
-          {
-            foreignKeyName: "employment_payroll_tax_profiles_supersedes_scope_fkey"
-            columns: [
-              "supersedes_profile_id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "employment_id",
-              "income_relationship_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "employment_payroll_tax_profiles"
-            referencedColumns: [
-              "id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "employment_id",
-              "income_relationship_id",
-            ]
-          },
-        ]
-      }
-      employment_pension_arrangement_assignments: {
-        Row: {
-          administration_id: string
-          assignment_reason: string
-          created_at: string
-          effective_from: string
-          effective_to: string | null
-          employment_id: string
-          hr_group_id: string
-          id: string
-          idempotency_key: string | null
-          participation_start_date: string
-          pension_arrangement_id: string
-          provenance_json: Json
-          supersedes_assignment_id: string | null
-          tenant_id: string
-          updated_at: string
-          version_number: number
-        }
-        Insert: {
-          administration_id: string
-          assignment_reason: string
-          created_at?: string
-          effective_from: string
-          effective_to?: string | null
-          employment_id: string
-          hr_group_id: string
-          id?: string
-          idempotency_key?: string | null
-          participation_start_date: string
-          pension_arrangement_id: string
-          provenance_json?: Json
-          supersedes_assignment_id?: string | null
-          tenant_id: string
-          updated_at?: string
-          version_number?: number
-        }
-        Update: {
-          administration_id?: string
-          assignment_reason?: string
-          created_at?: string
-          effective_from?: string
-          effective_to?: string | null
-          employment_id?: string
-          hr_group_id?: string
-          id?: string
-          idempotency_key?: string | null
-          participation_start_date?: string
-          pension_arrangement_id?: string
-          provenance_json?: Json
-          supersedes_assignment_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-          version_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employment_pension_arrangement_assi_pension_arrangement_id_fkey"
-            columns: ["pension_arrangement_id"]
-            isOneToOne: false
-            referencedRelation: "pension_arrangements"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employment_pension_arrangement_assignments_employment_id_fkey"
-            columns: ["employment_id"]
-            isOneToOne: false
-            referencedRelation: "employments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employment_pension_assignments_supersedes_scope_fkey"
-            columns: [
-              "supersedes_assignment_id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "employment_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "employment_pension_arrangement_assignments"
-            referencedColumns: [
-              "id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "employment_id",
-            ]
           },
         ]
       }
@@ -9404,8 +9236,8 @@ export type Database = {
           is_active: boolean
           manager_portal_mode: string
           name: string
+            time_zone: string
           tenant_id: string
-          time_zone: string
           updated_at: string
           updated_by_user_id: string | null
         }
@@ -9419,8 +9251,8 @@ export type Database = {
           is_active?: boolean
           manager_portal_mode?: string
           name: string
+            time_zone?: string
           tenant_id: string
-          time_zone?: string
           updated_at?: string
           updated_by_user_id?: string | null
         }
@@ -9434,8 +9266,8 @@ export type Database = {
           is_active?: boolean
           manager_portal_mode?: string
           name?: string
+            time_zone?: string
           tenant_id?: string
-          time_zone?: string
           updated_at?: string
           updated_by_user_id?: string | null
         }
@@ -11218,93 +11050,6 @@ export type Database = {
           },
         ]
       }
-      labor_condition_pension_arrangements: {
-        Row: {
-          administration_id: string
-          created_at: string
-          effective_from: string
-          effective_to: string | null
-          hr_group_id: string
-          id: string
-          idempotency_key: string | null
-          labor_condition_set_id: string
-          participant_group: string
-          pension_arrangement_id: string
-          provenance_json: Json
-          supersedes_mapping_id: string | null
-          tenant_id: string
-          version_number: number
-        }
-        Insert: {
-          administration_id: string
-          created_at?: string
-          effective_from: string
-          effective_to?: string | null
-          hr_group_id: string
-          id?: string
-          idempotency_key?: string | null
-          labor_condition_set_id: string
-          participant_group: string
-          pension_arrangement_id: string
-          provenance_json?: Json
-          supersedes_mapping_id?: string | null
-          tenant_id: string
-          version_number?: number
-        }
-        Update: {
-          administration_id?: string
-          created_at?: string
-          effective_from?: string
-          effective_to?: string | null
-          hr_group_id?: string
-          id?: string
-          idempotency_key?: string | null
-          labor_condition_set_id?: string
-          participant_group?: string
-          pension_arrangement_id?: string
-          provenance_json?: Json
-          supersedes_mapping_id?: string | null
-          tenant_id?: string
-          version_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "labor_condition_pension_arrangement_labor_condition_set_id_fkey"
-            columns: ["labor_condition_set_id"]
-            isOneToOne: false
-            referencedRelation: "labor_condition_sets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "labor_condition_pension_arrangement_pension_arrangement_id_fkey"
-            columns: ["pension_arrangement_id"]
-            isOneToOne: false
-            referencedRelation: "pension_arrangements"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "labor_condition_pension_arrangements_supersedes_scope_fkey"
-            columns: [
-              "supersedes_mapping_id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "labor_condition_set_id",
-              "participant_group",
-            ]
-            isOneToOne: false
-            referencedRelation: "labor_condition_pension_arrangements"
-            referencedColumns: [
-              "id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "labor_condition_set_id",
-              "participant_group",
-            ]
-          },
-        ]
-      }
       labor_condition_salary_structures: {
         Row: {
           created_at: string
@@ -12904,8 +12649,8 @@ export type Database = {
           is_self_service: boolean
           limit_hours: number | null
           limit_mode: Database["public"]["Enums"]["overtime_limit_mode"]
-          tenant_id: string
           tvt_expiration_months: number | null
+          tenant_id: string
           updated_at: string
           updated_by: string | null
           work_hour_type_id: string
@@ -12922,8 +12667,8 @@ export type Database = {
           is_self_service?: boolean
           limit_hours?: number | null
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
-          tenant_id: string
           tvt_expiration_months?: number | null
+          tenant_id: string
           updated_at?: string
           updated_by?: string | null
           work_hour_type_id: string
@@ -12940,8 +12685,8 @@ export type Database = {
           is_self_service?: boolean
           limit_hours?: number | null
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
-          tenant_id?: string
           tvt_expiration_months?: number | null
+          tenant_id?: string
           updated_at?: string
           updated_by?: string | null
           work_hour_type_id?: string
@@ -12976,8 +12721,8 @@ export type Database = {
           limit_mode: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry: boolean
           requires_manager_approval: boolean
-          tenant_id: string
           tvt_expiration_months: number | null
+          tenant_id: string
           updated_at: string
           updated_by: string | null
           work_hour_type_id: string
@@ -12994,8 +12739,8 @@ export type Database = {
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry?: boolean
           requires_manager_approval?: boolean
-          tenant_id: string
           tvt_expiration_months?: number | null
+          tenant_id: string
           updated_at?: string
           updated_by?: string | null
           work_hour_type_id: string
@@ -13012,8 +12757,8 @@ export type Database = {
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry?: boolean
           requires_manager_approval?: boolean
-          tenant_id?: string
           tvt_expiration_months?: number | null
+          tenant_id?: string
           updated_at?: string
           updated_by?: string | null
           work_hour_type_id?: string
@@ -14539,1023 +14284,6 @@ export type Database = {
           },
         ]
       }
-      pension_arrangement_tiers: {
-        Row: {
-          administration_id: string
-          created_at: string
-          hr_group_id: string
-          id: string
-          max_age: number
-          min_age: number
-          pension_arrangement_id: string
-          tenant_id: string
-          total_rate: number
-        }
-        Insert: {
-          administration_id: string
-          created_at?: string
-          hr_group_id: string
-          id?: string
-          max_age: number
-          min_age: number
-          pension_arrangement_id: string
-          tenant_id: string
-          total_rate: number
-        }
-        Update: {
-          administration_id?: string
-          created_at?: string
-          hr_group_id?: string
-          id?: string
-          max_age?: number
-          min_age?: number
-          pension_arrangement_id?: string
-          tenant_id?: string
-          total_rate?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pension_arrangement_tiers_pension_arrangement_id_fkey"
-            columns: ["pension_arrangement_id"]
-            isOneToOne: false
-            referencedRelation: "pension_arrangements"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pension_arrangement_version_audit: {
-        Row: {
-          actor_user_id: string | null
-          administration_id: string
-          created_at: string
-          event_type: string
-          hr_group_id: string
-          id: string
-          pension_arrangement_id: string
-          pension_arrangement_version_id: string
-          provenance_json: Json
-          reason: string
-          supersedes_version_id: string | null
-          tenant_id: string
-        }
-        Insert: {
-          actor_user_id?: string | null
-          administration_id: string
-          created_at?: string
-          event_type: string
-          hr_group_id: string
-          id?: string
-          pension_arrangement_id: string
-          pension_arrangement_version_id: string
-          provenance_json?: Json
-          reason: string
-          supersedes_version_id?: string | null
-          tenant_id: string
-        }
-        Update: {
-          actor_user_id?: string | null
-          administration_id?: string
-          created_at?: string
-          event_type?: string
-          hr_group_id?: string
-          id?: string
-          pension_arrangement_id?: string
-          pension_arrangement_version_id?: string
-          provenance_json?: Json
-          reason?: string
-          supersedes_version_id?: string | null
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pension_arrangement_version_audit_parent_scope_fk"
-            columns: [
-              "supersedes_version_id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "pension_arrangement_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "pension_arrangement_versions"
-            referencedColumns: [
-              "id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "pension_arrangement_id",
-            ]
-          },
-          {
-            foreignKeyName: "pension_arrangement_version_audit_version_scope_fk"
-            columns: [
-              "pension_arrangement_version_id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "pension_arrangement_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "pension_arrangement_versions"
-            referencedColumns: [
-              "id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "pension_arrangement_id",
-            ]
-          },
-        ]
-      }
-      pension_arrangement_version_tiers: {
-        Row: {
-          administration_id: string
-          created_at: string
-          hr_group_id: string
-          id: string
-          max_age: number
-          min_age: number
-          pension_arrangement_id: string
-          pension_arrangement_version_id: string
-          tenant_id: string
-          total_rate: number
-        }
-        Insert: {
-          administration_id: string
-          created_at?: string
-          hr_group_id: string
-          id?: string
-          max_age: number
-          min_age: number
-          pension_arrangement_id: string
-          pension_arrangement_version_id: string
-          tenant_id: string
-          total_rate: number
-        }
-        Update: {
-          administration_id?: string
-          created_at?: string
-          hr_group_id?: string
-          id?: string
-          max_age?: number
-          min_age?: number
-          pension_arrangement_id?: string
-          pension_arrangement_version_id?: string
-          tenant_id?: string
-          total_rate?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pension_arrangement_version_tiers_scope_fk"
-            columns: [
-              "pension_arrangement_version_id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "pension_arrangement_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "pension_arrangement_versions"
-            referencedColumns: [
-              "id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "pension_arrangement_id",
-            ]
-          },
-        ]
-      }
-      pension_arrangement_versions: {
-        Row: {
-          administration_id: string
-          annual_franchise: number
-          annual_pensionable_salary_cap: number | null
-          arrangement_type: string
-          code: string
-          contract_classification: string
-          contract_classification_provenance: Json
-          created_at: string
-          created_by_user_id: string | null
-          effective_from: string
-          effective_to: string | null
-          eligibility_rule: Json
-          employee_share_pct: number
-          employer_share_pct: number
-          flat_total_rate: number | null
-          grandfathering_mode: string
-          hr_group_id: string
-          id: string
-          is_active: boolean
-          name: string
-          pension_arrangement_id: string
-          pensionable_salary_definition: Json
-          provenance_json: Json
-          supersedes_version_id: string | null
-          supersession_provenance: Json
-          supersession_reason: string | null
-          tenant_id: string
-          transition_date: string | null
-          version_number: number
-        }
-        Insert: {
-          administration_id: string
-          annual_franchise: number
-          annual_pensionable_salary_cap?: number | null
-          arrangement_type: string
-          code: string
-          contract_classification?: string
-          contract_classification_provenance?: Json
-          created_at?: string
-          created_by_user_id?: string | null
-          effective_from: string
-          effective_to?: string | null
-          eligibility_rule?: Json
-          employee_share_pct: number
-          employer_share_pct: number
-          flat_total_rate?: number | null
-          grandfathering_mode: string
-          hr_group_id: string
-          id?: string
-          is_active?: boolean
-          name: string
-          pension_arrangement_id: string
-          pensionable_salary_definition?: Json
-          provenance_json?: Json
-          supersedes_version_id?: string | null
-          supersession_provenance?: Json
-          supersession_reason?: string | null
-          tenant_id: string
-          transition_date?: string | null
-          version_number: number
-        }
-        Update: {
-          administration_id?: string
-          annual_franchise?: number
-          annual_pensionable_salary_cap?: number | null
-          arrangement_type?: string
-          code?: string
-          contract_classification?: string
-          contract_classification_provenance?: Json
-          created_at?: string
-          created_by_user_id?: string | null
-          effective_from?: string
-          effective_to?: string | null
-          eligibility_rule?: Json
-          employee_share_pct?: number
-          employer_share_pct?: number
-          flat_total_rate?: number | null
-          grandfathering_mode?: string
-          hr_group_id?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          pension_arrangement_id?: string
-          pensionable_salary_definition?: Json
-          provenance_json?: Json
-          supersedes_version_id?: string | null
-          supersession_provenance?: Json
-          supersession_reason?: string | null
-          tenant_id?: string
-          transition_date?: string | null
-          version_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pension_arrangement_versions_arrangement_scope_fk"
-            columns: [
-              "pension_arrangement_id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "pension_arrangements"
-            referencedColumns: [
-              "id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-            ]
-          },
-          {
-            foreignKeyName: "pension_arrangement_versions_parent_scope_fk"
-            columns: [
-              "supersedes_version_id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "pension_arrangement_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "pension_arrangement_versions"
-            referencedColumns: [
-              "id",
-              "tenant_id",
-              "hr_group_id",
-              "administration_id",
-              "pension_arrangement_id",
-            ]
-          },
-          {
-            foreignKeyName: "pension_arrangement_versions_pension_arrangement_id_fkey"
-            columns: ["pension_arrangement_id"]
-            isOneToOne: false
-            referencedRelation: "pension_arrangements"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pension_arrangements: {
-        Row: {
-          administration_id: string
-          annual_franchise: number
-          annual_pensionable_salary_cap: number | null
-          arrangement_type: string
-          code: string
-          created_at: string
-          effective_from: string
-          effective_to: string | null
-          eligibility_rule: Json
-          employee_share_pct: number
-          employer_share_pct: number
-          flat_total_rate: number | null
-          grandfathering_mode: string
-          hr_group_id: string
-          id: string
-          is_active: boolean
-          name: string
-          pensionable_salary_definition: Json
-          provenance_json: Json
-          tenant_id: string
-          transition_date: string | null
-          updated_at: string
-        }
-        Insert: {
-          administration_id: string
-          annual_franchise: number
-          annual_pensionable_salary_cap?: number | null
-          arrangement_type: string
-          code: string
-          created_at?: string
-          effective_from: string
-          effective_to?: string | null
-          eligibility_rule?: Json
-          employee_share_pct: number
-          employer_share_pct: number
-          flat_total_rate?: number | null
-          grandfathering_mode?: string
-          hr_group_id: string
-          id?: string
-          is_active?: boolean
-          name: string
-          pensionable_salary_definition?: Json
-          provenance_json?: Json
-          tenant_id: string
-          transition_date?: string | null
-          updated_at?: string
-        }
-        Update: {
-          administration_id?: string
-          annual_franchise?: number
-          annual_pensionable_salary_cap?: number | null
-          arrangement_type?: string
-          code?: string
-          created_at?: string
-          effective_from?: string
-          effective_to?: string | null
-          eligibility_rule?: Json
-          employee_share_pct?: number
-          employer_share_pct?: number
-          flat_total_rate?: number | null
-          grandfathering_mode?: string
-          hr_group_id?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          pensionable_salary_definition?: Json
-          provenance_json?: Json
-          tenant_id?: string
-          transition_date?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      performance_review_acknowledgements: {
-        Row: {
-          actor_user_id: string
-          created_at: string
-          decision: string
-          dossier_id: string
-          reason: string | null
-          tenant_id: string
-        }
-        Insert: {
-          actor_user_id: string
-          created_at?: string
-          decision: string
-          dossier_id: string
-          reason?: string | null
-          tenant_id: string
-        }
-        Update: {
-          actor_user_id?: string
-          created_at?: string
-          decision?: string
-          dossier_id?: string
-          reason?: string | null
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_acknowledgements_tenant_id_dossier_id_fkey"
-            columns: ["tenant_id", "dossier_id"]
-            isOneToOne: true
-            referencedRelation: "performance_review_dossiers"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      performance_review_appraisal_links: {
-        Row: {
-          appraisal_item_id: string
-          created_at: string
-          created_by: string
-          dossier_id: string
-          tenant_id: string
-        }
-        Insert: {
-          appraisal_item_id: string
-          created_at?: string
-          created_by: string
-          dossier_id: string
-          tenant_id: string
-        }
-        Update: {
-          appraisal_item_id?: string
-          created_at?: string
-          created_by?: string
-          dossier_id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_appraisal_l_tenant_id_appraisal_item_id_fkey"
-            columns: ["tenant_id", "appraisal_item_id"]
-            isOneToOne: false
-            referencedRelation: "continuous_appraisal_items"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "performance_review_appraisal_links_tenant_id_dossier_id_fkey"
-            columns: ["tenant_id", "dossier_id"]
-            isOneToOne: false
-            referencedRelation: "performance_review_dossiers"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      performance_review_attachments: {
-        Row: {
-          checksum_sha256: string
-          content_type: string
-          created_at: string
-          dossier_id: string
-          file_size: number
-          id: string
-          original_filename: string
-          released_at: string | null
-          storage_key: string
-          tenant_id: string
-          uploaded_by: string
-        }
-        Insert: {
-          checksum_sha256: string
-          content_type: string
-          created_at?: string
-          dossier_id: string
-          file_size: number
-          id?: string
-          original_filename: string
-          released_at?: string | null
-          storage_key: string
-          tenant_id: string
-          uploaded_by: string
-        }
-        Update: {
-          checksum_sha256?: string
-          content_type?: string
-          created_at?: string
-          dossier_id?: string
-          file_size?: number
-          id?: string
-          original_filename?: string
-          released_at?: string | null
-          storage_key?: string
-          tenant_id?: string
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_attachments_tenant_id_dossier_id_fkey"
-            columns: ["tenant_id", "dossier_id"]
-            isOneToOne: false
-            referencedRelation: "performance_review_dossiers"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      performance_review_audit_events: {
-        Row: {
-          action: string
-          actor_kind: string
-          actor_user_id: string | null
-          created_at: string
-          details: Json
-          dossier_id: string | null
-          id: string
-          reason: string | null
-          round_id: string | null
-          tenant_id: string
-        }
-        Insert: {
-          action: string
-          actor_kind?: string
-          actor_user_id?: string | null
-          created_at?: string
-          details?: Json
-          dossier_id?: string | null
-          id?: string
-          reason?: string | null
-          round_id?: string | null
-          tenant_id: string
-        }
-        Update: {
-          action?: string
-          actor_kind?: string
-          actor_user_id?: string | null
-          created_at?: string
-          details?: Json
-          dossier_id?: string | null
-          id?: string
-          reason?: string | null
-          round_id?: string | null
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_audit_events_tenant_id_dossier_id_fkey"
-            columns: ["tenant_id", "dossier_id"]
-            isOneToOne: false
-            referencedRelation: "performance_review_dossiers"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "performance_review_audit_events_tenant_id_round_id_fkey"
-            columns: ["tenant_id", "round_id"]
-            isOneToOne: false
-            referencedRelation: "performance_review_rounds"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      performance_review_closures: {
-        Row: {
-          actor_user_id: string
-          created_at: string
-          dossier_id: string
-          tenant_id: string
-        }
-        Insert: {
-          actor_user_id: string
-          created_at?: string
-          dossier_id: string
-          tenant_id: string
-        }
-        Update: {
-          actor_user_id?: string
-          created_at?: string
-          dossier_id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_closures_tenant_id_dossier_id_fkey"
-            columns: ["tenant_id", "dossier_id"]
-            isOneToOne: true
-            referencedRelation: "performance_review_dossiers"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      performance_review_command_results: {
-        Row: {
-          actor_user_id: string
-          created_at: string
-          idempotency_key: string
-          operation: string
-          request_hash: string
-          result_id: string
-          result_version: number | null
-          tenant_id: string
-        }
-        Insert: {
-          actor_user_id: string
-          created_at?: string
-          idempotency_key: string
-          operation: string
-          request_hash: string
-          result_id: string
-          result_version?: number | null
-          tenant_id: string
-        }
-        Update: {
-          actor_user_id?: string
-          created_at?: string
-          idempotency_key?: string
-          operation?: string
-          request_hash?: string
-          result_id?: string
-          result_version?: number | null
-          tenant_id?: string
-        }
-        Relationships: []
-      }
-      performance_review_dossiers: {
-        Row: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        Insert: {
-          additional_reviewer_employee_id?: string | null
-          additional_reviewer_released_at?: string | null
-          additional_reviewer_released_by?: string | null
-          additional_reviewer_workflow?: boolean
-          administration_id: string
-          created_at?: string
-          employee_id: string
-          hr_group_id: string
-          id?: string
-          phase?: string
-          process_instance_id?: string | null
-          reviewer_assignment_override?: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version?: number
-        }
-        Update: {
-          additional_reviewer_employee_id?: string | null
-          additional_reviewer_released_at?: string | null
-          additional_reviewer_released_by?: string | null
-          additional_reviewer_workflow?: boolean
-          administration_id?: string
-          created_at?: string
-          employee_id?: string
-          hr_group_id?: string
-          id?: string
-          phase?: string
-          process_instance_id?: string | null
-          reviewer_assignment_override?: boolean
-          reviewer_employee_id?: string
-          round_id?: string
-          tenant_id?: string
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_dossiers_additional_reviewer_fk"
-            columns: [
-              "tenant_id",
-              "hr_group_id",
-              "additional_reviewer_employee_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "performance_review_dossiers_tenant_id_hr_group_id_administ_fkey"
-            columns: ["tenant_id", "hr_group_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "performance_review_dossiers_tenant_id_hr_group_id_employee_fkey"
-            columns: ["tenant_id", "hr_group_id", "employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "performance_review_dossiers_tenant_id_hr_group_id_reviewer_fkey"
-            columns: ["tenant_id", "hr_group_id", "reviewer_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "performance_review_dossiers_tenant_id_hr_group_id_round_id_fkey"
-            columns: ["tenant_id", "hr_group_id", "round_id"]
-            isOneToOne: false
-            referencedRelation: "performance_review_rounds"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-        ]
-      }
-      performance_review_draft_archives: {
-        Row: {
-          archived_at: string
-          archived_by: string
-          author_user_id: string
-          body: string
-          dossier_id: string
-          id: string
-          kind: string
-          meeting_date: string | null
-          rating_explanation: string | null
-          reason: string
-          score: number | null
-          tenant_id: string
-          version: number
-        }
-        Insert: {
-          archived_at?: string
-          archived_by: string
-          author_user_id: string
-          body: string
-          dossier_id: string
-          id?: string
-          kind: string
-          meeting_date?: string | null
-          rating_explanation?: string | null
-          reason: string
-          score?: number | null
-          tenant_id: string
-          version: number
-        }
-        Update: {
-          archived_at?: string
-          archived_by?: string
-          author_user_id?: string
-          body?: string
-          dossier_id?: string
-          id?: string
-          kind?: string
-          meeting_date?: string | null
-          rating_explanation?: string | null
-          reason?: string
-          score?: number | null
-          tenant_id?: string
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_draft_archives_tenant_id_dossier_id_fkey"
-            columns: ["tenant_id", "dossier_id"]
-            isOneToOne: false
-            referencedRelation: "performance_review_dossiers"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      performance_review_private_notes: {
-        Row: {
-          author_user_id: string
-          body: string
-          created_at: string
-          dossier_id: string
-          id: string
-          tenant_id: string
-          version: number
-        }
-        Insert: {
-          author_user_id: string
-          body: string
-          created_at?: string
-          dossier_id: string
-          id?: string
-          tenant_id: string
-          version: number
-        }
-        Update: {
-          author_user_id?: string
-          body?: string
-          created_at?: string
-          dossier_id?: string
-          id?: string
-          tenant_id?: string
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_private_notes_tenant_id_dossier_id_fkey"
-            columns: ["tenant_id", "dossier_id"]
-            isOneToOne: false
-            referencedRelation: "performance_review_dossiers"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      performance_review_role_flip_commands: {
-        Row: {
-          actor_user_id: string
-          created_at: string
-          idempotency_key: string
-          request_hash: string
-          result: Json
-          tenant_id: string
-        }
-        Insert: {
-          actor_user_id: string
-          created_at?: string
-          idempotency_key: string
-          request_hash: string
-          result: Json
-          tenant_id: string
-        }
-        Update: {
-          actor_user_id?: string
-          created_at?: string
-          idempotency_key?: string
-          request_hash?: string
-          result?: Json
-          tenant_id?: string
-        }
-        Relationships: []
-      }
-      performance_review_round_v2_commands: {
-        Row: {
-          actor_user_id: string
-          created_at: string
-          idempotency_key: string
-          request_hash: string
-          round_id: string
-          tenant_id: string
-        }
-        Insert: {
-          actor_user_id: string
-          created_at?: string
-          idempotency_key: string
-          request_hash: string
-          round_id: string
-          tenant_id: string
-        }
-        Update: {
-          actor_user_id?: string
-          created_at?: string
-          idempotency_key?: string
-          request_hash?: string
-          round_id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_round_v2_commands_round_id_fkey"
-            columns: ["round_id"]
-            isOneToOne: false
-            referencedRelation: "performance_review_rounds"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      performance_review_rounds: {
-        Row: {
-          additional_reviewer_enabled: boolean
-          created_at: string
-          created_by: string
-          due_date: string | null
-          hr_group_id: string
-          id: string
-          introduction: string
-          period_end: string
-          period_start: string
-          rating_snapshot: Json | null
-          round_type: string
-          start_date: string
-          status: string
-          tenant_id: string
-          title: string
-          version: number
-        }
-        Insert: {
-          additional_reviewer_enabled?: boolean
-          created_at?: string
-          created_by: string
-          due_date?: string | null
-          hr_group_id: string
-          id?: string
-          introduction: string
-          period_end: string
-          period_start: string
-          rating_snapshot?: Json | null
-          round_type?: string
-          start_date: string
-          status?: string
-          tenant_id: string
-          title: string
-          version?: number
-        }
-        Update: {
-          additional_reviewer_enabled?: boolean
-          created_at?: string
-          created_by?: string
-          due_date?: string | null
-          hr_group_id?: string
-          id?: string
-          introduction?: string
-          period_end?: string
-          period_start?: string
-          rating_snapshot?: Json | null
-          round_type?: string
-          start_date?: string
-          status?: string
-          tenant_id?: string
-          title?: string
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_rounds_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "performance_review_rounds_tenant_id_hr_group_id_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      performance_review_submissions: {
-        Row: {
-          author_user_id: string
-          body: string
-          dossier_id: string
-          id: string
-          kind: string
-          meeting_date: string | null
-          rating_explanation: string | null
-          score: number | null
-          submitted_at: string | null
-          tenant_id: string
-          version: number
-        }
-        Insert: {
-          author_user_id: string
-          body: string
-          dossier_id: string
-          id?: string
-          kind: string
-          meeting_date?: string | null
-          rating_explanation?: string | null
-          score?: number | null
-          submitted_at?: string | null
-          tenant_id: string
-          version?: number
-        }
-        Update: {
-          author_user_id?: string
-          body?: string
-          dossier_id?: string
-          id?: string
-          kind?: string
-          meeting_date?: string | null
-          rating_explanation?: string | null
-          score?: number | null
-          submitted_at?: string | null
-          tenant_id?: string
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "performance_review_submissions_tenant_id_dossier_id_fkey"
-            columns: ["tenant_id", "dossier_id"]
-            isOneToOne: false
-            referencedRelation: "performance_review_dossiers"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
       permissions: {
         Row: {
           category: string
@@ -16688,38 +15416,32 @@ export type Database = {
       process_reminder_deliveries: {
         Row: {
           created_at: string
-          delivery_kind: string
           hr_group_id: string
           id: string
           process_instance_id: string
           reminder_id: string
           step_instance_id: string
           tenant_id: string
-          work_item_id: string | null
           workflow_job_id: string
         }
         Insert: {
           created_at?: string
-          delivery_kind?: string
           hr_group_id: string
           id?: string
           process_instance_id: string
           reminder_id: string
           step_instance_id: string
           tenant_id: string
-          work_item_id?: string | null
           workflow_job_id: string
         }
         Update: {
           created_at?: string
-          delivery_kind?: string
           hr_group_id?: string
           id?: string
           process_instance_id?: string
           reminder_id?: string
           step_instance_id?: string
           tenant_id?: string
-          work_item_id?: string | null
           workflow_job_id?: string
         }
         Relationships: [
@@ -16761,17 +15483,11 @@ export type Database = {
             referencedRelation: "reminders"
             referencedColumns: ["tenant_id", "id"]
           },
-          {
-            foreignKeyName: "process_reminder_deliveries_work_item_fkey"
-            columns: ["tenant_id", "hr_group_id", "work_item_id"]
-            isOneToOne: false
-            referencedRelation: "process_work_items"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
         ]
       }
       process_step_instances: {
         Row: {
+          work_calendar_version_id: string | null
           activated_at: string | null
           activation_number: number
           blocked_code: string | null
@@ -16787,9 +15503,9 @@ export type Database = {
           step_key: string
           tenant_id: string
           updated_at: string
-          work_calendar_version_id: string | null
         }
         Insert: {
+          work_calendar_version_id?: string | null
           activated_at?: string | null
           activation_number?: number
           blocked_code?: string | null
@@ -16805,9 +15521,9 @@ export type Database = {
           step_key: string
           tenant_id: string
           updated_at?: string
-          work_calendar_version_id?: string | null
         }
         Update: {
+          work_calendar_version_id?: string | null
           activated_at?: string | null
           activation_number?: number
           blocked_code?: string | null
@@ -16823,9 +15539,9 @@ export type Database = {
           step_key?: string
           tenant_id?: string
           updated_at?: string
-          work_calendar_version_id?: string | null
         }
         Relationships: [
+          { foreignKeyName: "process_steps_work_calendar_version_fk"; columns: ["tenant_id", "hr_group_id", "work_calendar_version_id"]; isOneToOne: false; referencedRelation: "work_calendar_versions"; referencedColumns: ["tenant_id", "hr_group_id", "id"] },
           {
             foreignKeyName: "process_step_instances_instance_fkey"
             columns: [
@@ -16842,13 +15558,6 @@ export type Database = {
               "id",
               "process_version_id",
             ]
-          },
-          {
-            foreignKeyName: "process_steps_work_calendar_version_fk"
-            columns: ["tenant_id", "hr_group_id", "work_calendar_version_id"]
-            isOneToOne: false
-            referencedRelation: "work_calendar_versions"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -18942,7 +17651,7 @@ export type Database = {
           administration_id: string | null
           cancelled_at: string | null
           created_at: string
-          created_by_actor_type: string
+          created_by_actor_type: 'USER' | 'SYSTEM'
           created_by_user_id: string | null
           description: string | null
           id: string
@@ -18959,7 +17668,7 @@ export type Database = {
           administration_id?: string | null
           cancelled_at?: string | null
           created_at?: string
-          created_by_actor_type?: string
+          created_by_actor_type?: 'USER' | 'SYSTEM'
           created_by_user_id?: string | null
           description?: string | null
           id?: string
@@ -18976,7 +17685,7 @@ export type Database = {
           administration_id?: string | null
           cancelled_at?: string | null
           created_at?: string
-          created_by_actor_type?: string
+          created_by_actor_type?: 'USER' | 'SYSTEM'
           created_by_user_id?: string | null
           description?: string | null
           id?: string
@@ -19520,20 +18229,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "salary_structure_revisions_correction_scope_fkey"
-            columns: [
-              "tenant_id",
-              "hr_group_id",
-              "salary_structure_id",
-              "correction_of_revision_id",
-            ]
+            columns: ["tenant_id", "hr_group_id", "salary_structure_id", "correction_of_revision_id"]
             isOneToOne: false
             referencedRelation: "salary_structure_revisions"
-            referencedColumns: [
-              "tenant_id",
-              "hr_group_id",
-              "salary_structure_id",
-              "id",
-            ]
+            referencedColumns: ["tenant_id", "hr_group_id", "salary_structure_id", "id"]
           },
           {
             foreignKeyName: "salary_structure_revisions_structure_fkey"
@@ -21720,8 +20419,8 @@ export type Database = {
       }
       talent_review_scores: {
         Row: {
-          acting_reason: string | null
           assignment_id: string
+          acting_reason: string | null
           campaign_id: string
           created_at: string
           created_by_user_id: string | null
@@ -21740,8 +20439,8 @@ export type Database = {
           version: number
         }
         Insert: {
-          acting_reason?: string | null
           assignment_id: string
+          acting_reason?: string | null
           campaign_id: string
           created_at?: string
           created_by_user_id?: string | null
@@ -21760,8 +20459,8 @@ export type Database = {
           version?: number
         }
         Update: {
-          acting_reason?: string | null
           assignment_id?: string
+          acting_reason?: string | null
           campaign_id?: string
           created_at?: string
           created_by_user_id?: string | null
@@ -22770,152 +21469,6 @@ export type Database = {
         }
         Relationships: []
       }
-      work_calendar_exceptions: {
-        Row: {
-          exception_date: string
-          hr_group_id: string
-          is_workday: boolean
-          label: string
-          source_holiday_id: string | null
-          tenant_id: string
-          version_id: string
-        }
-        Insert: {
-          exception_date: string
-          hr_group_id: string
-          is_workday: boolean
-          label: string
-          source_holiday_id?: string | null
-          tenant_id: string
-          version_id: string
-        }
-        Update: {
-          exception_date?: string
-          hr_group_id?: string
-          is_workday?: boolean
-          label?: string
-          source_holiday_id?: string | null
-          tenant_id?: string
-          version_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "work_calendar_exceptions_tenant_id_hr_group_id_version_id_fkey"
-            columns: ["tenant_id", "hr_group_id", "version_id"]
-            isOneToOne: false
-            referencedRelation: "work_calendar_versions"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-        ]
-      }
-      work_calendar_versions: {
-        Row: {
-          calendar_id: string
-          created_at: string
-          created_by: string
-          holiday_selection_confirmed: boolean
-          hr_group_id: string
-          id: string
-          name: string
-          reason: string
-          revision: number
-          tenant_id: string
-          time_zone: string
-          valid_from: string
-          valid_until: string
-          weekdays: number[]
-        }
-        Insert: {
-          calendar_id: string
-          created_at?: string
-          created_by: string
-          holiday_selection_confirmed: boolean
-          hr_group_id: string
-          id?: string
-          name: string
-          reason: string
-          revision: number
-          tenant_id: string
-          time_zone: string
-          valid_from: string
-          valid_until: string
-          weekdays: number[]
-        }
-        Update: {
-          calendar_id?: string
-          created_at?: string
-          created_by?: string
-          holiday_selection_confirmed?: boolean
-          hr_group_id?: string
-          id?: string
-          name?: string
-          reason?: string
-          revision?: number
-          tenant_id?: string
-          time_zone?: string
-          valid_from?: string
-          valid_until?: string
-          weekdays?: number[]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "work_calendar_versions_tenant_id_hr_group_id_calendar_id_fkey"
-            columns: ["tenant_id", "hr_group_id", "calendar_id"]
-            isOneToOne: false
-            referencedRelation: "work_calendars"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-        ]
-      }
-      work_calendars: {
-        Row: {
-          administration_id: string | null
-          current_revision: number
-          current_version_id: string | null
-          hr_group_id: string
-          id: string
-          tenant_id: string
-        }
-        Insert: {
-          administration_id?: string | null
-          current_revision?: number
-          current_version_id?: string | null
-          hr_group_id: string
-          id?: string
-          tenant_id: string
-        }
-        Update: {
-          administration_id?: string | null
-          current_revision?: number
-          current_version_id?: string | null
-          hr_group_id?: string
-          id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "work_calendars_current_version_fk"
-            columns: ["tenant_id", "hr_group_id", "id", "current_version_id"]
-            isOneToOne: false
-            referencedRelation: "work_calendar_versions"
-            referencedColumns: ["tenant_id", "hr_group_id", "calendar_id", "id"]
-          },
-          {
-            foreignKeyName: "work_calendars_tenant_id_hr_group_id_administration_id_fkey"
-            columns: ["tenant_id", "hr_group_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "work_calendars_tenant_id_hr_group_id_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
       work_hour_types: {
         Row: {
           administration_id: string | null
@@ -23139,57 +21692,586 @@ export type Database = {
           },
         ]
       }
-      wvp_document_links: {
+      employment_pension_arrangement_assignments: {
         Row: {
-          case_id: string
+          administration_id: string
+          assignment_reason: string
           created_at: string
-          created_by_user_id: string
-          document_id: string
+          effective_from: string
+          effective_to: string | null
+          employment_id: string
+          hr_group_id: string
+          idempotency_key: string | null
           id: string
-          removed_at: string | null
-          removed_by_user_id: string | null
-          task_id: string
+          participation_start_date: string
+          pension_arrangement_id: string
+          provenance_json: Json
+          supersedes_assignment_id: string | null
+          tenant_id: string
+          updated_at: string
+          version_number: number
         }
         Insert: {
-          case_id: string
+          administration_id: string
+          assignment_reason: string
           created_at?: string
-          created_by_user_id?: string
-          document_id: string
+          effective_from: string
+          effective_to?: string | null
+          employment_id: string
+          hr_group_id: string
+          idempotency_key?: string | null
           id?: string
-          removed_at?: string | null
-          removed_by_user_id?: string | null
-          task_id: string
+          participation_start_date: string
+          pension_arrangement_id: string
+          provenance_json?: Json
+          supersedes_assignment_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          version_number?: number
         }
         Update: {
-          case_id?: string
+          administration_id?: string
+          assignment_reason?: string
           created_at?: string
-          created_by_user_id?: string
-          document_id?: string
+          effective_from?: string
+          effective_to?: string | null
+          employment_id?: string
+          hr_group_id?: string
+          idempotency_key?: string | null
           id?: string
-          removed_at?: string | null
-          removed_by_user_id?: string | null
-          task_id?: string
+          participation_start_date?: string
+          pension_arrangement_id?: string
+          provenance_json?: Json
+          supersedes_assignment_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          version_number?: number
         }
         Relationships: [
           {
-            foreignKeyName: "wvp_document_links_case_id_fkey"
-            columns: ["case_id"]
+            foreignKeyName: "employment_pension_arrangement_assi_pension_arrangement_id_fkey"
+            columns: ["pension_arrangement_id"]
             isOneToOne: false
-            referencedRelation: "absence_guidance"
-            referencedColumns: ["case_id"]
-          },
-          {
-            foreignKeyName: "wvp_document_links_document_id_fkey"
-            columns: ["document_id"]
-            isOneToOne: false
-            referencedRelation: "employee_documents"
+            referencedRelation: "pension_arrangements"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wvp_document_links_task_id_fkey"
-            columns: ["task_id"]
+            foreignKeyName: "employment_pension_arrangement_assignments_employment_id_fkey"
+            columns: ["employment_id"]
             isOneToOne: false
-            referencedRelation: "absence_tasks"
+            referencedRelation: "employments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labor_condition_pension_arrangements: {
+        Row: {
+          administration_id: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          hr_group_id: string
+          id: string
+          idempotency_key: string | null
+          labor_condition_set_id: string
+          participant_group: string
+          pension_arrangement_id: string
+          provenance_json: Json
+          supersedes_mapping_id: string | null
+          tenant_id: string
+          version_number: number
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          hr_group_id: string
+          id?: string
+          idempotency_key?: string | null
+          labor_condition_set_id: string
+          participant_group: string
+          pension_arrangement_id: string
+          provenance_json?: Json
+          supersedes_mapping_id?: string | null
+          tenant_id: string
+          version_number?: number
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string | null
+          labor_condition_set_id?: string
+          participant_group?: string
+          pension_arrangement_id?: string
+          provenance_json?: Json
+          supersedes_mapping_id?: string | null
+          tenant_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_condition_pension_arrangement_labor_condition_set_id_fkey"
+            columns: ["labor_condition_set_id"]
+            isOneToOne: false
+            referencedRelation: "labor_condition_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_condition_pension_arrangement_pension_arrangement_id_fkey"
+            columns: ["pension_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "pension_arrangements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pension_arrangement_tiers: {
+        Row: {
+          administration_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          max_age: number
+          min_age: number
+          pension_arrangement_id: string
+          tenant_id: string
+          total_rate: number
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          max_age: number
+          min_age: number
+          pension_arrangement_id: string
+          tenant_id: string
+          total_rate: number
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          max_age?: number
+          min_age?: number
+          pension_arrangement_id?: string
+          tenant_id?: string
+          total_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pension_arrangement_tiers_pension_arrangement_id_fkey"
+            columns: ["pension_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "pension_arrangements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pension_arrangement_versions: {
+        Row: {
+          administration_id: string
+          annual_franchise: number
+          annual_pensionable_salary_cap: number | null
+          arrangement_type: string
+          code: string
+          contract_classification: string
+          contract_classification_provenance: Json
+          created_at: string
+          created_by_user_id: string | null
+          effective_from: string
+          effective_to: string | null
+          eligibility_rule: Json
+          employee_share_pct: number
+          employer_share_pct: number
+          flat_total_rate: number | null
+          grandfathering_mode: string
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          pension_arrangement_id: string
+          pensionable_salary_definition: Json
+          provenance_json: Json
+          supersedes_version_id: string | null
+          supersession_provenance: Json
+          supersession_reason: string | null
+          tenant_id: string
+          transition_date: string | null
+          version_number: number
+        }
+        Insert: {
+          administration_id: string
+          annual_franchise: number
+          annual_pensionable_salary_cap?: number | null
+          arrangement_type: string
+          code: string
+          contract_classification?: string
+          contract_classification_provenance?: Json
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_from: string
+          effective_to?: string | null
+          eligibility_rule?: Json
+          employee_share_pct: number
+          employer_share_pct: number
+          flat_total_rate?: number | null
+          grandfathering_mode: string
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          pension_arrangement_id: string
+          pensionable_salary_definition?: Json
+          provenance_json?: Json
+          supersedes_version_id?: string | null
+          supersession_provenance?: Json
+          supersession_reason?: string | null
+          tenant_id: string
+          transition_date?: string | null
+          version_number: number
+        }
+        Update: {
+          administration_id?: string
+          annual_franchise?: number
+          annual_pensionable_salary_cap?: number | null
+          arrangement_type?: string
+          code?: string
+          contract_classification?: string
+          contract_classification_provenance?: Json
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          eligibility_rule?: Json
+          employee_share_pct?: number
+          employer_share_pct?: number
+          flat_total_rate?: number | null
+          grandfathering_mode?: string
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          pension_arrangement_id?: string
+          pensionable_salary_definition?: Json
+          provenance_json?: Json
+          supersedes_version_id?: string | null
+          supersession_provenance?: Json
+          supersession_reason?: string | null
+          tenant_id?: string
+          transition_date?: string | null
+          version_number?: number
+        }
+        Relationships: []
+      }
+      pension_arrangement_version_tiers: {
+        Row: {
+          administration_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          max_age: number
+          min_age: number
+          pension_arrangement_id: string
+          pension_arrangement_version_id: string
+          tenant_id: string
+          total_rate: number
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          max_age: number
+          min_age: number
+          pension_arrangement_id: string
+          pension_arrangement_version_id: string
+          tenant_id: string
+          total_rate: number
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          max_age?: number
+          min_age?: number
+          pension_arrangement_id?: string
+          pension_arrangement_version_id?: string
+          tenant_id?: string
+          total_rate?: number
+        }
+        Relationships: []
+      }
+      pension_arrangement_version_audit: {
+        Row: {
+          actor_user_id: string | null
+          administration_id: string
+          created_at: string
+          event_type: string
+          hr_group_id: string
+          id: string
+          pension_arrangement_id: string
+          pension_arrangement_version_id: string
+          provenance_json: Json
+          reason: string
+          supersedes_version_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          administration_id: string
+          created_at?: string
+          event_type: string
+          hr_group_id: string
+          id?: string
+          pension_arrangement_id: string
+          pension_arrangement_version_id: string
+          provenance_json?: Json
+          reason: string
+          supersedes_version_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          administration_id?: string
+          created_at?: string
+          event_type?: string
+          hr_group_id?: string
+          id?: string
+          pension_arrangement_id?: string
+          pension_arrangement_version_id?: string
+          provenance_json?: Json
+          reason?: string
+          supersedes_version_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      pension_arrangements: {
+        Row: {
+          administration_id: string
+          annual_franchise: number
+          annual_pensionable_salary_cap: number | null
+          arrangement_type: string
+          code: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          eligibility_rule: Json
+          employee_share_pct: number
+          employer_share_pct: number
+          flat_total_rate: number | null
+          grandfathering_mode: string
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          pensionable_salary_definition: Json
+          provenance_json: Json
+          tenant_id: string
+          transition_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          annual_franchise: number
+          annual_pensionable_salary_cap?: number | null
+          arrangement_type: string
+          code: string
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          eligibility_rule?: Json
+          employee_share_pct: number
+          employer_share_pct: number
+          flat_total_rate?: number | null
+          grandfathering_mode?: string
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          pensionable_salary_definition?: Json
+          provenance_json?: Json
+          tenant_id: string
+          transition_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          annual_franchise?: number
+          annual_pensionable_salary_cap?: number | null
+          arrangement_type?: string
+          code?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          eligibility_rule?: Json
+          employee_share_pct?: number
+          employer_share_pct?: number
+          flat_total_rate?: number | null
+          grandfathering_mode?: string
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          pensionable_salary_definition?: Json
+          provenance_json?: Json
+          tenant_id?: string
+          transition_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      performance_review_closures: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          dossier_id: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          dossier_id: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          dossier_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_review_closures_tenant_id_dossier_id_fkey"
+            columns: ["tenant_id", "dossier_id"]
+            isOneToOne: true
+            referencedRelation: "performance_review_dossiers"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      performance_review_draft_archives: {
+        Row: {
+          archived_at: string
+          archived_by: string
+          author_user_id: string
+          body: string
+          dossier_id: string
+          id: string
+          kind: string
+          meeting_date: string | null
+          rating_explanation: string | null
+          reason: string
+          score: number | null
+          tenant_id: string
+          version: number
+        }
+        Insert: {
+          archived_at?: string
+          archived_by: string
+          author_user_id: string
+          body: string
+          dossier_id: string
+          id?: string
+          kind: string
+          meeting_date?: string | null
+          rating_explanation?: string | null
+          reason: string
+          score?: number | null
+          tenant_id: string
+          version: number
+        }
+        Update: {
+          archived_at?: string
+          archived_by?: string
+          author_user_id?: string
+          body?: string
+          dossier_id?: string
+          id?: string
+          kind?: string
+          meeting_date?: string | null
+          rating_explanation?: string | null
+          reason?: string
+          score?: number | null
+          tenant_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_review_draft_archives_tenant_id_dossier_id_fkey"
+            columns: ["tenant_id", "dossier_id"]
+            isOneToOne: false
+            referencedRelation: "performance_review_dossiers"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      performance_review_role_flip_commands: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          idempotency_key: string
+          request_hash: string
+          result: Json
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          idempotency_key: string
+          request_hash: string
+          result: Json
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          idempotency_key?: string
+          request_hash?: string
+          result?: Json
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      performance_review_round_v2_commands: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          idempotency_key: string
+          request_hash: string
+          round_id: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          idempotency_key: string
+          request_hash: string
+          round_id: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          idempotency_key?: string
+          request_hash?: string
+          round_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_review_round_v2_commands_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "performance_review_rounds"
             referencedColumns: ["id"]
           },
         ]
@@ -23259,6 +22341,66 @@ export type Database = {
       }
     }
     Functions: {
+      create_performance_review_round: { Args: { requested_hr_group: string; requested_title: string; requested_introduction: string; requested_period_start: string; requested_period_end: string; requested_start_date: string; requested_due_date: string | null; requested_rating_snapshot: Json | null; requested_idempotency_key?: string | null; requested_round_type?: string }; Returns: Json }
+      update_performance_review_round: { Args: { requested_round: string; requested_title: string; requested_introduction: string; requested_round_type: string; requested_period_start: string; requested_period_end: string; requested_start_date: string; requested_due_date: string | null; requested_rating_snapshot: Json | null; expected_version: number }; Returns: Json }
+      reassign_performance_review_reviewer: { Args: { requested_dossier: string; requested_reviewer: string; expected_version: number }; Returns: Json }
+      search_performance_review_candidates: { Args: { requested_hr_group: string; requested_search?: string; requested_administration?: string | null; requested_department?: string | null; requested_job?: string | null; requested_location?: string | null; requested_manager?: string | null; requested_employment_status?: string; requested_offset?: number; requested_limit?: number; requested_employee?: string | null }; Returns: { employee_id: string; first_name: string; birth_name: string; employee_number: string; hr_group_id: string; direct_manager_id: string | null; direct_manager_name: string | null; administration_id: string | null; administration_name: string | null; department_id: string | null; department_name: string | null; job_id: string | null; job_title: string | null; location_id: string | null; location_name: string | null; employment_status: string | null; assignment_status: string; eligibility_message: string | null; total_count: number }[] }
+      publish_performance_review_round: { Args: { requested_round: string; expected_version: number; requested_idempotency_key?: string | null }; Returns: Json }
+      add_performance_review_dossier: { Args: { requested_round: string; requested_employee: string; requested_reviewer: string; requested_administration: string; requested_idempotency_key?: string | null }; Returns: Json }
+      save_performance_review_self: { Args: { requested_dossier: string; requested_body: string; expected_version: number; submit_now?: boolean }; Returns: Json }
+      save_performance_review_manager: { Args: { requested_dossier: string; requested_body: string; requested_meeting_date: string | null; requested_score: number | null; requested_rating_explanation: string | null; expected_version: number; submit_now?: boolean }; Returns: Json }
+      acknowledge_performance_review: { Args: { requested_dossier: string; requested_decision: string; requested_reason: string | null; expected_version: number }; Returns: Json }
+      save_performance_review_private_note: { Args: { requested_dossier: string; requested_body: string }; Returns: Json }
+      add_performance_review_attachment: { Args: { requested_dossier: string; requested_storage_key: string; requested_filename: string; requested_content_type: string; requested_size: number; requested_checksum: string }; Returns: Json }
+      link_performance_review_appraisal: { Args: { requested_dossier: string; requested_item: string }; Returns: Json }
+      close_performance_review_round: { Args: { requested_round: string; requested_reason: string; expected_version: number; requested_idempotency_key?: string | null }; Returns: Json }
+      activate_performance_review_round: { Args: { requested_round: string }; Returns: Json }
+      run_due_performance_review_activations: { Args: Record<PropertyKey, never>; Returns: number }
+      cancel_performance_review_round: { Args: { requested_round: string; requested_reason: string; expected_version: number }; Returns: Json }
+      wvp_case_for_process: {
+        Args: { requested_process_instance_id: string }
+        Returns: string
+      }
+      wvp_list: {
+        Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string | null; requested_case_id?: string | null }
+        Returns: Json
+      }
+      wvp_command: {
+        Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string | null; command: Json }
+        Returns: string
+      }
+      wvp_document_links: {
+        Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string; requested_case_id: string }
+        Returns: Json
+      }
+      wvp_document_link_add: {
+        Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string; requested_case_id: string; requested_task_id: string; requested_document_id: string }
+        Returns: string
+      }
+      wvp_document_link_remove: {
+        Args: { requested_tenant_id: string; requested_hr_group_id: string; requested_administration_id: string; requested_case_id: string; requested_link_id: string }
+        Returns: boolean
+      }
+      get_work_calendars: {
+        Args: { requested_hr_group_id: string; requested_administration_id: string | null }
+        Returns: Json
+      }
+      publish_work_calendar: {
+        Args: { requested_hr_group_id: string; requested_administration_id: string | null; requested_config: Json; requested_expected_revision: number }
+        Returns: Json
+      }
+      preview_work_calendar_deadline: {
+        Args: { requested_version_id: string; requested_local_start: string; requested_days: number }
+        Returns: Json
+      }
+      soft_delete_continuous_appraisal_item: {
+        Args: { p_expected_version: number; p_item_id: string }
+        Returns: Json
+      }
+      transition_continuous_appraisal_item_status: {
+        Args: { p_expected_version: number; p_item_id: string; p_item_status: string }
+        Returns: Json
+      }
       accept_user_invitation: {
         Args: {
           accepted_email: string
@@ -23280,38 +22422,6 @@ export type Database = {
         }
         Returns: Json
       }
-      acknowledge_performance_review: {
-        Args: {
-          expected_version: number
-          requested_decision: string
-          requested_dossier: string
-          requested_reason: string
-        }
-        Returns: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_dossiers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       activate_document_studio_template_draft: {
         Args: {
           requested_draft_id: string
@@ -23321,15 +22431,10 @@ export type Database = {
         }
         Returns: Json
       }
-      activate_due_talent_review_campaigns:
-        | { Args: { requested_tenant_id: string }; Returns: number }
-        | {
-            Args: {
-              requested_administration_id: string
-              requested_tenant_id: string
-            }
-            Returns: number
-          }
+      activate_due_talent_review_campaigns: {
+        Args: { requested_administration_id: string; requested_tenant_id: string }
+        Returns: number
+      }
       activate_job_profile_version: {
         Args: { requested_tenant_id: string; requested_version_id: string }
         Returns: string
@@ -23347,33 +22452,6 @@ export type Database = {
         }
         Returns: Json
       }
-      activate_performance_review_round: {
-        Args: { requested_round: string }
-        Returns: {
-          additional_reviewer_enabled: boolean
-          created_at: string
-          created_by: string
-          due_date: string | null
-          hr_group_id: string
-          id: string
-          introduction: string
-          period_end: string
-          period_start: string
-          rating_snapshot: Json | null
-          round_type: string
-          start_date: string
-          status: string
-          tenant_id: string
-          title: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_rounds"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       activate_process_recipe: {
         Args: {
           requested_administration_id: string
@@ -23384,103 +22462,6 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: Json
-      }
-      add_performance_review_attachment: {
-        Args: {
-          requested_checksum: string
-          requested_content_type: string
-          requested_dossier: string
-          requested_filename: string
-          requested_idempotency_key?: string
-          requested_size: number
-          requested_storage_key: string
-        }
-        Returns: {
-          checksum_sha256: string
-          content_type: string
-          created_at: string
-          dossier_id: string
-          file_size: number
-          id: string
-          original_filename: string
-          released_at: string | null
-          storage_key: string
-          tenant_id: string
-          uploaded_by: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_attachments"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      add_performance_review_dossier: {
-        Args: {
-          requested_administration: string
-          requested_employee: string
-          requested_idempotency_key?: string
-          requested_reviewer: string
-          requested_round: string
-        }
-        Returns: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_dossiers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      add_performance_review_dossier_v2: {
-        Args: {
-          requested_additional_reviewer?: string
-          requested_administration?: string
-          requested_employee: string
-          requested_idempotency_key?: string
-          requested_reviewer: string
-          requested_round: string
-        }
-        Returns: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_dossiers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
       }
       add_process_output_document_audiences: {
         Args: { requested_output_id: string }
@@ -23519,10 +22500,6 @@ export type Database = {
           requested_warning_codes?: string[]
         }
         Returns: string
-      }
-      apply_employment_pension_arrangement: {
-        Args: { p_input: Json }
-        Returns: Json
       }
       apply_employment_timeline_mutation: {
         Args: {
@@ -23579,17 +22556,6 @@ export type Database = {
         }
         Returns: string
       }
-      apply_performance_review_role_flip: {
-        Args: {
-          requested_idempotency_key: string
-          requested_ids: string[]
-          requested_preserve_drafts: boolean
-          requested_preview_hash: string
-          requested_reason: string
-          requested_round: string
-        }
-        Returns: Json
-      }
       apply_salary_application_change: {
         Args: {
           requested_acknowledgements?: Json
@@ -23600,81 +22566,6 @@ export type Database = {
           requested_warning_codes?: string[]
         }
         Returns: Json
-      }
-      approve_actual_work_entry_for_payroll: {
-        Args: {
-          requested_administration_id: string
-          requested_entry_id: string
-          requested_hr_group_id: string
-          requested_tenant_id: string
-        }
-        Returns: {
-          administration_id: string
-          approved_at: string | null
-          approved_by: string | null
-          correction_reason: string | null
-          created_at: string
-          created_by: string | null
-          employee_id: string
-          employment_id: string
-          entry_granularity: Database["public"]["Enums"]["actual_work_entry_granularity"]
-          hours: number
-          hr_group_id: string
-          id: string
-          note: string | null
-          posting_period_start: string
-          source_key: string | null
-          source_type: string
-          status: Database["public"]["Enums"]["leave_work_hour_entry_status"]
-          subject_period_end: string
-          subject_period_start: string
-          tenant_id: string
-          updated_at: string
-          work_date: string
-          work_hour_type_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "employment_work_hour_entries"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      approve_actual_work_entry_for_payroll_period: {
-        Args: {
-          requested_administration_id: string
-          requested_entries: Json
-          requested_hr_group_id: string
-          requested_payroll_period_end: string
-          requested_payroll_period_id: string
-          requested_payroll_period_start: string
-          requested_payroll_periodicity: string
-          requested_tenant_id: string
-        }
-        Returns: {
-          administration_id: string
-          approved_at: string
-          approved_by: string
-          content_fingerprint: string
-          employee_id: string
-          employment_id: string
-          entry_id: string
-          entry_revision_number: number
-          hr_group_id: string
-          id: string
-          payroll_period_end: string
-          payroll_period_id: string
-          payroll_period_start: string
-          payroll_periodicity: string
-          reviewed_revision_number: number
-          tenant_id: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "actual_work_payroll_approvals"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       archive_document_studio_template: {
         Args: {
@@ -23717,37 +22608,6 @@ export type Database = {
         Args: { requested_employee_id: string; requested_permission: string }
         Returns: boolean
       }
-      cancel_performance_review_round: {
-        Args: {
-          expected_version: number
-          requested_reason: string
-          requested_round: string
-        }
-        Returns: {
-          additional_reviewer_enabled: boolean
-          created_at: string
-          created_by: string
-          due_date: string | null
-          hr_group_id: string
-          id: string
-          introduction: string
-          period_end: string
-          period_start: string
-          rating_snapshot: Json | null
-          round_type: string
-          start_date: string
-          status: string
-          tenant_id: string
-          title: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_rounds"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       capture_tenant_usage_snapshot: {
         Args: { requested_tenant_id: string }
         Returns: string
@@ -23780,10 +22640,6 @@ export type Database = {
           requested_status: Database["public"]["Enums"]["tenant_lifecycle_status"]
           requested_tenant_id: string
         }
-        Returns: Json
-      }
-      claim_process_reminder_job_system: {
-        Args: { requested_worker_id: string }
         Returns: Json
       }
       claim_process_work_item: {
@@ -23850,65 +22706,6 @@ export type Database = {
         }
         Returns: string
       }
-      close_performance_review_dossier_v2: {
-        Args: { expected_version: number; requested_dossier: string }
-        Returns: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_dossiers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      close_performance_review_round: {
-        Args: {
-          expected_version: number
-          requested_idempotency_key?: string
-          requested_reason: string
-          requested_round: string
-        }
-        Returns: {
-          additional_reviewer_enabled: boolean
-          created_at: string
-          created_by: string
-          due_date: string | null
-          hr_group_id: string
-          id: string
-          introduction: string
-          period_end: string
-          period_start: string
-          rating_snapshot: Json | null
-          round_type: string
-          start_date: string
-          status: string
-          tenant_id: string
-          title: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_rounds"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       close_talent_review_campaign: {
         Args: { requested_campaign_id: string }
         Returns: string
@@ -23951,55 +22748,56 @@ export type Database = {
         }
         Returns: Json
       }
-      configure_performance_review_reviewers: {
-        Args: {
-          expected_version: number
-          requested_additional_reviewer: string
-          requested_dossier: string
-          requested_preserve_drafts?: boolean
-          requested_reason: string
-          requested_reviewer: string
-        }
-        Returns: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_dossiers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       confirm_absence_confirmation: {
         Args: { requested_case_id: string }
         Returns: string
+      }
+      confirm_employment_termination: {
+        Args: { requested_termination_id: string }
+        Returns: undefined
       }
       confirm_employment_payroll_tax_profile: {
         Args: { p_input: Json }
         Returns: Json
       }
+      sec101_profile_metadata: {
+        Args: { p_ids: string[] }
+        Returns: { profile_id: string; encrypted_payload: string }[]
+      }
+      sec101_provenance_key_fingerprint: {
+        Args: Record<PropertyKey, never>
+        Returns: string | null
+      }
       confirm_employment_payroll_tax_profile_v2: {
         Args: { p_input: Json }
         Returns: Json
       }
-      confirm_employment_termination: {
-        Args: { requested_termination_id: string }
-        Returns: undefined
+      register_administration_payroll_tax_number: {
+        Args: {
+          requested_administration_id: string
+          requested_is_primary: boolean
+          requested_payroll_tax_number: string
+          requested_valid_from: string
+          requested_valid_until: string | null
+        }
+        Returns: string
+      }
+      link_local_test_payroll_persona_v1: {
+        Args: {
+          p_auth_user_id: string
+          p_employee_id: string
+          p_employment_id: string
+          p_persona_key: string
+        }
+        Returns: Json
+      }
+      link_local_test_payroll_demo_002_v1: {
+        Args: {
+          p_auth_user_id: string
+          p_employee_id: string
+          p_employment_id: string
+        }
+        Returns: Json
       }
       confirm_group_leave_request: {
         Args: {
@@ -24345,96 +23143,6 @@ export type Database = {
         }
         Returns: string
       }
-      create_mars_payfull02_synthetic_pension_arrangement: {
-        Args: { p_input: Json }
-        Returns: Json
-      }
-      create_pension_arrangement: { Args: { p_input: Json }; Returns: Json }
-      create_pension_arrangement_successor: {
-        Args: { p_predecessor_version_id: string; p_successor: Json }
-        Returns: string
-      }
-      create_pension_arrangement_successor_for_pension_manager: {
-        Args: { p_predecessor_version_id: string; p_successor: Json }
-        Returns: string
-      }
-      create_performance_review_round: {
-        Args: {
-          requested_due_date: string
-          requested_hr_group: string
-          requested_idempotency_key?: string
-          requested_introduction: string
-          requested_period_end: string
-          requested_period_start: string
-          requested_rating_snapshot: Json
-          requested_round_type?: string
-          requested_start_date: string
-          requested_title: string
-        }
-        Returns: {
-          additional_reviewer_enabled: boolean
-          created_at: string
-          created_by: string
-          due_date: string | null
-          hr_group_id: string
-          id: string
-          introduction: string
-          period_end: string
-          period_start: string
-          rating_snapshot: Json | null
-          round_type: string
-          start_date: string
-          status: string
-          tenant_id: string
-          title: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_rounds"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      create_performance_review_round_v2: {
-        Args: {
-          requested_additional_reviewer_enabled?: boolean
-          requested_due_date: string
-          requested_hr_group: string
-          requested_idempotency_key?: string
-          requested_introduction: string
-          requested_period_end: string
-          requested_period_start: string
-          requested_rating_snapshot: Json
-          requested_round_type: string
-          requested_start_date: string
-          requested_title: string
-        }
-        Returns: {
-          additional_reviewer_enabled: boolean
-          created_at: string
-          created_by: string
-          due_date: string | null
-          hr_group_id: string
-          id: string
-          introduction: string
-          period_end: string
-          period_start: string
-          rating_snapshot: Json | null
-          round_type: string
-          start_date: string
-          status: string
-          tenant_id: string
-          title: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_rounds"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       create_personal_reminder: {
         Args: {
           requested_administration_id: string
@@ -24459,11 +23167,7 @@ export type Database = {
         Returns: Json
       }
       create_process_deadline_reminder_system: {
-        Args: {
-          requested_job_id: string
-          requested_language?: string
-          requested_worker_id: string
-        }
+        Args: { requested_job_id: string; requested_worker_id: string; requested_language?: string }
         Returns: Json
       }
       create_process_definition_draft: {
@@ -24559,6 +23263,15 @@ export type Database = {
         Args: { requested_payload: Json; requested_structure_id: string }
         Returns: Json
       }
+      save_salary_structure_import_draft: {
+        Args: {
+          requested_draft_id: string | null
+          requested_expected_lock_version: number | null
+          requested_payload: Json
+          requested_structure_id: string
+        }
+        Returns: Json
+      }
       create_talent_notification: {
         Args: {
           requested_event_type: string
@@ -24569,28 +23282,6 @@ export type Database = {
           requested_title: string
         }
         Returns: string
-      }
-      delete_performance_review_attachment: {
-        Args: { requested_attachment: string }
-        Returns: {
-          checksum_sha256: string
-          content_type: string
-          created_at: string
-          dossier_id: string
-          file_size: number
-          id: string
-          original_filename: string
-          released_at: string | null
-          storage_key: string
-          tenant_id: string
-          uploaded_by: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_attachments"
-          isOneToOne: true
-          isSetofReturn: false
-        }
       }
       discard_document_studio_template_draft: {
         Args: {
@@ -24671,7 +23362,7 @@ export type Database = {
         Args: { requested_asset_id: string }
         Returns: undefined
       }
-      finish_process_reminder_job_system: {
+      finish_workflow_job: {
         Args: {
           requested_error_code?: string
           requested_job_id: string
@@ -24681,7 +23372,11 @@ export type Database = {
         }
         Returns: Json
       }
-      finish_workflow_job: {
+      claim_process_reminder_job_system: {
+        Args: { requested_worker_id: string }
+        Returns: Json
+      }
+      finish_process_reminder_job_system: {
         Args: {
           requested_error_code?: string
           requested_job_id: string
@@ -24822,13 +23517,6 @@ export type Database = {
         Args: { requested_hr_group_id: string; requested_tenant_id: string }
         Returns: boolean
       }
-      get_frequent_absence_threshold: {
-        Args: { requested_hr_group_id: string; requested_tenant_id: string }
-        Returns: {
-          configured: boolean
-          frequent_absence_threshold: number
-        }[]
-      }
       get_internal_transfer_preview: {
         Args: { requested_work_item_id: string }
         Returns: Json
@@ -24905,14 +23593,6 @@ export type Database = {
         Args: { requested_process_instance_id: string }
         Returns: Json
       }
-      get_process_form_projection: {
-        Args: { requested_language?: string; requested_work_item_id: string }
-        Returns: Json
-      }
-      get_process_form_projection_with_bindings: {
-        Args: { requested_language?: string; requested_work_item_id: string }
-        Returns: Json
-      }
       get_process_insights_projection: {
         Args: {
           requested_from_date: string
@@ -24920,13 +23600,9 @@ export type Database = {
           requested_language: string
           requested_page: number
           requested_page_size: number
-          requested_process_definition_id: string
+          requested_process_definition_id: string | null
           requested_to_date: string
         }
-        Returns: Json
-      }
-      get_process_instance_projection: {
-        Args: { requested_process_instance_id: string }
         Returns: Json
       }
       get_process_operations_inbox: {
@@ -24935,8 +23611,20 @@ export type Database = {
           requested_language?: string
           requested_page?: number
           requested_page_size?: number
-          requested_search?: string
+          requested_search?: string | null
         }
+        Returns: Json
+      }
+      get_process_form_projection: {
+        Args: { requested_language?: string; requested_work_item_id: string }
+        Returns: Json
+      }
+      get_process_form_projection_with_bindings: {
+        Args: { requested_language?: string; requested_work_item_id: string }
+        Returns: Json
+      }
+      get_process_instance_projection: {
+        Args: { requested_process_instance_id: string }
         Returns: Json
       }
       get_process_output_download_context: {
@@ -24962,15 +23650,7 @@ export type Database = {
         }
         Returns: Json
       }
-      get_process_startable_catalog: {
-        Args: { requested_hr_group_id: string; requested_tenant_id: string }
-        Returns: Json
-      }
       get_process_work_item_detail: {
-        Args: { requested_language?: string; requested_work_item_id: string }
-        Returns: Json
-      }
-      get_process_work_item_experience: {
         Args: { requested_language?: string; requested_work_item_id: string }
         Returns: Json
       }
@@ -25040,6 +23720,10 @@ export type Database = {
         Args: { requested_language?: string; requested_work_item_id: string }
         Returns: Json
       }
+      get_process_work_item_experience: {
+        Args: { requested_language?: string; requested_work_item_id: string }
+        Returns: Json
+      }
       get_unified_process_work_projection: {
         Args: {
           requested_administration_id?: string
@@ -25057,13 +23741,6 @@ export type Database = {
           requested_subject_employment_id?: string
           requested_tab?: string
           requested_view?: string
-        }
-        Returns: Json
-      }
-      get_work_calendars: {
-        Args: {
-          requested_administration_id: string
-          requested_hr_group_id: string
         }
         Returns: Json
       }
@@ -25110,38 +23787,24 @@ export type Database = {
           status: string
         }[]
       }
-      link_local_test_payroll_demo_002_v1: {
+      list_employee_overviews_page: {
         Args: {
-          p_auth_user_id: string
-          p_employee_id: string
-          p_employment_id: string
+          requested_administration_id: string
+          requested_archive_filter: string
+          requested_hr_group_id: string
+          requested_page: number
+          requested_scope: string
+          requested_search: string
+          requested_sort: string
+          requested_status_filter: string
+          requested_tenant_id: string
         }
-        Returns: Json
-      }
-      link_local_test_payroll_persona_v1: {
-        Args: {
-          p_auth_user_id: string
-          p_employee_id: string
-          p_employment_id: string
-          p_persona_key: string
-        }
-        Returns: Json
-      }
-      link_performance_review_appraisal: {
-        Args: { requested_dossier: string; requested_item: string }
         Returns: {
-          appraisal_item_id: string
-          created_at: string
-          created_by: string
-          dossier_id: string
-          tenant_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_appraisal_links"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+          directory_access: boolean
+          directory_visibility: Json
+          employees: Json
+          total_count: number
+        }[]
       }
       list_employee_overviews: {
         Args: {
@@ -25162,25 +23825,6 @@ export type Database = {
           is_archived: boolean
           job_title: string
           work_email: string
-        }[]
-      }
-      list_employee_overviews_page: {
-        Args: {
-          requested_administration_id: string
-          requested_archive_filter: string
-          requested_hr_group_id: string
-          requested_page: number
-          requested_scope: string
-          requested_search: string
-          requested_sort: string
-          requested_status_filter: string
-          requested_tenant_id: string
-        }
-        Returns: {
-          directory_access: boolean
-          directory_visibility: Json
-          employees: Json
-          total_count: number
         }[]
       }
       list_journey_projections: {
@@ -25266,17 +23910,6 @@ export type Database = {
         }
         Returns: string
       }
-      payfast_manager_payroll_source_projection_v1: {
-        Args: {
-          requested_employee_id: string
-          requested_employment_id: string
-          requested_payroll_period_id?: string
-          requested_period_end: string
-          requested_period_start: string
-          requested_periodicity?: string
-        }
-        Returns: Json
-      }
       payroll_private_consume_oauth_state: {
         Args: { requested_consumed_at: string; requested_state_hash: string }
         Returns: Json
@@ -25347,16 +23980,6 @@ export type Database = {
         }
         Returns: Json
       }
-      post_actual_work_tvt_for_revision: {
-        Args: {
-          requested_administration_id: string
-          requested_entry_id: string
-          requested_hr_group_id: string
-          requested_revision_number: number
-          requested_tenant_id: string
-        }
-        Returns: string
-      }
       post_group_leave_accrual: {
         Args: {
           requested_accrual_year: number
@@ -25375,24 +23998,40 @@ export type Database = {
         }
         Returns: string
       }
+      post_actual_work_tvt_for_revision: {
+        Args: {
+          requested_administration_id: string
+          requested_entry_id: string
+          requested_hr_group_id: string
+          requested_revision_number: number
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
+      approve_actual_work_entry_for_payroll: {
+        Args: {
+          requested_administration_id: string
+          requested_entry_id: string
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: Database["public"]["Tables"]["employment_work_hour_entries"]["Row"]
+      }
+      approve_actual_work_entry_for_payroll_period: {
+        Args: {
+          requested_administration_id: string
+          requested_entries: Json
+          requested_hr_group_id: string
+          requested_payroll_period_end: string
+          requested_payroll_period_id: string
+          requested_payroll_period_start: string
+          requested_payroll_periodicity: string
+          requested_tenant_id: string
+        }
+        Returns: Database["public"]["Tables"]["actual_work_payroll_approvals"]["Row"][]
+      }
       prepare_document_signing: {
         Args: { requested_actor_user_id: string; requested_snapshot_id: string }
-        Returns: Json
-      }
-      preview_performance_review_role_flip: {
-        Args: {
-          requested_ids?: string[]
-          requested_round: string
-          requested_scope: string
-        }
-        Returns: Json
-      }
-      preview_work_calendar_deadline: {
-        Args: {
-          requested_days: number
-          requested_local_start: string
-          requested_version_id: string
-        }
         Returns: Json
       }
       publish_complete_employment: {
@@ -25421,37 +24060,6 @@ export type Database = {
           requested_expected_revision: number
         }
         Returns: Json
-      }
-      publish_performance_review_round: {
-        Args: {
-          expected_version: number
-          requested_idempotency_key?: string
-          requested_round: string
-        }
-        Returns: {
-          additional_reviewer_enabled: boolean
-          created_at: string
-          created_by: string
-          due_date: string | null
-          hr_group_id: string
-          id: string
-          introduction: string
-          period_end: string
-          period_start: string
-          rating_snapshot: Json | null
-          round_type: string
-          start_date: string
-          status: string
-          tenant_id: string
-          title: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_rounds"
-          isOneToOne: true
-          isSetofReturn: false
-        }
       }
       publish_process_definition_draft: {
         Args: {
@@ -25485,52 +24093,12 @@ export type Database = {
         }
         Returns: Json
       }
-      publish_work_calendar: {
-        Args: {
-          requested_administration_id: string
-          requested_config: Json
-          requested_expected_revision: number
-          requested_hr_group_id: string
-        }
-        Returns: Json
-      }
       re_resolve_process_work_item: {
         Args: {
           requested_expected_version: number
           requested_work_item_id: string
         }
         Returns: Json
-      }
-      reassign_performance_review_reviewer: {
-        Args: {
-          expected_version: number
-          requested_dossier: string
-          requested_reviewer: string
-        }
-        Returns: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_dossiers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
       }
       reassign_process_work_item: {
         Args: {
@@ -25727,94 +24295,9 @@ export type Database = {
         }
         Returns: string
       }
-      register_administration_payroll_tax_number: {
-        Args: {
-          requested_administration_id: string
-          requested_is_primary: boolean
-          requested_payroll_tax_number: string
-          requested_valid_from: string
-          requested_valid_until: string
-        }
-        Returns: string
-      }
       register_apiai07_mcp_client: {
         Args: { requested_client_id: string }
         Returns: Json
-      }
-      release_actual_work_entries_for_payroll: {
-        Args: {
-          requested_administration_id: string
-          requested_entries: Json
-          requested_hr_group_id: string
-          requested_payroll_period_start: string
-          requested_tenant_id: string
-        }
-        Returns: {
-          administration_id: string
-          content_fingerprint: string
-          employee_id: string
-          employment_id: string
-          entry_id: string
-          entry_revision_number: number
-          hr_group_id: string
-          id: string
-          mapping_id: string
-          payroll_period_end: string | null
-          payroll_period_id: string | null
-          payroll_period_start: string
-          payroll_periodicity: string | null
-          release_class: string
-          released_at: string
-          released_by: string
-          supersedes_release_id: string | null
-          tenant_id: string
-          work_hour_type_updated_at: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "actual_work_payroll_releases"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
-      release_actual_work_entries_for_payroll_period: {
-        Args: {
-          requested_administration_id: string
-          requested_entries: Json
-          requested_hr_group_id: string
-          requested_payroll_period_end: string
-          requested_payroll_period_id: string
-          requested_payroll_period_start: string
-          requested_payroll_periodicity: string
-          requested_tenant_id: string
-        }
-        Returns: {
-          administration_id: string
-          content_fingerprint: string
-          employee_id: string
-          employment_id: string
-          entry_id: string
-          entry_revision_number: number
-          hr_group_id: string
-          id: string
-          mapping_id: string
-          payroll_period_end: string | null
-          payroll_period_id: string | null
-          payroll_period_start: string
-          payroll_periodicity: string | null
-          release_class: string
-          released_at: string
-          released_by: string
-          supersedes_release_id: string | null
-          tenant_id: string
-          work_hour_type_updated_at: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "actual_work_payroll_releases"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       release_ai_credits: {
         Args: {
@@ -25833,37 +24316,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      release_performance_review_additional_reviewer: {
-        Args: {
-          expected_version: number
-          requested_dossier: string
-          requested_reason: string
-        }
-        Returns: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_dossiers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       release_process_work_item: {
         Args: {
           requested_expected_version: number
@@ -25880,12 +24332,10 @@ export type Database = {
         }
         Returns: Json
       }
-      reopen_talent_review_campaign:
-        | { Args: { requested_campaign_id: string }; Returns: string }
-        | {
-            Args: { requested_campaign_id: string; requested_reason: string }
-            Returns: string
-          }
+      reopen_talent_review_campaign: {
+        Args: { requested_campaign_id: string; requested_reason: string }
+        Returns: string
+      }
       replace_document_studio_template_tags: {
         Args: { requested_tag_ids: Json; requested_template_id: string }
         Returns: Json
@@ -26032,46 +24482,6 @@ export type Database = {
         }
         Returns: string
       }
-      resolve_pension_arrangement_versions: {
-        Args: { p_effective_date: string; p_pension_arrangement_ids: string[] }
-        Returns: {
-          administration_id: string
-          annual_franchise: number
-          annual_pensionable_salary_cap: number | null
-          arrangement_type: string
-          code: string
-          contract_classification: string
-          contract_classification_provenance: Json
-          created_at: string
-          created_by_user_id: string | null
-          effective_from: string
-          effective_to: string | null
-          eligibility_rule: Json
-          employee_share_pct: number
-          employer_share_pct: number
-          flat_total_rate: number | null
-          grandfathering_mode: string
-          hr_group_id: string
-          id: string
-          is_active: boolean
-          name: string
-          pension_arrangement_id: string
-          pensionable_salary_definition: Json
-          provenance_json: Json
-          supersedes_version_id: string | null
-          supersession_provenance: Json
-          supersession_reason: string | null
-          tenant_id: string
-          transition_date: string | null
-          version_number: number
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "pension_arrangement_versions"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
       restore_employee_document_atomic: {
         Args: { requested_document_id: string; requested_employee_id: string }
         Returns: boolean
@@ -26091,14 +24501,6 @@ export type Database = {
       retire_process_definition: {
         Args: { requested_definition_id: string; requested_reason: string }
         Returns: Json
-      }
-      return_talent_review_assignment: {
-        Args: {
-          requested_assignment_id: string
-          requested_campaign_id: string
-          requested_reason: string
-        }
-        Returns: string
       }
       revoke_platform_first_admin_invitation: {
         Args: { requested_invitation_id: string; requested_reason: string }
@@ -26121,7 +24523,68 @@ export type Database = {
         }
         Returns: Json
       }
-      run_due_performance_review_activations: { Args: never; Returns: number }
+      save_actual_work_import_entry: {
+        Args: {
+          requested_administration_id: string
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_entry_granularity: Database["public"]["Enums"]["actual_work_entry_granularity"]
+          requested_entry_id: string | null
+          requested_hours: number
+          requested_hr_group_id: string
+          requested_note: string
+          requested_operation: Database["public"]["Enums"]["actual_work_revision_operation"]
+          requested_posting_period_start: string
+          requested_reason: string
+          requested_source_key: string
+          requested_status: Database["public"]["Enums"]["leave_work_hour_entry_status"]
+          requested_subject_period_end: string
+          requested_subject_period_start: string
+          requested_tenant_id: string
+          requested_work_hour_type_id: string
+        }
+        Returns: Database["public"]["Tables"]["employment_work_hour_entries"]["Row"]
+      }
+      release_actual_work_entries_for_payroll: {
+        Args: {
+          requested_administration_id: string
+          requested_entries: Json
+          requested_hr_group_id: string
+          requested_payroll_period_start: string
+          requested_tenant_id: string
+        }
+        Returns: Database["public"]["Tables"]["actual_work_payroll_releases"]["Row"][]
+      }
+      release_actual_work_entries_for_payroll_period: {
+        Args: {
+          requested_administration_id: string
+          requested_entries: Json
+          requested_hr_group_id: string
+          requested_payroll_period_end: string
+          requested_payroll_period_id: string
+          requested_payroll_period_start: string
+          requested_payroll_periodicity: string
+          requested_tenant_id: string
+        }
+        Returns: Database["public"]["Tables"]["actual_work_payroll_releases"]["Row"][]
+      }
+      save_actual_work_payroll_mapping: {
+        Args: {
+          requested_administration_id: string
+          requested_calculation_rule: string
+          requested_factor: number | null
+          requested_hr_group_id: string
+          requested_processing_target: string
+          requested_salary_component_code: string | null
+          requested_salary_component_id: string | null
+          requested_salary_component_output: string | null
+          requested_salary_component_version: string | null
+          requested_tenant_id: string
+          requested_valid_from: string
+          requested_work_hour_type_id: string
+        }
+        Returns: Database["public"]["Tables"]["actual_work_payroll_mappings"]["Row"]
+      }
       save_actual_work_entry: {
         Args: {
           requested_administration_id: string
@@ -26169,102 +24632,6 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "employment_work_hour_entries"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      save_actual_work_import_entry: {
-        Args: {
-          requested_administration_id: string
-          requested_employee_id: string
-          requested_employment_id: string
-          requested_entry_granularity: Database["public"]["Enums"]["actual_work_entry_granularity"]
-          requested_entry_id: string
-          requested_hours: number
-          requested_hr_group_id: string
-          requested_note: string
-          requested_operation: Database["public"]["Enums"]["actual_work_revision_operation"]
-          requested_posting_period_start: string
-          requested_reason: string
-          requested_source_key: string
-          requested_status: Database["public"]["Enums"]["leave_work_hour_entry_status"]
-          requested_subject_period_end: string
-          requested_subject_period_start: string
-          requested_tenant_id: string
-          requested_work_hour_type_id: string
-        }
-        Returns: {
-          administration_id: string
-          approved_at: string | null
-          approved_by: string | null
-          correction_reason: string | null
-          created_at: string
-          created_by: string | null
-          employee_id: string
-          employment_id: string
-          entry_granularity: Database["public"]["Enums"]["actual_work_entry_granularity"]
-          hours: number
-          hr_group_id: string
-          id: string
-          note: string | null
-          posting_period_start: string
-          source_key: string | null
-          source_type: string
-          status: Database["public"]["Enums"]["leave_work_hour_entry_status"]
-          subject_period_end: string
-          subject_period_start: string
-          tenant_id: string
-          updated_at: string
-          work_date: string
-          work_hour_type_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "employment_work_hour_entries"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      save_actual_work_payroll_mapping: {
-        Args: {
-          requested_administration_id: string
-          requested_calculation_rule: string
-          requested_factor: number
-          requested_hr_group_id: string
-          requested_processing_target: string
-          requested_salary_component_code: string
-          requested_salary_component_id: string
-          requested_salary_component_output: string
-          requested_salary_component_version: string
-          requested_tenant_id: string
-          requested_valid_from: string
-          requested_work_hour_type_id: string
-        }
-        Returns: {
-          administration_id: string
-          calculation_rule: string
-          created_at: string
-          created_by: string
-          factor: number | null
-          hr_group_id: string
-          id: string
-          processing_target: string
-          salary_component_code: string | null
-          salary_component_id: string | null
-          salary_component_output: string | null
-          salary_component_version: string | null
-          supersedes_mapping_id: string | null
-          tenant_id: string
-          updated_at: string
-          updated_by: string | null
-          valid_from: string
-          valid_until: string | null
-          version_number: number
-          work_hour_type_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "actual_work_payroll_mappings"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -26336,123 +24703,6 @@ export type Database = {
         }
         Returns: Json
       }
-      save_performance_review_additional_reviewer: {
-        Args: {
-          expected_version: number
-          requested_body: string
-          requested_dossier: string
-          submit_now?: boolean
-        }
-        Returns: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_dossiers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      save_performance_review_manager: {
-        Args: {
-          expected_version: number
-          requested_body: string
-          requested_dossier: string
-          requested_meeting_date: string
-          requested_rating_explanation: string
-          requested_score: number
-          submit_now?: boolean
-        }
-        Returns: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_dossiers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      save_performance_review_private_note: {
-        Args: { requested_body: string; requested_dossier: string }
-        Returns: {
-          author_user_id: string
-          body: string
-          created_at: string
-          dossier_id: string
-          id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_private_notes"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      save_performance_review_self: {
-        Args: {
-          expected_version: number
-          requested_body: string
-          requested_dossier: string
-          submit_now?: boolean
-        }
-        Returns: {
-          additional_reviewer_employee_id: string | null
-          additional_reviewer_released_at: string | null
-          additional_reviewer_released_by: string | null
-          additional_reviewer_workflow: boolean
-          administration_id: string
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          phase: string
-          process_instance_id: string | null
-          reviewer_assignment_override: boolean
-          reviewer_employee_id: string
-          round_id: string
-          tenant_id: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_dossiers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       save_process_definition_draft: {
         Args: {
           requested_definition: Json
@@ -26495,15 +24745,6 @@ export type Database = {
         }
         Returns: Json
       }
-      save_salary_structure_import_draft: {
-        Args: {
-          requested_draft_id: string
-          requested_expected_lock_version: number
-          requested_payload: Json
-          requested_structure_id: string
-        }
-        Returns: Json
-      }
       save_team_compass_campaign: {
         Args: {
           requested_campaign_id?: string
@@ -26525,72 +24766,6 @@ export type Database = {
         }
         Returns: Json
       }
-      search_performance_review_candidate_employees: {
-        Args: {
-          requested_administration: string
-          requested_employee: string
-          requested_search?: string
-        }
-        Returns: {
-          birth_name: string
-          employee_id: string
-          employee_number: string
-          first_name: string
-        }[]
-      }
-      search_performance_review_candidates: {
-        Args: {
-          requested_administration?: string
-          requested_department?: string
-          requested_employee?: string
-          requested_employment_status?: string
-          requested_hr_group: string
-          requested_job?: string
-          requested_limit?: number
-          requested_location?: string
-          requested_manager?: string
-          requested_offset?: number
-          requested_search?: string
-        }
-        Returns: {
-          administration_id: string
-          administration_name: string
-          assignment_status: string
-          birth_name: string
-          department_id: string
-          department_name: string
-          direct_manager_id: string
-          direct_manager_name: string
-          eligibility_message: string
-          employee_id: string
-          employee_number: string
-          employment_status: string
-          first_name: string
-          hr_group_id: string
-          job_id: string
-          job_title: string
-          location_id: string
-          location_name: string
-          total_count: number
-        }[]
-      }
-      search_performance_review_role_candidates: {
-        Args: { requested_dossier: string; requested_search?: string }
-        Returns: {
-          birth_name: string
-          employee_id: string
-          employee_number: string
-          first_name: string
-        }[]
-      }
-      sec101_profile_metadata: {
-        Args: { p_ids: string[] }
-        Returns: {
-          encrypted_payload: string
-          profile_id: string
-        }[]
-      }
-      sec101_provenance_key_fingerprint: { Args: never; Returns: string }
       set_employee_ess_access: {
         Args: { requested_status: string; target_employee_id: string }
         Returns: string
@@ -26634,10 +24809,6 @@ export type Database = {
       soft_delete_company_document: {
         Args: { requested_document_id: string }
         Returns: undefined
-      }
-      soft_delete_continuous_appraisal_item: {
-        Args: { p_expected_version: number; p_item_id: string }
-        Returns: Json
       }
       soft_delete_employee_document_atomic: {
         Args: {
@@ -26700,6 +24871,14 @@ export type Database = {
         Args: { requested_campaign_id: string }
         Returns: string
       }
+      submit_talent_review_assignment: {
+        Args: { requested_assignment_id: string; requested_campaign_id: string }
+        Returns: string
+      }
+      return_talent_review_assignment: {
+        Args: { requested_assignment_id: string; requested_campaign_id: string; requested_reason: string }
+        Returns: string
+      }
       start_team_compass_campaign: {
         Args: {
           requested_campaign_id: string
@@ -26722,10 +24901,6 @@ export type Database = {
         Args: { p_answers: Json; p_invitation_id: string }
         Returns: string
       }
-      submit_talent_review_assignment: {
-        Args: { requested_assignment_id: string; requested_campaign_id: string }
-        Returns: string
-      }
       terminal_transition_recruitment_application: {
         Args: {
           expected_version: number
@@ -26733,14 +24908,6 @@ export type Database = {
           requested_idempotency_key: string
           requested_outcome: string
           requested_reason: string
-        }
-        Returns: Json
-      }
-      transition_continuous_appraisal_item_status: {
-        Args: {
-          p_expected_version: number
-          p_item_id: string
-          p_item_status: string
         }
         Returns: Json
       }
@@ -26798,83 +24965,6 @@ export type Database = {
           requested_work_hour_type_ids: string[]
         }
         Returns: string
-      }
-      update_performance_review_round: {
-        Args: {
-          expected_version: number
-          requested_due_date: string
-          requested_introduction: string
-          requested_period_end: string
-          requested_period_start: string
-          requested_rating_snapshot: Json
-          requested_round: string
-          requested_round_type: string
-          requested_start_date: string
-          requested_title: string
-        }
-        Returns: {
-          additional_reviewer_enabled: boolean
-          created_at: string
-          created_by: string
-          due_date: string | null
-          hr_group_id: string
-          id: string
-          introduction: string
-          period_end: string
-          period_start: string
-          rating_snapshot: Json | null
-          round_type: string
-          start_date: string
-          status: string
-          tenant_id: string
-          title: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_rounds"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      update_performance_review_round_v2: {
-        Args: {
-          expected_version: number
-          requested_additional_reviewer_enabled: boolean
-          requested_due_date: string
-          requested_introduction: string
-          requested_period_end: string
-          requested_period_start: string
-          requested_rating_snapshot: Json
-          requested_round: string
-          requested_round_type: string
-          requested_start_date: string
-          requested_title: string
-        }
-        Returns: {
-          additional_reviewer_enabled: boolean
-          created_at: string
-          created_by: string
-          due_date: string | null
-          hr_group_id: string
-          id: string
-          introduction: string
-          period_end: string
-          period_start: string
-          rating_snapshot: Json | null
-          round_type: string
-          start_date: string
-          status: string
-          tenant_id: string
-          title: string
-          version: number
-        }
-        SetofOptions: {
-          from: "*"
-          to: "performance_review_rounds"
-          isOneToOne: true
-          isSetofReturn: false
-        }
       }
       update_personal_reminder: {
         Args: {
@@ -26991,57 +25081,302 @@ export type Database = {
         }
         Returns: Json
       }
-      wvp_case_for_process: {
-        Args: { requested_process_instance_id: string }
+      create_pension_arrangement_successor: {
+        Args: { p_predecessor_version_id: string; p_successor: Json }
         Returns: string
       }
-      wvp_command: {
-        Args: {
-          command: Json
-          requested_administration_id: string
-          requested_hr_group_id: string
-          requested_tenant_id: string
-        }
+      create_pension_arrangement_successor_for_pension_manager: {
+        Args: { p_predecessor_version_id: string; p_successor: Json }
         Returns: string
       }
-      wvp_document_link_add: {
-        Args: {
-          requested_administration_id: string
-          requested_case_id: string
-          requested_document_id: string
-          requested_hr_group_id: string
-          requested_task_id: string
-          requested_tenant_id: string
-        }
-        Returns: string
+      create_pension_arrangement: {
+        Args: { p_input: Json }
+        Returns: Json
       }
-      wvp_document_link_remove: {
-        Args: {
-          requested_administration_id: string
-          requested_case_id: string
-          requested_hr_group_id: string
-          requested_link_id: string
-          requested_tenant_id: string
-        }
-        Returns: boolean
+      apply_employment_pension_arrangement: {
+        Args: { p_input: Json }
+        Returns: Json
       }
-      wvp_document_links: {
+      resolve_pension_arrangement_versions: {
+        Args: { p_effective_date: string; p_pension_arrangement_ids: string[] }
+        Returns: Database["public"]["Tables"]["pension_arrangement_versions"]["Row"][]
+      }
+      add_performance_review_dossier_v2: {
         Args: {
-          requested_administration_id: string
-          requested_case_id: string
-          requested_hr_group_id: string
-          requested_tenant_id: string
+          requested_additional_reviewer?: string
+          requested_administration?: string
+          requested_employee: string
+          requested_idempotency_key?: string
+          requested_reviewer: string
+          requested_round: string
+        }
+        Returns: {
+          additional_reviewer_employee_id: string | null
+          additional_reviewer_released_at: string | null
+          additional_reviewer_released_by: string | null
+          additional_reviewer_workflow: boolean
+          administration_id: string
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          id: string
+          phase: string
+          process_instance_id: string | null
+          reviewer_assignment_override: boolean
+          reviewer_employee_id: string
+          round_id: string
+          tenant_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "performance_review_dossiers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      apply_performance_review_role_flip: {
+        Args: {
+          requested_idempotency_key: string
+          requested_ids: string[]
+          requested_preserve_drafts: boolean
+          requested_preview_hash: string
+          requested_reason: string
+          requested_round: string
         }
         Returns: Json
       }
-      wvp_list: {
+      close_performance_review_dossier_v2: {
+        Args: { expected_version: number; requested_dossier: string }
+        Returns: {
+          additional_reviewer_employee_id: string | null
+          additional_reviewer_released_at: string | null
+          additional_reviewer_released_by: string | null
+          additional_reviewer_workflow: boolean
+          administration_id: string
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          id: string
+          phase: string
+          process_instance_id: string | null
+          reviewer_assignment_override: boolean
+          reviewer_employee_id: string
+          round_id: string
+          tenant_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "performance_review_dossiers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      configure_performance_review_reviewers: {
         Args: {
-          requested_administration_id: string
-          requested_case_id?: string
-          requested_hr_group_id: string
-          requested_tenant_id: string
+          expected_version: number
+          requested_additional_reviewer: string
+          requested_dossier: string
+          requested_preserve_drafts?: boolean
+          requested_reason: string
+          requested_reviewer: string
+        }
+        Returns: {
+          additional_reviewer_employee_id: string | null
+          additional_reviewer_released_at: string | null
+          additional_reviewer_released_by: string | null
+          additional_reviewer_workflow: boolean
+          administration_id: string
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          id: string
+          phase: string
+          process_instance_id: string | null
+          reviewer_assignment_override: boolean
+          reviewer_employee_id: string
+          round_id: string
+          tenant_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "performance_review_dossiers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_performance_review_round_v2: {
+        Args: {
+          requested_additional_reviewer_enabled?: boolean
+          requested_due_date: string
+          requested_hr_group: string
+          requested_idempotency_key?: string
+          requested_introduction: string
+          requested_period_end: string
+          requested_period_start: string
+          requested_rating_snapshot: Json
+          requested_round_type: string
+          requested_start_date: string
+          requested_title: string
+        }
+        Returns: {
+          additional_reviewer_enabled: boolean
+          created_at: string
+          created_by: string
+          due_date: string | null
+          hr_group_id: string
+          id: string
+          introduction: string
+          period_end: string
+          period_start: string
+          rating_snapshot: Json | null
+          round_type: string
+          start_date: string
+          status: string
+          tenant_id: string
+          title: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "performance_review_rounds"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      preview_performance_review_role_flip: {
+        Args: {
+          requested_ids?: string[]
+          requested_round: string
+          requested_scope: string
         }
         Returns: Json
+      }
+      release_performance_review_additional_reviewer: {
+        Args: {
+          expected_version: number
+          requested_dossier: string
+          requested_reason: string
+        }
+        Returns: {
+          additional_reviewer_employee_id: string | null
+          additional_reviewer_released_at: string | null
+          additional_reviewer_released_by: string | null
+          additional_reviewer_workflow: boolean
+          administration_id: string
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          id: string
+          phase: string
+          process_instance_id: string | null
+          reviewer_assignment_override: boolean
+          reviewer_employee_id: string
+          round_id: string
+          tenant_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "performance_review_dossiers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_performance_review_additional_reviewer: {
+        Args: {
+          expected_version: number
+          requested_body: string
+          requested_dossier: string
+          submit_now?: boolean
+        }
+        Returns: {
+          additional_reviewer_employee_id: string | null
+          additional_reviewer_released_at: string | null
+          additional_reviewer_released_by: string | null
+          additional_reviewer_workflow: boolean
+          administration_id: string
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          id: string
+          phase: string
+          process_instance_id: string | null
+          reviewer_assignment_override: boolean
+          reviewer_employee_id: string
+          round_id: string
+          tenant_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "performance_review_dossiers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      search_performance_review_candidate_employees: {
+        Args: {
+          requested_administration: string
+          requested_employee: string
+          requested_search?: string
+        }
+        Returns: {
+          birth_name: string
+          employee_id: string
+          employee_number: string
+          first_name: string
+        }[]
+      }
+      search_performance_review_role_candidates: {
+        Args: { requested_dossier: string; requested_search?: string }
+        Returns: {
+          birth_name: string
+          employee_id: string
+          employee_number: string
+          first_name: string
+        }[]
+      }
+      update_performance_review_round_v2: {
+        Args: {
+          expected_version: number
+          requested_additional_reviewer_enabled: boolean
+          requested_due_date: string
+          requested_introduction: string
+          requested_period_end: string
+          requested_period_start: string
+          requested_rating_snapshot: Json
+          requested_round: string
+          requested_round_type: string
+          requested_start_date: string
+          requested_title: string
+        }
+        Returns: {
+          additional_reviewer_enabled: boolean
+          created_at: string
+          created_by: string
+          due_date: string | null
+          hr_group_id: string
+          id: string
+          introduction: string
+          period_end: string
+          period_start: string
+          rating_snapshot: Json | null
+          round_type: string
+          start_date: string
+          status: string
+          tenant_id: string
+          title: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "performance_review_rounds"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
