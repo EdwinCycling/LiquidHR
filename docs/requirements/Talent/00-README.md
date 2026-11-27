@@ -2,6 +2,8 @@
 
 > **Aanvulling 22-11-2026 — PERF-MVP-01:** voor de nieuwe formele gesprekscycli is [20-LiquidHR-Performance-Reviews-MVP.md](20-LiquidHR-Performance-Reviews-MVP.md) het leidende functionele ontwerp. De volledige [Codex-uitvoerinstructie](../../delivery/PERF-MVP-01-CODEX-20261122.md) bouwt V1 in één bounded opdracht. Gesprekscycli blijven gescheiden van de transparante [Continuous Appraisal-tijdlijn](10-LiquidHR-Continuous-Appraisal-Requirements.md). Status: ontwerp gereed, engineering NIET uitgevoerd.
 
+> **Aanvulling 27-11-2026 — PERF-QSET-01:** de afzonderlijke [optionele vragensetspecificatie](21-PERF-QSET-01-OPTIONAL-QUESTION-SETS.md) volgt issue #104. De lokale implementatie is opt-in en behoudt de V1/V2-basis zonder set; Core TEST- en Vercel-release zijn niet uitgevoerd. Zie de gekoppelde lokale A01–A15-bewijsmatrix.
+
 **Product owner / auteur:** Edwin Dingjan  
 **E-mail:** edwin@editsolutions.nl  
 **Datum:** 31 juli 2026
@@ -22,6 +24,7 @@
 | `08-LiquidHR-Requirement-Traceability-Matrix.md` | Koppeling tussen requirements, implementatiestappen, prompts, tests en UI-references. |
 | `09-LiquidHR-Vlootschouw-9-grid-Requirements.md` | Leidende requirements voor campagnegestuurde 9-grid-scoring, historie en managerreminders. |
 | `10-LiquidHR-Continuous-Appraisal-Requirements.md` | Leidende requirements voor de gedeelde medewerker-manager-timeline, commentaren, historische integriteit en handover. |
+| `21-PERF-QSET-01-OPTIONAL-QUESTION-SETS.md` | Aanvulling voor optionele rolgebonden vragensets, immutable publicatiesnapshots en dossierantwoorden. |
 | `ui-references/` | De 13 officiële mockups plus één extra alternatief dashboardconcept. |
 
 ---

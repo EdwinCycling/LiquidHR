@@ -8,5 +8,5 @@ export default async function ConversationDetailPage({ params }: { params: Promi
   const context = await requireAuthContext()
   if (!context.employeeId && !context.permissions.some((permission) => permission.startsWith('performance-review:'))) notFound()
   const locale = await getLocale()
-  return <PerformanceReviewWorkspace role={context.permissions.includes('performance-review:manage') ? 'hr' : context.permissions.includes('performance-review:team-read') ? 'manager' : 'employee'} summaries={[{ id: (await params).conversationId, title: locale === 'nl' ? 'Gespreksdossier' : 'Conversation dossier', phase: 'LOADING' }]} labels={performanceReviewLabels(locale, context.permissions.includes('performance-review:manage') ? 'hr' : context.permissions.includes('performance-review:team-read') ? 'manager' : 'employee')} />
+  return <PerformanceReviewWorkspace role={context.permissions.includes('performance-review:manage') ? 'hr' : context.permissions.includes('performance-review:team-read') ? 'manager' : 'employee'} summaries={[{ id: (await params).conversationId, title: locale === 'nl' ? 'Gespreksdossier' : 'Conversation dossier', phase: 'LOADING' }]} labels={performanceReviewLabels(locale, context.permissions.includes('performance-review:manage') ? 'hr' : context.permissions.includes('performance-review:team-read') ? 'manager' : 'employee')} locale={locale} />
 }

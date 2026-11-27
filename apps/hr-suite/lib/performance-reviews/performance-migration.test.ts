@@ -2,6 +2,30 @@ import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
+async function execSqlWithStatementDiagnostics(db: PGlite, sql: string) {
+  const statements: string[] = []
+  let statement = ''
+  let inDollarQuote = false
+  for (let index = 0; index < sql.length; index += 1) {
+    if (sql.startsWith('$$', index)) {
+      inDollarQuote = !inDollarQuote
+      statement += '$$'
+      index += 1
+      continue
+    }
+    const character = sql[index]!
+    if (character === ';' && !inDollarQuote) {
+      if (statement.trim()) statements.push(statement.trim())
+      statement = ''
+    } else statement += character
+  }
+  if (statement.trim()) statements.push(statement.trim())
+  for (const [index, item] of statements.entries()) {
+    try { await db.exec(item) }
+    catch (error) { throw new Error(`SQL statement ${index + 1} failed: ${item.slice(0, 320)}: ${JSON.stringify(error)}`) }
+  }
+}
+
 describe('voorlopige databasegrens', () => {
   it('maakt alle tabellen met RLS en zonder clientrechten', async () => {
     const db = new PGlite()
@@ -19,6 +43,7 @@ describe('voorlopige databasegrens', () => {
         create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
         create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
         create table public.tenants (id uuid primary key);
+        create table public.tenant_modules (tenant_id uuid not null, module_code text not null check (module_code in ('HERA','DOCUMENTS','REMINDERS','TALENT','SURVEYS','ENPS','TEAM_COMPASS','JOURNEYS','RECRUITMENT','PAYROLL')), is_enabled boolean not null default false, enabled_at timestamptz, enabled_by uuid, disabled_at timestamptz, disabled_by uuid, created_at timestamptz not null default now(), updated_at timestamptz not null default now(), primary key (tenant_id, module_code));
         create table public.hr_groups (id uuid primary key, tenant_id uuid not null, is_active boolean not null default true, time_zone text not null default 'Europe/Amsterdam', unique (tenant_id, id));
         create table public.administrations (id uuid primary key, tenant_id uuid not null, hr_group_id uuid not null, is_active boolean not null default true, name text not null default 'Test administration', unique (tenant_id, hr_group_id, id));
         create table public.employees (id uuid primary key, tenant_id uuid not null, hr_group_id uuid not null, deleted_at timestamptz, first_name text not null default '', birth_name text not null default '', employee_number text not null default gen_random_uuid()::text, is_active boolean not null default true, is_archived boolean not null default false, auth_user_id uuid, created_at timestamptz not null default now(), unique (tenant_id, hr_group_id, id));
@@ -104,13 +129,15 @@ describe('voorlopige databasegrens', () => {
       await db.exec(readFileSync('supabase/migrations/20261125201505_performance_review_close_conflict.sql', 'utf8'))
       await db.exec(readFileSync('supabase/migrations/20261127102848_performance_reviews_additional_reviewer_v2.sql', 'utf8'))
       await db.exec(readFileSync('supabase/migrations/20261127103840_performance_reviews_v2_advisor_fixes.sql', 'utf8'))
+      await execSqlWithStatementDiagnostics(db, readFileSync('supabase/migrations/20261127140000_performance_review_question_sets.sql', 'utf8'))
       const result = await db.query<{ relname: string; relrowsecurity: boolean; readable: boolean }>(`
         select c.relname, c.relrowsecurity, has_table_privilege('authenticated', c.oid, 'SELECT') as readable
         from pg_class c join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public' and c.relname like 'performance_review_%' and c.relkind = 'r'`)
-      expect(result.rows).toHaveLength(13)
+      expect(result.rows).toHaveLength(18)
       expect(result.rows.every(row => row.relrowsecurity)).toBe(true)
       expect(result.rows.filter(row => ['performance_review_audit_events', 'performance_review_command_results'].includes(row.relname)).every(row => !row.readable)).toBe(true)
+      expect(result.rows.filter(row => ['performance_review_question_sets', 'performance_review_question_set_audit_events', 'performance_review_round_question_sets', 'performance_review_dossier_question_snapshots'].includes(row.relname)).every(row => row.readable)).toBe(true)
       const indexCount = await db.query<{ count: string }>(`select count(*)::text as count from pg_indexes where schemaname = 'public' and indexname like 'performance_review_%_idx'`)
       expect(Number(indexCount.rows[0]?.count)).toBeGreaterThanOrEqual(16)
       const v2Acl = await db.query<{ archive_anon: boolean; closure_anon: boolean; archive_authenticated: boolean; closure_authenticated: boolean }>("select has_table_privilege('anon', 'public.performance_review_draft_archives', 'SELECT') as archive_anon, has_table_privilege('anon', 'public.performance_review_closures', 'SELECT') as closure_anon, has_table_privilege('authenticated', 'public.performance_review_draft_archives', 'SELECT') as archive_authenticated, has_table_privilege('authenticated', 'public.performance_review_closures', 'SELECT') as closure_authenticated")
@@ -121,6 +148,24 @@ describe('voorlopige databasegrens', () => {
       expect(initplanPolicyCount.rows[0]?.count).toBe(2)
       const denyPolicies = await db.query<{ policyname: string }>(`select policyname from pg_policies where schemaname = 'public' and policyname in ('performance_review_audit_events_deny_direct', 'performance_review_command_results_deny_direct') order by policyname`)
       expect(denyPolicies.rows.map(row => row.policyname)).toEqual(['performance_review_audit_events_deny_direct', 'performance_review_command_results_deny_direct'])
+      const questionPolicies = await db.query<{ tablename: string; policyname: string }>("select tablename, policyname from pg_policies where schemaname = 'public' and policyname like 'performance_review_%question_%' order by policyname")
+      expect(questionPolicies.rows.map(row => row.policyname)).toEqual([
+        'performance_review_dossier_question_snapshots_select',
+        'performance_review_pending_question_overrides_deny_direct',
+        'performance_review_question_set_audit_select',
+        'performance_review_question_sets_select',
+        'performance_review_round_question_sets_select',
+      ])
+      const questionTriggers = await db.query<{ trigger_name: string }>("select distinct trigger_name from information_schema.triggers where trigger_schema = 'public' and trigger_name like 'performance_review_question_%' order by trigger_name")
+      expect(questionTriggers.rows.map(row => row.trigger_name)).toEqual([
+        'performance_review_question_additional_reviewer_snapshot',
+        'performance_review_question_answers_guard',
+        'performance_review_question_dossier_snapshot',
+        'performance_review_question_round_snapshot',
+        'performance_review_question_set_audit_immutable',
+        'performance_review_question_set_guard',
+        'performance_review_question_snapshot_immutable',
+      ])
       const functionGrants = await db.query<{ allowed: boolean }>(`select has_function_privilege('anon', 'public.create_performance_review_round(uuid,text,text,date,date,date,date,jsonb,text,text)', 'EXECUTE') as allowed`)
       expect(functionGrants.rows[0]?.allowed).toBe(false)
       const draftUpdateGrant = await db.query<{ allowed: boolean }>(`select has_function_privilege('anon', 'public.update_performance_review_round(uuid,text,text,text,date,date,date,date,jsonb,integer)', 'EXECUTE') as allowed`)
@@ -130,6 +175,30 @@ describe('voorlopige databasegrens', () => {
         has_function_privilege('authenticated', 'public.run_due_performance_review_activations()', 'EXECUTE') as authenticated_allowed,
         has_function_privilege('service_role', 'public.run_due_performance_review_activations()', 'EXECUTE') as service_role_allowed`)
       expect(scheduledActivationGrants.rows[0]).toEqual({ anon_allowed: false, authenticated_allowed: false, service_role_allowed: true })
+      const qsetDefinition = [
+        { id: '00000000-0000-4000-8000-000000000101', type: 'SHORT_TEXT', prompt: { nl: 'Kort', en: 'Short' }, required: true },
+        { id: '00000000-0000-4000-8000-000000000102', type: 'LONG_TEXT', prompt: { nl: 'Lang', en: 'Long' }, required: false },
+        { id: '00000000-0000-4000-8000-000000000103', type: 'SINGLE_CHOICE', prompt: { nl: 'Keuze', en: 'Choice' }, required: true, options: [{ id: '00000000-0000-4000-8000-000000000111', label: { nl: 'Ja', en: 'Yes' } }, { id: '00000000-0000-4000-8000-000000000112', label: { nl: 'Nee', en: 'No' } }] },
+        { id: '00000000-0000-4000-8000-000000000104', type: 'MULTI_CHOICE', prompt: { nl: 'Meerdere', en: 'Multiple' }, required: true, options: [{ id: '00000000-0000-4000-8000-000000000121', label: { nl: 'A', en: 'A' } }, { id: '00000000-0000-4000-8000-000000000122', label: { nl: 'B', en: 'B' } }] },
+        { id: '00000000-0000-4000-8000-000000000105', type: 'YES_NO', variant: 'AGREE_DISAGREE', prompt: { nl: 'Eens?', en: 'Agree?' }, required: true },
+        { id: '00000000-0000-4000-8000-000000000106', type: 'SCALE', scale: 5, prompt: { nl: 'Score', en: 'Score' }, required: true, labels: [] },
+        { id: '00000000-0000-4000-8000-000000000107', type: 'MATRIX', matrixMode: 'SCALE', scale: 4, prompt: { nl: 'Matrix', en: 'Matrix' }, required: true, rows: [{ id: '00000000-0000-4000-8000-000000000131', label: { nl: 'Samenwerking', en: 'Teamwork' } }], labels: [] },
+      ]
+      const qsetAnswers = {
+        '00000000-0000-4000-8000-000000000101': 'Goed',
+        '00000000-0000-4000-8000-000000000103': '00000000-0000-4000-8000-000000000111',
+        '00000000-0000-4000-8000-000000000104': ['00000000-0000-4000-8000-000000000121'],
+        '00000000-0000-4000-8000-000000000105': 'AGREE',
+        '00000000-0000-4000-8000-000000000106': 5,
+        '00000000-0000-4000-8000-000000000107': { '00000000-0000-4000-8000-000000000131': 4 },
+      }
+      const qsetValidation = await db.query<{ definition_valid: boolean; answers_valid: boolean; missing_required_valid: boolean }>(`select
+        internal_security.performance_review_question_set_definition_valid($1::jsonb) as definition_valid,
+        internal_security.performance_review_question_answers_valid($1::jsonb, $2::jsonb, true) as answers_valid,
+        internal_security.performance_review_question_answers_valid($1::jsonb, '{}'::jsonb, true) as missing_required_valid`, [JSON.stringify(qsetDefinition), JSON.stringify(qsetAnswers)])
+      expect(qsetValidation.rows[0]).toEqual({ definition_valid: true, answers_valid: true, missing_required_valid: false })
+      const questionSetsDisabled = await db.query<{ enabled: boolean }>("select internal_security.performance_review_question_sets_enabled($1) as enabled", [tenant])
+      expect(questionSetsDisabled.rows[0]?.enabled).toBe(false)
       const admin = '00000000-0000-4000-8000-000000000004'
       const employee = '00000000-0000-4000-8000-000000000005'
       const reviewer = '00000000-0000-4000-8000-000000000006'
@@ -184,6 +253,50 @@ describe('voorlopige databasegrens', () => {
       await db.query(`insert into public.performance_review_rounds (id, tenant_id, hr_group_id, title, introduction, period_start, period_end, start_date, status, created_by)
         values ($1, $2, $3, 'Geplande startbare ronde', 'Start via de PMUX-scheduler.', '2000-01-01', '2099-12-31', '2000-01-01', 'SCHEDULED', $4),
           ($5, $2, $3, 'Nog niet startbare ronde', 'Blijft gepland tot de startdatum.', '2099-01-01', '2099-12-31', '2099-01-01', 'SCHEDULED', $4)`, [dueRound, tenant, group, user, futureRound])
+      const questionRound = '00000000-0000-4000-8000-000000000081'
+      const questionDossier = '00000000-0000-4000-8000-000000000082'
+      await db.query("insert into public.tenant_modules (tenant_id, module_code, is_enabled, enabled_at) values ($1, 'PERFORMANCE_REVIEW_QUESTION_SETS', true, now())", [tenant])
+      await db.query(`insert into public.performance_review_rounds (id, tenant_id, hr_group_id, title, introduction, period_start, period_end, start_date, created_by)
+        values ($1, $2, $3, 'Vragencontract', 'Afgeschermde lokale contracttest.', '2026-01-01', '2026-12-31', '2026-11-22', $4)`, [questionRound, tenant, group, user])
+      await db.query("select set_config('test.auth_user', $1, false), set_config('test.hr', 'true', false)", [user])
+      const savedQuestionSet = await db.query<{ id: string; version: number }>(`select id, version from public.save_performance_review_question_set(
+        $1, null::uuid, 'Question set fixture', '', 'AVAILABLE', $2::jsonb, null::integer)`, [group, JSON.stringify(qsetDefinition)])
+      const questionSetId = savedQuestionSet.rows[0]?.id
+      expect(questionSetId).toBeTruthy()
+      await db.query(`select * from public.save_performance_review_round_question_sets(
+        $1, true, jsonb_build_object('EMPLOYEE', $2::text, 'GV', $2::text, 'AB', $2::text), '{}'::jsonb)`, [questionRound, questionSetId])
+      await db.query(`insert into public.performance_review_dossiers (id, tenant_id, hr_group_id, round_id, administration_id, employee_id, reviewer_employee_id)
+        values ($1, $2, $3, $4, $5, $6, $7)`, [questionDossier, tenant, group, questionRound, v2Administration, employee, reviewer])
+      await db.query("update public.tenant_modules set is_enabled = false, disabled_at = now() where tenant_id = $1 and module_code = 'PERFORMANCE_REVIEW_QUESTION_SETS'", [tenant])
+      await db.query("update public.performance_review_rounds set status = 'ACTIVE' where id = $1", [questionRound])
+      await db.query("update public.tenant_modules set is_enabled = true, enabled_at = now(), disabled_at = null where tenant_id = $1 and module_code = 'PERFORMANCE_REVIEW_QUESTION_SETS'", [tenant])
+      const revisedQuestionSet = qsetDefinition.map((question, index) => index === 0
+        ? { ...question, prompt: { nl: 'Gewijzigde vraag', en: 'Changed question' } }
+        : question)
+      await db.query(`select * from public.save_performance_review_question_set(
+        $1, $2, 'Question set fixture', '', 'AVAILABLE', $3::jsonb, 1)`, [group, questionSetId, JSON.stringify(revisedQuestionSet)])
+      const immutableQuestionSnapshot = await db.query<{ source_set_version: number; definition_json: Array<{ prompt: { nl: string; en: string } }> }>(`select source_set_version, definition_json
+        from public.performance_review_dossier_question_snapshots where dossier_id = $1 and respondent_role = 'EMPLOYEE'`, [questionDossier])
+      expect(immutableQuestionSnapshot.rows[0]).toMatchObject({ source_set_version: 1 })
+      expect(immutableQuestionSnapshot.rows[0]?.definition_json[0]?.prompt).toEqual({ nl: 'Kort', en: 'Short' })
+      await expect(db.query(`update public.performance_review_dossier_question_snapshots set definition_json = '[]'::jsonb
+        where dossier_id = $1 and respondent_role = 'EMPLOYEE'`, [questionDossier])).rejects.toThrow(/PERFORMANCE_QUESTION_SNAPSHOT_IMMUTABLE/)
+      const managerQuestionDraft = { '00000000-0000-4000-8000-000000000101': 'Privé concept van de manager' }
+      await db.query(`insert into public.performance_review_submissions (tenant_id, dossier_id, kind, author_user_id, body, question_answers)
+        values ($1, $2, 'MANAGER', $3, 'Privé managerconcept', $4::jsonb)`, [tenant, questionDossier, nextReviewerUser, JSON.stringify(managerQuestionDraft)])
+      await db.exec('set role authenticated')
+      await db.query("select set_config('test.jwt_role', 'authenticated', false), set_config('test.auth_user', $1, false), set_config('test.hr', 'false', false), set_config('test.employee', $2, false), set_config('test.manager', 'false', false)", [user, employee])
+      const employeeQuestionVisibility = await db.query<{ respondent_role: string }>(`select respondent_role from public.performance_review_dossier_question_snapshots where dossier_id = $1`, [questionDossier])
+      expect(employeeQuestionVisibility.rows).toEqual([{ respondent_role: 'EMPLOYEE' }])
+      expect((await db.query('select id from public.performance_review_question_sets')).rows).toHaveLength(0)
+      expect((await db.query('select question_answers from public.performance_review_submissions where dossier_id = $1', [questionDossier])).rows).toHaveLength(0)
+      await expect(db.query(`select * from public.save_performance_review_question_set(
+        $1, $2, 'Unauthorized set edit', '', 'AVAILABLE', $3::jsonb, 2)`, [group, questionSetId, JSON.stringify(qsetDefinition)])).rejects.toThrow(/PERFORMANCE_FORBIDDEN/)
+      await db.query("select set_config('test.auth_user', $1, false), set_config('test.hr', 'false', false), set_config('test.employee', $2, false), set_config('test.manager', 'true', false)", [nextReviewerUser, reviewer])
+      const managerQuestionVisibility = await db.query<{ respondent_role: string }>(`select respondent_role from public.performance_review_dossier_question_snapshots where dossier_id = $1`, [questionDossier])
+      expect(managerQuestionVisibility.rows).toEqual([{ respondent_role: 'GV' }])
+      expect((await db.query<{ question_answers: typeof managerQuestionDraft }>('select question_answers from public.performance_review_submissions where dossier_id = $1', [questionDossier])).rows).toEqual([{ question_answers: managerQuestionDraft }])
+      await db.exec('reset role')
       await db.query("update public.performance_review_rounds set status = 'ACTIVE' where id = $1", [round])
       await expect(db.query("update public.performance_review_rounds set title = 'Andere inhoud' where id = $1", [round])).rejects.toThrow(/PERFORMANCE_ROUND_CONFIG_IMMUTABLE/)
       await expect(db.query("update public.performance_review_rounds set due_date = '2027-01-31' where id = $1", [round])).rejects.toThrow(/PERFORMANCE_ROUND_CONFIG_IMMUTABLE/)
@@ -205,7 +318,7 @@ describe('voorlopige databasegrens', () => {
       await db.query(`insert into public.performance_review_submissions (tenant_id, dossier_id, kind, author_user_id, body, submitted_at)
         values ($1, $2, 'SELF', $3, 'Definitieve reflectie', now())`, [tenant, dossier, user])
       await expect(db.query("update public.performance_review_submissions set body = 'Aangepast'")).rejects.toThrow(/PERFORMANCE_SUBMISSION_IMMUTABLE/)
-      await expect(db.query('delete from public.performance_review_submissions')).rejects.toThrow(/PERFORMANCE_SUBMISSION_IMMUTABLE/)
+      await expect(db.query('delete from public.performance_review_submissions where dossier_id = $1', [dossier])).rejects.toThrow(/PERFORMANCE_SUBMISSION_IMMUTABLE/)
       await db.query("insert into public.performance_review_acknowledgements (tenant_id, dossier_id, actor_user_id, decision) values ($1, $2, $3, 'AGREE')", [tenant, dossier, user])
       await expect(db.query("update public.performance_review_acknowledgements set decision = 'DISAGREE', reason = 'Anders'")).rejects.toThrow(/PERFORMANCE_HISTORY_IMMUTABLE/)
       await db.exec('set role authenticated')
@@ -526,7 +639,7 @@ describe('voorlopige databasegrens', () => {
       const v2RlsCounts = await db.query<{ rls_count: string; transition_table_rls: boolean }>(`select
         (select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname like 'performance_review_%' and c.relrowsecurity) as rls_count,
         (select c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'internal_security' and c.relname = 'performance_review_pmux_transition_commands') as transition_table_rls`)
-      expect(v2RlsCounts.rows[0]).toEqual({ rls_count: '13', transition_table_rls: true })
+      expect(v2RlsCounts.rows[0]).toEqual({ rls_count: '18', transition_table_rls: true })
     } finally {
       await db.close()
     }

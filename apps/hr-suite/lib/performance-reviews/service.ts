@@ -14,6 +14,10 @@ import {
   roundSchema,
 } from './performance-schema'
 import { sanitizeDocumentFilename, validateDocumentFile } from '@/lib/documents/file-rules'
+import { parseQuestionSetOverrides, savePerformanceReviewRoundQuestionSets, type QuestionSetRole } from './question-set-service'
+import { PerformanceReviewError } from './performance-error'
+export { PerformanceReviewError } from './performance-error'
+import { questionAnswersSchema } from './question-set-schema'
 
 type Client = Awaited<ReturnType<typeof createClient>>
 
@@ -23,13 +27,6 @@ export type PerformanceReviewErrorCode =
   | 'PERFORMANCE_REVIEW_FORBIDDEN'
   | 'PERFORMANCE_REVIEW_NOT_FOUND'
   | 'PERFORMANCE_REVIEW_CONFLICT'
-
-export class PerformanceReviewError extends Error {
-  constructor(public readonly code: PerformanceReviewErrorCode | string, public readonly status = 500) {
-    super(code)
-    this.name = 'PerformanceReviewError'
-  }
-}
 
 type RoundInput = {
   title: string
@@ -41,12 +38,13 @@ type RoundInput = {
   dueDate?: string | null
   rating: { options: Array<{ score: number; label: string; description: string }> } | null
   additionalReviewerEnabled: boolean
+  questionSets?: { enabled: boolean; defaults: Record<QuestionSetRole, string | null> }
 }
 
 function toError(error: { message?: string } | null, fallback: PerformanceReviewErrorCode): never {
   const message = error?.message ?? fallback
   const normalized = message.toLocaleUpperCase('en-US')
-  const status = normalized.includes('FORBIDDEN') || normalized.includes('NOT_AUTHORIZED') ? 403 : normalized.includes('NOT_FOUND') ? 404 : normalized.includes('CONFLICT') || normalized.includes('IMMUTABLE') ? 409 : /PERFORMANCE_RATING_(?:INVALID|NOT_ALLOWED|REQUIRED)/u.test(normalized) ? 400 : 500
+  const status = normalized.includes('FORBIDDEN') || normalized.includes('NOT_AUTHORIZED') ? 403 : normalized.includes('NOT_FOUND') || normalized.includes('MODULE_INACTIVE') ? 404 : normalized.includes('CONFLICT') || normalized.includes('IMMUTABLE') || normalized.includes('NOT_AVAILABLE') ? 409 : /PERFORMANCE_(?:RATING_(?:INVALID|NOT_ALLOWED|REQUIRED)|QUESTION_(?:SET|ANSWERS)_)/u.test(normalized) ? 400 : 500
   throw new PerformanceReviewError(normalized.match(/PERFORMANCE_[A-Z0-9_]+/)?.[0] ?? fallback, status)
 }
 
@@ -67,7 +65,7 @@ export async function createPerformanceReviewRound(input: unknown, idempotencyKe
   const context = await contextFor('performance-review:manage')
   const hrGroupId = requireHrGroupId(context)
   const client = await createClient()
-  return command(client, 'create_performance_review_round_v2', {
+  const created = await command(client, 'create_performance_review_round_v2', {
     requested_hr_group: hrGroupId,
     requested_title: parsed.title,
     requested_introduction: parsed.introduction,
@@ -80,13 +78,16 @@ export async function createPerformanceReviewRound(input: unknown, idempotencyKe
     requested_additional_reviewer_enabled: parsed.additionalReviewerEnabled,
     ...(idempotencyKey ? { requested_idempotency_key: idempotencyKey } : {}),
   })
+  const createdRound = created as { id?: string }
+  if (parsed.questionSets && createdRound.id) await savePerformanceReviewRoundQuestionSets({ roundId: createdRound.id, ...parsed.questionSets })
+  return created
 }
 
 export async function updatePerformanceReviewRound(roundId: string, input: unknown, version: number) {
   const parsed = roundSchema.parse(input) as RoundInput
   await contextFor('performance-review:manage')
   const client = await createClient()
-  return command(client, 'update_performance_review_round_v2', {
+  const updated = await command(client, 'update_performance_review_round_v2', {
     requested_round: roundId,
     requested_title: parsed.title,
     requested_introduction: parsed.introduction,
@@ -99,6 +100,8 @@ export async function updatePerformanceReviewRound(roundId: string, input: unkno
     requested_additional_reviewer_enabled: parsed.additionalReviewerEnabled,
     expected_version: version,
   })
+  if (parsed.questionSets) await savePerformanceReviewRoundQuestionSets({ roundId, ...parsed.questionSets })
+  return updated
 }
 
 export async function publishPerformanceReviewRound(roundId: string, version = 1, idempotencyKey?: string | null) {
@@ -107,7 +110,7 @@ export async function publishPerformanceReviewRound(roundId: string, version = 1
   return command(client, 'publish_performance_review_round', { requested_round: roundId, expected_version: version, ...(idempotencyKey ? { requested_idempotency_key: idempotencyKey } : {}) })
 }
 
-export async function addPerformanceReviewDossier(roundId: string, employeeId: string, reviewerEmployeeId?: string, administrationId?: string, idempotencyKey?: string | null, additionalReviewerEmployeeId?: string | null) {
+export async function addPerformanceReviewDossier(roundId: string, employeeId: string, reviewerEmployeeId?: string, administrationId?: string, idempotencyKey?: string | null, additionalReviewerEmployeeId?: string | null, questionSetOverrides?: unknown) {
   const context = await contextFor('performance-review:manage')
   const hrGroupId = requireHrGroupId(context)
   const client = await createClient()
@@ -127,14 +130,22 @@ export async function addPerformanceReviewDossier(roundId: string, employeeId: s
     if (administration && !candidateAdministrations.includes(administration)) throw new PerformanceReviewError('PERFORMANCE_REVIEW_ADMINISTRATION_INVALID', 400)
   }
   if (!reviewer || !administration) throw new PerformanceReviewError('PERFORMANCE_REVIEW_PARTICIPANTS_REQUIRED', 400)
-  return command(client, 'add_performance_review_dossier_v2', {
+  const args = {
     requested_round: roundId,
     requested_employee: employeeId,
     requested_reviewer: reviewer,
     requested_additional_reviewer: additionalReviewerEmployeeId ?? null,
     requested_administration: administration,
     ...(idempotencyKey ? { requested_idempotency_key: idempotencyKey } : {}),
-  })
+  }
+  const parsedOverrides = parseQuestionSetOverrides(questionSetOverrides)
+  if (Object.keys(parsedOverrides).length > 0) {
+    return command(client, 'add_performance_review_dossier_with_question_overrides', {
+      ...args,
+      requested_overrides: parsedOverrides,
+    })
+  }
+  return command(client, 'add_performance_review_dossier_v2', args)
 }
 
 export async function searchPerformanceReviewEmployees(filters: {
@@ -266,8 +277,11 @@ export async function getPerformanceReviewRound(roundId: string) {
     .maybeSingle()
   if (roundError) toError(roundError, 'PERFORMANCE_REVIEW_READ_FAILED')
   if (!round) throw new PerformanceReviewError('PERFORMANCE_REVIEW_NOT_FOUND', 404)
+  const { data: questionSetConfig, error: questionSetConfigError } = await client.from('performance_review_round_question_sets' as never)
+    .select('enabled,defaults,published_defaults_snapshot,published_at').eq('round_id', roundId).maybeSingle()
+  if (questionSetConfigError) toError(questionSetConfigError, 'PERFORMANCE_REVIEW_READ_FAILED')
   const { data, error } = await client.from('performance_review_dossiers' as never)
-    .select('id,employee_id,reviewer_employee_id,additional_reviewer_employee_id,additional_reviewer_workflow,phase,version,created_at')
+    .select('id,employee_id,reviewer_employee_id,additional_reviewer_employee_id,additional_reviewer_workflow,phase,version,created_at,performance_review_dossier_question_snapshots(respondent_role,selection_source,source_set_id,source_set_name,source_set_version,definition_json)')
     .eq('tenant_id', context.tenantId)
     .eq('round_id', roundId)
     .order('created_at', { ascending: false })
@@ -281,6 +295,7 @@ export async function getPerformanceReviewRound(roundId: string) {
   const names = new Map(((employees ?? []) as unknown as Array<{ id: string; first_name: string; birth_name: string; employee_number: string }>).map((item) => [item.id, [item.first_name, item.birth_name].filter(Boolean).join(' ') || item.employee_number]))
   return {
     ...(round as unknown as Record<string, unknown>),
+    questionSetConfig: questionSetConfig ?? null,
     participants: rows.map((item) => ({
       id: item.id,
       employee_id: item.employee_id,
@@ -419,24 +434,41 @@ export async function listPerformanceReviewHistory(employeeId: string) {
 export async function getPerformanceReviewDossier(dossierId: string) {
   const context = await requireAnyPermission(['performance-review:read', 'performance-review:team-read', 'self:performance-review:read'])
   const client = await createClient()
-  const { data, error } = await client.from('performance_review_dossiers' as never).select('id,tenant_id,round_id,hr_group_id,administration_id,employee_id,reviewer_employee_id,additional_reviewer_employee_id,additional_reviewer_workflow,additional_reviewer_released_at,reviewer_assignment_override,process_instance_id,phase,version,created_at,performance_review_rounds(*),performance_review_submissions(*),performance_review_attachments(id,original_filename,content_type,file_size,checksum_sha256,released_at,created_at),performance_review_appraisal_links(appraisal_item_id),performance_review_acknowledgements(decision,reason,created_at)').eq('tenant_id', context.tenantId).eq('id', dossierId).maybeSingle()
+  const { data, error } = await client.from('performance_review_dossiers' as never).select('id,tenant_id,round_id,hr_group_id,administration_id,employee_id,reviewer_employee_id,additional_reviewer_employee_id,additional_reviewer_workflow,additional_reviewer_released_at,reviewer_assignment_override,process_instance_id,phase,version,created_at,performance_review_rounds(*),performance_review_submissions(*),performance_review_dossier_question_snapshots(respondent_role,selection_source,source_set_id,source_set_name,source_set_version,definition_json),performance_review_attachments(id,original_filename,content_type,file_size,checksum_sha256,released_at,created_at),performance_review_appraisal_links(appraisal_item_id),performance_review_acknowledgements(decision,reason,created_at)').eq('tenant_id', context.tenantId).eq('id', dossierId).maybeSingle()
   if (error) toError(error, 'PERFORMANCE_REVIEW_READ_FAILED')
   if (!data) throw new PerformanceReviewError('PERFORMANCE_REVIEW_NOT_FOUND', 404)
   return data
 }
 
-export async function saveSelfReflection(dossierId: string, version: number, body: string, submit: boolean) {
+export async function saveSelfReflection(dossierId: string, version: number, body: string, submit: boolean, questionAnswers?: unknown) {
   const context = await contextFor('self:performance-review:submit')
   if (!context.employeeId) throw new AuthorizationError('Medewerkerkoppeling ontbreekt.')
   const client = await createClient()
+  if (questionAnswers !== undefined) {
+    const answers = questionAnswersSchema.parse(questionAnswers)
+    return command(client, 'save_performance_review_response_with_questions', {
+      requested_dossier: dossierId, requested_role: 'EMPLOYEE', requested_body: body,
+      requested_answers: answers as unknown as Json, expected_version: version, submit_now: submit,
+      requested_meeting_date: null, requested_score: null, requested_rating_explanation: null,
+    })
+  }
   return command(client, 'save_performance_review_self', { requested_dossier: dossierId, requested_body: body, expected_version: version, submit_now: submit })
 }
 
-export async function saveManagerResponse(dossierId: string, input: unknown, submit: boolean) {
+export async function saveManagerResponse(dossierId: string, input: unknown, submit: boolean, questionAnswers?: unknown) {
   const parsed = managerSubmissionSchema.parse(input)
   const context = await requireAnyPermission(['performance-review:team-submit', 'self:performance-review:submit'])
   if (!context.employeeId) throw new AuthorizationError('Medewerkerkoppeling ontbreekt.')
   const client = await createClient()
+  if (questionAnswers !== undefined) {
+    const answers = questionAnswersSchema.parse(questionAnswers)
+    return command(client, 'save_performance_review_response_with_questions', {
+      requested_dossier: dossierId, requested_role: 'GV', requested_body: parsed.body,
+      requested_answers: answers as unknown as Json, expected_version: parsed.version, submit_now: submit,
+      requested_meeting_date: parsed.meetingDate ?? null, requested_score: parsed.score ?? null,
+      requested_rating_explanation: parsed.ratingExplanation ?? null,
+    })
+  }
   return command(client, 'save_performance_review_manager', { requested_dossier: dossierId, requested_body: parsed.body, requested_meeting_date: parsed.meetingDate ?? null, requested_score: parsed.score ?? null, requested_rating_explanation: parsed.ratingExplanation ?? null, expected_version: parsed.version, submit_now: submit })
 }
 
@@ -448,11 +480,19 @@ export async function acknowledgePerformanceReview(dossierId: string, input: unk
   return command(client, 'acknowledge_performance_review', { requested_dossier: dossierId, requested_decision: parsed.decision, requested_reason: parsed.decision === 'DISAGREE' ? parsed.reason : null, expected_version: parsed.version })
 }
 
-export async function saveAdditionalReviewerContribution(dossierId: string, input: unknown, submit: boolean) {
+export async function saveAdditionalReviewerContribution(dossierId: string, input: unknown, submit: boolean, questionAnswers?: unknown) {
   const parsed = additionalReviewerSubmissionSchema.parse(input)
   const context = await contextFor('self:performance-review:submit')
   if (!context.employeeId) throw new AuthorizationError('Medewerkerkoppeling ontbreekt.')
   const client = await createClient()
+  if (questionAnswers !== undefined) {
+    const answers = questionAnswersSchema.parse(questionAnswers)
+    return command(client, 'save_performance_review_response_with_questions', {
+      requested_dossier: dossierId, requested_role: 'AB', requested_body: parsed.body,
+      requested_answers: answers as unknown as Json, expected_version: parsed.version, submit_now: submit,
+      requested_meeting_date: null, requested_score: null, requested_rating_explanation: null,
+    })
+  }
   return command(client, 'save_performance_review_additional_reviewer', {
     requested_dossier: dossierId,
     requested_body: parsed.body,

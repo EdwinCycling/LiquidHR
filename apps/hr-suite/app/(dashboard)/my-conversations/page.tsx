@@ -8,5 +8,5 @@ export default async function MyConversationsPage() {
   const context = await requireAuthContext()
   if (!context.employeeId) redirect('/geen-toegang')
   const locale = await getLocale()
-  return <PerformanceReviewWorkspace role="employee" summaries={[]} labels={performanceReviewLabels(locale, 'employee')} />
+  return <PerformanceReviewWorkspace role="employee" summaries={[]} labels={performanceReviewLabels(locale, 'employee')} locale={locale} />
 }

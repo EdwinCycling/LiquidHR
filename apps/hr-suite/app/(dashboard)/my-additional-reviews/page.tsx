@@ -8,5 +8,5 @@ export default async function MyAdditionalReviewsPage() {
   const context = await requireAuthContext()
   if (!context.employeeId) redirect('/geen-toegang')
   const locale = await getLocale()
-  return <PerformanceReviewWorkspace role="additional-reviewer" summaries={[]} labels={performanceReviewLabels(locale, 'additional-reviewer')} />
+  return <PerformanceReviewWorkspace role="additional-reviewer" summaries={[]} labels={performanceReviewLabels(locale, 'additional-reviewer')} locale={locale} />
 }
