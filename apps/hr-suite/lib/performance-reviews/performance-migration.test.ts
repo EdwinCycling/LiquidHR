@@ -206,7 +206,7 @@ describe('voorlopige databasegrens', () => {
       expect(privateBefore.rows).toHaveLength(0)
 
       await db.query("select set_config('test.auth_user', $1, false), set_config('test.hr', 'true', false), set_config('test.employee', '', false), set_config('test.manager', 'false', false)", [user])
-      const candidates = await db.query<{ employee_id: string; assignment_status: string; total_count: bigint }>(`select employee_id, assignment_status, total_count from public.search_performance_review_candidates($1)`, [group])
+      const candidates = await db.query<{ employee_id: string; assignment_status: string; total_count: bigint }>(`select employee_id, assignment_status, total_count from public.search_performance_review_candidates($1, requested_administration => $2)`, [group, admin])
       expect(candidates.rows).toHaveLength(3)
       expect(candidates.rows.find(row => row.employee_id === employee)?.assignment_status).toBe('READY')
       expect(Number(candidates.rows[0]?.total_count)).toBe(3)
