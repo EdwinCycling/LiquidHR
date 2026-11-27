@@ -32,6 +32,7 @@ type QuestionSetItem = Omit<PerformanceReviewQuestionSet, 'status'> & {
 type MessageSet = typeof messagesNl
 type QuestionType = PerformanceReviewQuestion['type']
 type PreviewRole = 'EMPLOYEE' | 'GV' | 'AB'
+type ExampleRole = 'EMPLOYEE' | 'GV' | 'AB'
 const typeOrder: QuestionType[] = ['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_CHOICE', 'MULTI_CHOICE', 'YES_NO', 'SCALE', 'MATRIX']
 const localizedEmpty = { nl: '', en: '' }
 
@@ -66,6 +67,12 @@ export function QuestionSetManager({ initialItems, locale }: { initialItems: Que
     setStatusMessage('')
     setPreviewOpen(false)
     setEditor({ name: '', description: '', status: 'DRAFT', questions: [newQuestion('SHORT_TEXT')] })
+  }
+
+  function openExample(role: ExampleRole) {
+    setStatusMessage('')
+    setPreviewOpen(false)
+    setEditor(createExampleSet(role, locale))
   }
 
   function openSet(item: QuestionSetItem) {
@@ -196,6 +203,14 @@ export function QuestionSetManager({ initialItems, locale }: { initialItems: Que
     {!editor ? <div className="space-y-4">
       <Surface className="p-4">
         <label className="flex items-center gap-2 text-sm"><Search aria-hidden="true" className="size-4 text-muted-foreground" /><span className="sr-only">{m.search}</span><input aria-label={m.search} className="min-h-10 min-w-0 flex-1 bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-focus" placeholder={m.search} value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+      </Surface>
+      <Surface className="space-y-3 p-4">
+        <SectionHeader title={m.starterExamples} description={m.starterExamplesHint} />
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => openExample('EMPLOYEE')} variant="secondary">{m.employeeExample}</Button>
+          <Button onClick={() => openExample('GV')} variant="secondary">{m.gvExample}</Button>
+          <Button onClick={() => openExample('AB')} variant="secondary">{m.abExample}</Button>
+        </div>
       </Surface>
       <Surface className="overflow-hidden">
         <div className="border-b border-border-subtle px-4 py-3"><SectionHeader title={m.title} description={String(visibleItems.length)} /></div>
@@ -330,6 +345,66 @@ function SelectField({ label, value, options, onChange }: { label: string; value
 
 function newQuestion(type: QuestionType): PerformanceReviewQuestion {
   return createQuestion(type, { id: crypto.randomUUID(), prompt: { ...localizedEmpty }, required: false })
+}
+
+function createExampleSet(role: ExampleRole, locale: Locale): PerformanceReviewQuestionSet {
+  const copy = locale === 'nl'
+  if (role === 'EMPLOYEE') {
+    return {
+      name: copy ? 'Voorbeeld — medewerkersreflectie' : 'Example — employee reflection',
+      description: copy ? 'Startvragen voor de eigen reflectie van de medewerker.' : 'Starter questions for the employee’s self-reflection.',
+      status: 'DRAFT',
+      questions: [
+        exampleText('LONG_TEXT', { nl: 'Waar ben je trots op sinds ons vorige gesprek?', en: 'What are you proud of since our last conversation?' }, true),
+        exampleChoice('MULTI_CHOICE', { nl: 'Welke onderwerpen wil je bespreken?', en: 'Which topics would you like to discuss?' }, [
+          { nl: 'Samenwerking', en: 'Collaboration' },
+          { nl: 'Werkdruk', en: 'Workload' },
+          { nl: 'Ontwikkeling', en: 'Development' },
+          { nl: 'Werkomgeving', en: 'Work environment' },
+        ]),
+        exampleText('SHORT_TEXT', { nl: 'Wat is een eerste stap die je wilt zetten?', en: 'What is one first step you would like to take?' }),
+      ],
+    }
+  }
+  if (role === 'GV') {
+    return {
+      name: copy ? 'Voorbeeld — gespreksleider' : 'Example — conversation lead',
+      description: copy ? 'Voorbeeldvragen voor de leidinggevende in het gesprek.' : 'Example questions for the manager leading the conversation.',
+      status: 'DRAFT',
+      questions: [
+        exampleText('LONG_TEXT', { nl: 'Welke bijdrage van de medewerker had de meeste waarde?', en: 'Which contribution from the employee had the most value?' }, true),
+        exampleScale({ nl: 'Hoe duidelijk zijn de afgesproken prioriteiten?', en: 'How clear are the agreed priorities?' }),
+        exampleChoice('SINGLE_CHOICE', { nl: 'Welke ondersteuning spreken jullie af?', en: 'Which support will you agree on?' }, [
+          { nl: 'Regelmatige afstemming', en: 'Regular check-ins' },
+          { nl: 'Tijd of ruimte', en: 'Time or capacity' },
+          { nl: 'Coaching of opleiding', en: 'Coaching or training' },
+          { nl: 'Nog te bepalen', en: 'To be decided' },
+        ]),
+      ],
+    }
+  }
+  return {
+    name: copy ? 'Voorbeeld — aanvullende beoordelaar' : 'Example — additional reviewer',
+    description: copy ? 'Een aanvullende, persoonlijke bijdrage van de AB.' : 'A starter set for the additional reviewer’s personal contribution.',
+    status: 'DRAFT',
+    questions: [
+      exampleText('LONG_TEXT', { nl: 'Welke concrete observatie wil je meegeven?', en: 'What concrete observation would you like to share?' }, true),
+      exampleText('LONG_TEXT', { nl: 'Wat vult jouw perspectief aan?', en: 'What does your perspective add?' }),
+      exampleText('SHORT_TEXT', { nl: 'Welke suggestie geef je mee voor de volgende periode?', en: 'What suggestion would you offer for the next period?' }),
+    ],
+  }
+}
+
+function exampleText(type: 'SHORT_TEXT' | 'LONG_TEXT', prompt: { nl: string; en: string }, required = false): PerformanceReviewQuestion {
+  return { id: crypto.randomUUID(), type, prompt, required }
+}
+
+function exampleChoice(type: 'SINGLE_CHOICE' | 'MULTI_CHOICE', prompt: { nl: string; en: string }, options: Array<{ nl: string; en: string }>): PerformanceReviewQuestion {
+  return { id: crypto.randomUUID(), type, prompt, required: false, options: options.map((label) => ({ id: crypto.randomUUID(), label })) }
+}
+
+function exampleScale(prompt: { nl: string; en: string }): PerformanceReviewQuestion {
+  return { id: crypto.randomUUID(), type: 'SCALE', prompt, required: false, scale: 5, labels: [] }
 }
 
 function createQuestion(type: QuestionType, common: { id: string; prompt: { nl: string; en: string }; help?: { nl: string; en: string }; required: boolean }): PerformanceReviewQuestion {
