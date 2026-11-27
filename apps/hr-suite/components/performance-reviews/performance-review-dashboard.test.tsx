@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PerformanceReviewDashboard } from './performance-review-dashboard'
 
-const labels = { dashboard: 'Gespreksdashboard', waitingEmployee: 'Wacht op medewerker', waitingManager: 'Wacht op manager', waitingAcknowledgement: 'Wacht op bevestiging', completedAgreed: 'Afgerond met akkoord', completedDisagreed: 'Voor gezien', closedOpen: 'Open bij gesloten ronde', nextActions: 'Volgende acties', noActions: 'Geen open acties', open: 'Open', cancelled: 'Geannuleerd' }
+const labels = { dashboard: 'Gespreksdashboard', waitingEmployee: 'Wacht op medewerker', waitingAdditionalReviewer: 'Wacht op aanvullende beoordelaar', waitingManager: 'Wacht op manager', waitingAcknowledgement: 'Wacht op bevestiging', waitingReviewerClose: 'Wacht op afsluiting', completedAgreed: 'Afgerond met akkoord', completedDisagreed: 'Voor gezien', closedOpen: 'Open bij gesloten ronde', nextActions: 'Volgende acties', noActions: 'Geen open acties', open: 'Open', cancelled: 'Geannuleerd' }
 
 afterEach(() => vi.unstubAllGlobals())
 

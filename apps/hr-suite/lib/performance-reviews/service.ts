@@ -4,7 +4,15 @@ import { createHash } from 'node:crypto'
 import type { Json } from '@scope/db'
 import { AuthorizationError, requireAnyPermission, requirePermission, requireHrGroupId } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import { acknowledgementSchema, managerSubmissionSchema, roundSchema } from './performance-schema'
+import {
+  acknowledgementSchema,
+  additionalReviewerSubmissionSchema,
+  managerSubmissionSchema,
+  reviewerRoleAssignmentSchema,
+  roleFlipApplySchema,
+  roleFlipPreviewSchema,
+  roundSchema,
+} from './performance-schema'
 import { sanitizeDocumentFilename, validateDocumentFile } from '@/lib/documents/file-rules'
 
 type Client = Awaited<ReturnType<typeof createClient>>
@@ -32,6 +40,7 @@ type RoundInput = {
   startDate: string
   dueDate?: string | null
   rating: { options: Array<{ score: number; label: string; description: string }> } | null
+  additionalReviewerEnabled: boolean
 }
 
 function toError(error: { message?: string } | null, fallback: PerformanceReviewErrorCode): never {
@@ -58,7 +67,7 @@ export async function createPerformanceReviewRound(input: unknown, idempotencyKe
   const context = await contextFor('performance-review:manage')
   const hrGroupId = requireHrGroupId(context)
   const client = await createClient()
-  return command(client, 'create_performance_review_round', {
+  return command(client, 'create_performance_review_round_v2', {
     requested_hr_group: hrGroupId,
     requested_title: parsed.title,
     requested_introduction: parsed.introduction,
@@ -68,6 +77,7 @@ export async function createPerformanceReviewRound(input: unknown, idempotencyKe
     requested_start_date: parsed.startDate,
     requested_due_date: parsed.dueDate ?? null,
     requested_rating_snapshot: parsed.rating as unknown as Json,
+    requested_additional_reviewer_enabled: parsed.additionalReviewerEnabled,
     ...(idempotencyKey ? { requested_idempotency_key: idempotencyKey } : {}),
   })
 }
@@ -76,7 +86,7 @@ export async function updatePerformanceReviewRound(roundId: string, input: unkno
   const parsed = roundSchema.parse(input) as RoundInput
   await contextFor('performance-review:manage')
   const client = await createClient()
-  return command(client, 'update_performance_review_round', {
+  return command(client, 'update_performance_review_round_v2', {
     requested_round: roundId,
     requested_title: parsed.title,
     requested_introduction: parsed.introduction,
@@ -86,6 +96,7 @@ export async function updatePerformanceReviewRound(roundId: string, input: unkno
     requested_start_date: parsed.startDate,
     requested_due_date: parsed.dueDate ?? null,
     requested_rating_snapshot: parsed.rating as unknown as Json,
+    requested_additional_reviewer_enabled: parsed.additionalReviewerEnabled,
     expected_version: version,
   })
 }
@@ -96,7 +107,7 @@ export async function publishPerformanceReviewRound(roundId: string, version = 1
   return command(client, 'publish_performance_review_round', { requested_round: roundId, expected_version: version, ...(idempotencyKey ? { requested_idempotency_key: idempotencyKey } : {}) })
 }
 
-export async function addPerformanceReviewDossier(roundId: string, employeeId: string, reviewerEmployeeId?: string, administrationId?: string, idempotencyKey?: string | null) {
+export async function addPerformanceReviewDossier(roundId: string, employeeId: string, reviewerEmployeeId?: string, administrationId?: string, idempotencyKey?: string | null, additionalReviewerEmployeeId?: string | null) {
   const context = await contextFor('performance-review:manage')
   const hrGroupId = requireHrGroupId(context)
   const client = await createClient()
@@ -116,7 +127,14 @@ export async function addPerformanceReviewDossier(roundId: string, employeeId: s
     if (administration && !candidateAdministrations.includes(administration)) throw new PerformanceReviewError('PERFORMANCE_REVIEW_ADMINISTRATION_INVALID', 400)
   }
   if (!reviewer || !administration) throw new PerformanceReviewError('PERFORMANCE_REVIEW_PARTICIPANTS_REQUIRED', 400)
-  return command(client, 'add_performance_review_dossier', { requested_round: roundId, requested_employee: employeeId, requested_reviewer: reviewer, requested_administration: administration, ...(idempotencyKey ? { requested_idempotency_key: idempotencyKey } : {}) })
+  return command(client, 'add_performance_review_dossier_v2', {
+    requested_round: roundId,
+    requested_employee: employeeId,
+    requested_reviewer: reviewer,
+    requested_additional_reviewer: additionalReviewerEmployeeId ?? null,
+    requested_administration: administration,
+    ...(idempotencyKey ? { requested_idempotency_key: idempotencyKey } : {}),
+  })
 }
 
 export async function searchPerformanceReviewEmployees(filters: {
@@ -249,13 +267,13 @@ export async function getPerformanceReviewRound(roundId: string) {
   if (roundError) toError(roundError, 'PERFORMANCE_REVIEW_READ_FAILED')
   if (!round) throw new PerformanceReviewError('PERFORMANCE_REVIEW_NOT_FOUND', 404)
   const { data, error } = await client.from('performance_review_dossiers' as never)
-    .select('id,employee_id,reviewer_employee_id,phase,version,created_at')
+    .select('id,employee_id,reviewer_employee_id,additional_reviewer_employee_id,additional_reviewer_workflow,phase,version,created_at')
     .eq('tenant_id', context.tenantId)
     .eq('round_id', roundId)
     .order('created_at', { ascending: false })
   if (error) toError(error, 'PERFORMANCE_REVIEW_READ_FAILED')
-  const rows = (data ?? []) as unknown as Array<{ id: string; employee_id: string; reviewer_employee_id: string; phase: string; version: number; created_at: string }>
-  const employeeIds = Array.from(new Set(rows.flatMap((item) => [item.employee_id, item.reviewer_employee_id])))
+  const rows = (data ?? []) as unknown as Array<{ id: string; employee_id: string; reviewer_employee_id: string; additional_reviewer_employee_id: string | null; additional_reviewer_workflow: boolean; phase: string; version: number; created_at: string }>
+  const employeeIds = Array.from(new Set(rows.flatMap((item) => [item.employee_id, item.reviewer_employee_id, ...(item.additional_reviewer_employee_id ? [item.additional_reviewer_employee_id] : [])])))
   const { data: employees, error: employeesError } = employeeIds.length
     ? await client.from('employees' as never).select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).in('id', employeeIds)
     : { data: [], error: null }
@@ -267,8 +285,11 @@ export async function getPerformanceReviewRound(roundId: string) {
       id: item.id,
       employee_id: item.employee_id,
       reviewer_employee_id: item.reviewer_employee_id,
+      additional_reviewer_employee_id: item.additional_reviewer_employee_id,
+      additional_reviewer_workflow: item.additional_reviewer_workflow,
       employeeName: names.get(item.employee_id) ?? '',
       reviewerName: names.get(item.reviewer_employee_id) ?? '',
+      additionalReviewerName: item.additional_reviewer_employee_id ? names.get(item.additional_reviewer_employee_id) ?? '' : '',
       phase: item.phase,
       version: item.version,
       created_at: item.created_at,
@@ -276,23 +297,24 @@ export async function getPerformanceReviewRound(roundId: string) {
   }
 }
 
-export async function listPerformanceReviewWorkspace(role: 'hr' | 'manager' | 'employee') {
+export async function listPerformanceReviewWorkspace(role: 'hr' | 'manager' | 'employee' | 'additional-reviewer') {
   const context = role === 'hr'
     ? await contextFor('performance-review:read')
-    : await requireAnyPermission(role === 'employee'
+    : await requireAnyPermission(role === 'employee' || role === 'additional-reviewer'
       ? ['self:performance-review:read']
       : ['performance-review:team-read', 'performance-review:read'])
-  if (role === 'employee' && !context.employeeId) throw new PerformanceReviewError('PERFORMANCE_REVIEW_FORBIDDEN', 403)
+  if ((role === 'employee' || role === 'additional-reviewer') && !context.employeeId) throw new PerformanceReviewError('PERFORMANCE_REVIEW_FORBIDDEN', 403)
   const client = await createClient()
   let query = client.from('performance_review_dossiers' as never)
-    .select('id,employee_id,reviewer_employee_id,phase,version,created_at,performance_review_rounds(title,due_date,status)')
+    .select('id,employee_id,reviewer_employee_id,additional_reviewer_employee_id,phase,version,created_at,performance_review_rounds(title,due_date,status)')
     .eq('tenant_id', context.tenantId)
     .order('created_at', { ascending: false })
   if (role === 'employee') query = query.eq('employee_id', context.employeeId as string)
+  if (role === 'additional-reviewer') query = query.eq('additional_reviewer_employee_id', context.employeeId as string)
   const { data, error } = await query
   if (error) toError(error, 'PERFORMANCE_REVIEW_READ_FAILED')
-  const rows = (data ?? []) as unknown as Array<{ id: string; employee_id: string; reviewer_employee_id: string; phase: string; version: number; created_at: string; performance_review_rounds: { title: string; due_date: string | null; status: string } | null }>
-  const employeeIds = Array.from(new Set(rows.flatMap((item) => [item.employee_id, item.reviewer_employee_id])))
+  const rows = (data ?? []) as unknown as Array<{ id: string; employee_id: string; reviewer_employee_id: string; additional_reviewer_employee_id: string | null; phase: string; version: number; created_at: string; performance_review_rounds: { title: string; due_date: string | null; status: string } | null }>
+  const employeeIds = Array.from(new Set(rows.flatMap((item) => role === 'additional-reviewer' ? [item.employee_id] : [item.employee_id, item.reviewer_employee_id])))
   const { data: employees, error: employeesError } = employeeIds.length
     ? await client.from('employees' as never).select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).in('id', employeeIds)
     : { data: [], error: null }
@@ -303,7 +325,8 @@ export async function listPerformanceReviewWorkspace(role: 'hr' | 'manager' | 'e
     title: item.performance_review_rounds?.title ?? 'Performance review',
     employeeId: item.employee_id,
     employeeName: names.get(item.employee_id) ?? '',
-    reviewerName: names.get(item.reviewer_employee_id) ?? '',
+    reviewerName: role === 'additional-reviewer' ? '' : names.get(item.reviewer_employee_id) ?? '',
+    isAdditionalReviewerTask: role === 'additional-reviewer',
     phase: item.phase,
     version: item.version,
     dueDate: item.performance_review_rounds?.due_date ?? null,
@@ -314,26 +337,27 @@ export async function listPerformanceReviewWorkspace(role: 'hr' | 'manager' | 'e
 
 type PerformanceReviewDashboardItem = { id: string; title: string; phase: string; dueDate: string | null; roundStatus: string }
 
-async function listPerformanceReviewDossierSummaries(role: 'hr' | 'manager' | 'employee', employeeId?: string): Promise<PerformanceReviewDashboardItem[]> {
+async function listPerformanceReviewDossierSummaries(role: 'hr' | 'manager' | 'employee' | 'additional-reviewer', employeeId?: string): Promise<PerformanceReviewDashboardItem[]> {
   const context = role === 'hr'
     ? await contextFor('performance-review:read')
-    : await requireAnyPermission(role === 'employee' ? ['self:performance-review:read'] : ['performance-review:team-read', 'performance-review:read'])
-  if (role === 'employee' && !context.employeeId) throw new AuthorizationError('Medewerkerkoppeling ontbreekt.')
+    : await requireAnyPermission(role === 'employee' || role === 'additional-reviewer' ? ['self:performance-review:read'] : ['performance-review:team-read', 'performance-review:read'])
+  if ((role === 'employee' || role === 'additional-reviewer') && !context.employeeId) throw new AuthorizationError('Medewerkerkoppeling ontbreekt.')
   const targetEmployeeId = employeeId ?? (role === 'employee' ? context.employeeId ?? undefined : undefined)
-  if (employeeId && role !== 'employee') await requireAnyPermission(['performance-review:read', 'performance-review:team-read'], employeeId)
+  if (employeeId && role !== 'employee' && role !== 'additional-reviewer') await requireAnyPermission(['performance-review:read', 'performance-review:team-read'], employeeId)
   const client = await createClient()
   let query = client.from('performance_review_dossiers' as never)
     .select('id,employee_id,phase,performance_review_rounds!inner(title,due_date,status)')
     .eq('tenant_id', context.tenantId)
     .order('created_at', { ascending: false })
   if (targetEmployeeId) query = query.eq('employee_id', targetEmployeeId)
+  if (role === 'additional-reviewer') query = query.eq('additional_reviewer_employee_id', context.employeeId as string)
   const { data, error } = await query
   if (error) toError(error, 'PERFORMANCE_REVIEW_READ_FAILED')
   const rows = (data ?? []) as unknown as Array<{ id: string; employee_id: string; phase: string; performance_review_rounds: { title: string; due_date: string | null; status: string } | null }>
   return rows.map((row) => ({ id: row.id, title: row.performance_review_rounds?.title ?? 'Performance review', phase: row.phase, dueDate: row.performance_review_rounds?.due_date ?? null, roundStatus: row.performance_review_rounds?.status ?? 'UNKNOWN' }))
 }
 
-export async function getPerformanceReviewDashboard(role: 'hr' | 'manager' | 'employee') {
+export async function getPerformanceReviewDashboard(role: 'hr' | 'manager' | 'employee' | 'additional-reviewer') {
   const items = await listPerformanceReviewDossierSummaries(role)
   const phaseCounts: Record<string, number> = {}
   for (const item of items) phaseCounts[item.phase] = (phaseCounts[item.phase] ?? 0) + 1
@@ -349,7 +373,7 @@ export async function listPerformanceReviewHistory(employeeId: string) {
   const context = await requireAnyPermission(['performance-review:read', 'performance-review:team-read', 'self:performance-review:read'], employeeId)
   const client = await createClient()
   const { data, error } = await client.from('performance_review_dossiers' as never)
-    .select('id,employee_id,reviewer_employee_id,phase,performance_review_rounds!inner(title,due_date,period_start,period_end,status),performance_review_submissions(kind,score,submitted_at),performance_review_acknowledgements(decision,created_at)')
+    .select('id,employee_id,reviewer_employee_id,additional_reviewer_employee_id,phase,performance_review_rounds!inner(title,due_date,period_start,period_end,status),performance_review_submissions(kind,body,score,submitted_at),performance_review_acknowledgements(decision,created_at)')
     .eq('tenant_id', context.tenantId)
     .eq('employee_id', employeeId)
     .order('created_at', { ascending: false })
@@ -358,12 +382,13 @@ export async function listPerformanceReviewHistory(employeeId: string) {
     id: string
     employee_id: string
     reviewer_employee_id: string
+    additional_reviewer_employee_id: string | null
     phase: string
     performance_review_rounds: { title: string; due_date: string | null; period_start: string; period_end: string; status: string } | null
-    performance_review_submissions: Array<{ kind: string; score: number | null; submitted_at: string | null }> | null
+    performance_review_submissions: Array<{ kind: string; body: string; score: number | null; submitted_at: string | null }> | null
     performance_review_acknowledgements: { decision: string; created_at: string } | Array<{ decision: string; created_at: string }> | null
   }>
-  const employeeIds = Array.from(new Set(rows.map((row) => row.reviewer_employee_id)))
+  const employeeIds = Array.from(new Set(rows.flatMap((row) => [row.reviewer_employee_id, ...(row.additional_reviewer_employee_id ? [row.additional_reviewer_employee_id] : [])])))
   const { data: employees, error: employeesError } = employeeIds.length
     ? await client.from('employees' as never).select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).in('id', employeeIds)
     : { data: [], error: null }
@@ -383,7 +408,9 @@ export async function listPerformanceReviewHistory(employeeId: string) {
       periodEnd: row.performance_review_rounds?.period_end ?? null,
       dueDate: row.performance_review_rounds?.due_date ?? null,
       managerName: reviewerNames.get(row.reviewer_employee_id) ?? null,
+      additionalReviewerName: row.additional_reviewer_employee_id ? reviewerNames.get(row.additional_reviewer_employee_id) ?? null : null,
       finalScore: managerSubmission?.score ?? null,
+      additionalReviewerContribution: row.performance_review_submissions?.find((submission) => submission.kind === 'ADDITIONAL_REVIEWER' && submission.submitted_at !== null)?.body ?? null,
       completedAt: acknowledgement?.created_at ?? null,
     }
   })
@@ -392,7 +419,7 @@ export async function listPerformanceReviewHistory(employeeId: string) {
 export async function getPerformanceReviewDossier(dossierId: string) {
   const context = await requireAnyPermission(['performance-review:read', 'performance-review:team-read', 'self:performance-review:read'])
   const client = await createClient()
-  const { data, error } = await client.from('performance_review_dossiers' as never).select('id,tenant_id,round_id,hr_group_id,administration_id,employee_id,reviewer_employee_id,process_instance_id,phase,version,created_at,performance_review_rounds(*),performance_review_submissions(*),performance_review_attachments(id,original_filename,content_type,file_size,checksum_sha256,released_at,created_at),performance_review_appraisal_links(appraisal_item_id)').eq('tenant_id', context.tenantId).eq('id', dossierId).maybeSingle()
+  const { data, error } = await client.from('performance_review_dossiers' as never).select('id,tenant_id,round_id,hr_group_id,administration_id,employee_id,reviewer_employee_id,additional_reviewer_employee_id,additional_reviewer_workflow,additional_reviewer_released_at,reviewer_assignment_override,process_instance_id,phase,version,created_at,performance_review_rounds(*),performance_review_submissions(*),performance_review_attachments(id,original_filename,content_type,file_size,checksum_sha256,released_at,created_at),performance_review_appraisal_links(appraisal_item_id),performance_review_acknowledgements(decision,reason,created_at)').eq('tenant_id', context.tenantId).eq('id', dossierId).maybeSingle()
   if (error) toError(error, 'PERFORMANCE_REVIEW_READ_FAILED')
   if (!data) throw new PerformanceReviewError('PERFORMANCE_REVIEW_NOT_FOUND', 404)
   return data
@@ -407,7 +434,7 @@ export async function saveSelfReflection(dossierId: string, version: number, bod
 
 export async function saveManagerResponse(dossierId: string, input: unknown, submit: boolean) {
   const parsed = managerSubmissionSchema.parse(input)
-  const context = await contextFor('performance-review:team-submit')
+  const context = await requireAnyPermission(['performance-review:team-submit', 'self:performance-review:submit'])
   if (!context.employeeId) throw new AuthorizationError('Medewerkerkoppeling ontbreekt.')
   const client = await createClient()
   return command(client, 'save_performance_review_manager', { requested_dossier: dossierId, requested_body: parsed.body, requested_meeting_date: parsed.meetingDate ?? null, requested_score: parsed.score ?? null, requested_rating_explanation: parsed.ratingExplanation ?? null, expected_version: parsed.version, submit_now: submit })
@@ -419,6 +446,36 @@ export async function acknowledgePerformanceReview(dossierId: string, input: unk
   if (!context.employeeId) throw new AuthorizationError('Medewerkerkoppeling ontbreekt.')
   const client = await createClient()
   return command(client, 'acknowledge_performance_review', { requested_dossier: dossierId, requested_decision: parsed.decision, requested_reason: parsed.decision === 'DISAGREE' ? parsed.reason : null, expected_version: parsed.version })
+}
+
+export async function saveAdditionalReviewerContribution(dossierId: string, input: unknown, submit: boolean) {
+  const parsed = additionalReviewerSubmissionSchema.parse(input)
+  const context = await contextFor('self:performance-review:submit')
+  if (!context.employeeId) throw new AuthorizationError('Medewerkerkoppeling ontbreekt.')
+  const client = await createClient()
+  return command(client, 'save_performance_review_additional_reviewer', {
+    requested_dossier: dossierId,
+    requested_body: parsed.body,
+    expected_version: parsed.version,
+    submit_now: submit,
+  })
+}
+
+export async function closePerformanceReviewDossier(dossierId: string, version: number) {
+  await requireAnyPermission(['performance-review:team-submit', 'self:performance-review:submit'])
+  const client = await createClient()
+  return command(client, 'close_performance_review_dossier_v2', { requested_dossier: dossierId, expected_version: version })
+}
+
+export async function releaseAdditionalReviewer(dossierId: string, version: number, reason: string) {
+  await contextFor('performance-review:manage')
+  if (!reason.trim()) throw new PerformanceReviewError('PERFORMANCE_REASON_REQUIRED', 400)
+  const client = await createClient()
+  return command(client, 'release_performance_review_additional_reviewer', {
+    requested_dossier: dossierId,
+    expected_version: version,
+    requested_reason: reason,
+  })
 }
 
 export async function savePrivateNote(dossierId: string, body: string, version: number) {
@@ -442,10 +499,73 @@ export async function closePerformanceReviewRound(roundId: string, reason: strin
   return command(client, 'close_performance_review_round', { requested_round: roundId, requested_reason: reason, expected_version: version, ...(idempotencyKey ? { requested_idempotency_key: idempotencyKey } : {}) })
 }
 
-export async function reassignPerformanceReviewReviewer(dossierId: string, reviewerEmployeeId: string, version: number) {
+export async function configurePerformanceReviewReviewers(dossierId: string, input: unknown) {
+  const parsed = reviewerRoleAssignmentSchema.parse(input)
   await contextFor('performance-review:manage')
   const client = await createClient()
-  return command(client, 'reassign_performance_review_reviewer', { requested_dossier: dossierId, requested_reviewer: reviewerEmployeeId, expected_version: version })
+  return command(client, 'configure_performance_review_reviewers', {
+    requested_dossier: dossierId,
+    requested_reviewer: parsed.reviewerEmployeeId,
+    requested_additional_reviewer: parsed.additionalReviewerEmployeeId,
+    expected_version: parsed.version,
+    requested_reason: parsed.reason,
+    requested_preserve_drafts: parsed.preserveDrafts,
+  })
+}
+
+export async function searchPerformanceReviewRoleCandidates(dossierId: string, search = '') {
+  await contextFor('performance-review:manage')
+  const client = await createClient()
+  const result = await client.rpc('search_performance_review_role_candidates' as never, {
+    requested_dossier: dossierId,
+    requested_search: search.trim().slice(0, 120),
+  } as never)
+  if (result.error) toError(result.error, 'PERFORMANCE_REVIEW_READ_FAILED')
+  return (result.data ?? []) as unknown as Array<{ employee_id: string; first_name: string; birth_name: string; employee_number: string }>
+}
+
+export async function searchPerformanceReviewCandidateEmployees(employeeId: string, administrationId: string, search = '') {
+  await contextFor('performance-review:manage')
+  const client = await createClient()
+  const result = await client.rpc('search_performance_review_candidate_employees' as never, {
+    requested_employee: employeeId,
+    requested_administration: administrationId,
+    requested_search: search.trim().slice(0, 120),
+  } as never)
+  if (result.error) toError(result.error, 'PERFORMANCE_REVIEW_READ_FAILED')
+  return ((result.data ?? []) as unknown as Array<{ employee_id: string; first_name: string; birth_name: string; employee_number: string }>).map((item) => ({
+    id: item.employee_id,
+    first_name: item.first_name,
+    birth_name: item.birth_name,
+    employee_number: item.employee_number,
+  }))
+}
+
+export async function previewPerformanceReviewRoleFlip(roundId: string, input: unknown) {
+  const parsed = roleFlipPreviewSchema.parse(input)
+  await contextFor('performance-review:manage')
+  if (parsed.scope !== 'ALL' && !parsed.participantIds?.length) throw new PerformanceReviewError('PERFORMANCE_SELECTION_REQUIRED', 400)
+  const client = await createClient()
+  return command(client, 'preview_performance_review_role_flip', {
+    requested_round: roundId,
+    requested_scope: parsed.scope,
+    requested_ids: parsed.scope === 'ALL' ? null : parsed.participantIds,
+  })
+}
+
+export async function applyPerformanceReviewRoleFlip(roundId: string, input: unknown, idempotencyKey: string) {
+  const parsed = roleFlipApplySchema.parse(input)
+  await contextFor('performance-review:manage')
+  if (!/^[0-9a-f-]{8,160}$/iu.test(idempotencyKey)) throw new PerformanceReviewError('PERFORMANCE_IDEMPOTENCY_KEY_INVALID', 400)
+  const client = await createClient()
+  return command(client, 'apply_performance_review_role_flip', {
+    requested_round: roundId,
+    requested_ids: parsed.participantIds,
+    requested_preview_hash: parsed.previewHash,
+    requested_reason: parsed.reason,
+    requested_preserve_drafts: parsed.preserveDrafts,
+    requested_idempotency_key: idempotencyKey,
+  })
 }
 
 const PERFORMANCE_REVIEW_BUCKET = 'performance-review-attachments'

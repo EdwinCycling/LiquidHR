@@ -10,9 +10,13 @@ const labels = {
   error: 'Fout', saved: 'Opgeslagen', status: 'Status', period: 'Periode', dueDate: 'Streefdatum', participants: 'Deelnemers',
   employee: 'Medewerker', selected: 'geselecteerd', add: 'Toevoegen', confirmClose: 'Doorgaan?', confirmCloseTitle: 'Ronde sluiten?',
   cancel: 'Annuleren', roundDraft: 'Concept', roundScheduled: 'Gepland', roundActive: 'Actief', roundClosed: 'Gesloten',
-  roundCancelled: 'Geannuleerd', waitingEmployee: 'Wacht op medewerker', waitingManager: 'Wacht op manager',
-  waitingAcknowledgement: 'Wacht op bevestiging', completedAgreed: 'Afgerond met akkoord', completedDisagreed: 'Voor gezien, niet akkoord',
-  phaseCancelled: 'Geannuleerd',
+  roundCancelled: 'Geannuleerd', waitingEmployee: 'Wacht op medewerker', waitingAdditionalReviewer: 'Wacht op aanvullende beoordelaar', waitingManager: 'Wacht op manager',
+  waitingAcknowledgement: 'Wacht op bevestiging', waitingReviewerClose: 'Wacht op afsluiting', completedAgreed: 'Afgerond met akkoord', completedDisagreed: 'Voor gezien, niet akkoord',
+  phaseCancelled: 'Geannuleerd', additionalReviewerEnabled: 'Aanvullende beoordelaar ingeschakeld', additionalReviewer: 'Aanvullende beoordelaar',
+  bulkFlip: 'Rollen omwisselen', flipAll: 'Alle deelnemers', flipFiltered: 'Gefilterde deelnemers', flipSelected: 'Geselecteerde deelnemers',
+  previewFlip: 'Voorbeeld bekijken', applyFlip: 'Omwisseling uitvoeren', flipPreview: 'Voorbeeld van rolomwisseling', flipReason: 'Reden voor omwisseling',
+  flipChanged: 'Omgewisseld', flipBlocked: 'Overgeslagen', flipDrafts: 'Concepten', preserveDrafts: 'Concepten bewaren',
+  draftArchiveWarning: 'Concepten worden gearchiveerd.', closeConversation: 'Gesprek afsluiten', search: 'Zoeken', open: 'Open', swapRoles: 'Rollen omwisselen',
 }
 
 afterEach(() => vi.unstubAllGlobals())
