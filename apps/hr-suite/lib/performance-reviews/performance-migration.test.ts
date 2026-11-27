@@ -102,7 +102,8 @@ describe('voorlopige databasegrens', () => {
       await db.exec(readFileSync('supabase/migrations/20261125133606_performance_review_draft_update.sql', 'utf8'))
       await db.exec(readFileSync('supabase/migrations/20261125150432_performance_review_scheduled_activation.sql', 'utf8'))
       await db.exec(readFileSync('supabase/migrations/20261125201505_performance_review_close_conflict.sql', 'utf8'))
-      await db.exec(readFileSync('supabase/migrations/20261126210000_performance_reviews_additional_reviewer_v2.sql', 'utf8'))
+      await db.exec(readFileSync('supabase/migrations/20261127102848_performance_reviews_additional_reviewer_v2.sql', 'utf8'))
+      await db.exec(readFileSync('supabase/migrations/20261127103840_performance_reviews_v2_advisor_fixes.sql', 'utf8'))
       const result = await db.query<{ relname: string; relrowsecurity: boolean; readable: boolean }>(`
         select c.relname, c.relrowsecurity, has_table_privilege('authenticated', c.oid, 'SELECT') as readable
         from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -112,6 +113,12 @@ describe('voorlopige databasegrens', () => {
       expect(result.rows.filter(row => ['performance_review_audit_events', 'performance_review_command_results'].includes(row.relname)).every(row => !row.readable)).toBe(true)
       const indexCount = await db.query<{ count: string }>(`select count(*)::text as count from pg_indexes where schemaname = 'public' and indexname like 'performance_review_%_idx'`)
       expect(Number(indexCount.rows[0]?.count)).toBeGreaterThanOrEqual(16)
+      const v2Acl = await db.query<{ archive_anon: boolean; closure_anon: boolean; archive_authenticated: boolean; closure_authenticated: boolean }>("select has_table_privilege('anon', 'public.performance_review_draft_archives', 'SELECT') as archive_anon, has_table_privilege('anon', 'public.performance_review_closures', 'SELECT') as closure_anon, has_table_privilege('authenticated', 'public.performance_review_draft_archives', 'SELECT') as archive_authenticated, has_table_privilege('authenticated', 'public.performance_review_closures', 'SELECT') as closure_authenticated")
+      expect(v2Acl.rows[0]).toEqual({ archive_anon: false, closure_anon: false, archive_authenticated: true, closure_authenticated: true })
+      const advisorFixIndexes = await db.query<{ indexname: string }>("select indexname from pg_indexes where schemaname = 'public' and indexname in ('performance_review_closures_actor_idx', 'performance_review_dossiers_additional_reviewer_fk_idx', 'performance_review_dossiers_additional_reviewer_released_by_idx', 'performance_review_draft_archives_archived_by_idx', 'performance_review_draft_archives_author_idx', 'performance_review_role_flip_commands_actor_idx', 'performance_review_round_v2_commands_actor_idx', 'performance_review_round_v2_commands_round_idx') order by indexname")
+      expect(advisorFixIndexes.rows).toHaveLength(8)
+      const initplanPolicyCount = await db.query<{ count: number }>("select count(*)::int as count from pg_policies where schemaname = 'public' and tablename in ('performance_review_submissions', 'performance_review_draft_archives') and lower(coalesce(qual, '')) like '%select auth.uid()%'")
+      expect(initplanPolicyCount.rows[0]?.count).toBe(2)
       const denyPolicies = await db.query<{ policyname: string }>(`select policyname from pg_policies where schemaname = 'public' and policyname in ('performance_review_audit_events_deny_direct', 'performance_review_command_results_deny_direct') order by policyname`)
       expect(denyPolicies.rows.map(row => row.policyname)).toEqual(['performance_review_audit_events_deny_direct', 'performance_review_command_results_deny_direct'])
       const functionGrants = await db.query<{ allowed: boolean }>(`select has_function_privilege('anon', 'public.create_performance_review_round(uuid,text,text,date,date,date,date,jsonb,text,text)', 'EXECUTE') as allowed`)
@@ -426,6 +433,7 @@ describe('voorlopige databasegrens', () => {
       await expect(db.query('select * from public.close_performance_review_dossier_v2($1, $2)', [v2Dossier?.id, v2Acknowledged.rows[0]?.version])).rejects.toThrow(/PERFORMANCE_FORBIDDEN/)
       await db.query("select set_config('test.auth_user', $1, false), set_config('test.employee', $2, false), set_config('test.hr', 'true', false)", [user, employee])
       await expect(db.query('select * from public.close_performance_review_dossier_v2($1, $2)', [v2Dossier?.id, v2Acknowledged.rows[0]?.version])).rejects.toThrow(/PERFORMANCE_FORBIDDEN/)
+      await db.exec('set role authenticated')
       await db.query("select set_config('test.hr', 'false', false), set_config('test.auth_user', $1, false), set_config('test.employee', $2, false)", [v2ReviewerUser, v2Reviewer])
       const v2Closed = await db.query<{ version: number; phase: string }>('select * from public.close_performance_review_dossier_v2($1, $2)', [v2Dossier?.id, v2Acknowledged.rows[0]?.version])
       expect(v2Closed.rows[0]).toMatchObject({ version: 6, phase: 'COMPLETED_DISAGREED' })
@@ -487,6 +495,34 @@ describe('voorlopige databasegrens', () => {
       const releaseAudit = await db.query<{ action: string; details: { previousAdditionalReviewerEmployeeId: string; archivedDraftCount: number } }>(`select action, details from public.performance_review_audit_events where dossier_id = $1 and action = 'ADDITIONAL_REVIEWER_RELEASED'`, [bulkDossierId])
       expect(releaseAudit.rows[0]).toMatchObject({ action: 'ADDITIONAL_REVIEWER_RELEASED', details: { previousAdditionalReviewerEmployeeId: employee, archivedDraftCount: 0 } })
       await db.exec('set role authenticated')
+      const midFlowRoundResult = await db.query<{ id: string; version: number }>(`select * from public.create_performance_review_round_v2(
+        $1, 'Toewijzing aanvullende beoordelaar na zelfreflectie', 'Gecontroleerde fasewissel.', 'DEVELOPMENT',
+        '2026-01-01', '2026-12-31', '2000-01-01', '2026-12-31', null::jsonb, true, 'perf-v2-midflow-round-001')`, [group])
+      const midFlowRound = midFlowRoundResult.rows[0]
+      const midFlowPublished = await db.query<{ version: number }>('select * from public.publish_performance_review_round($1, $2)', [midFlowRound?.id, midFlowRound?.version])
+      expect(midFlowPublished.rows[0]?.version).toBe(2)
+      const midFlowDossier = await db.query<{ id: string; version: number }>(`select * from public.add_performance_review_dossier_v2(
+        $1, $2, $3, null, $4, 'perf-v2-midflow-dossier-001')`, [midFlowRound?.id, employee, v2Reviewer, v2Administration])
+      await db.query("select set_config('test.auth_user', $1, false), set_config('test.employee', $2, false), set_config('test.hr', 'false', false)", [user, employee])
+      const midFlowSelf = await db.query<{ version: number; phase: string; process_instance_id: string }>(`select * from public.save_performance_review_self($1, 'Zelfreflectie vóór AB-toewijzing.', $2, true)`, [midFlowDossier.rows[0]?.id, midFlowDossier.rows[0]?.version])
+      expect(midFlowSelf.rows[0]).toMatchObject({ version: 2, phase: 'WAITING_MANAGER' })
+      await db.query("select set_config('test.hr', 'true', false)")
+      const midFlowConfigured = await db.query<{ version: number; phase: string; process_instance_id: string }>(`select * from public.configure_performance_review_reviewers(
+        $1, $2, $3, $4, 'Aanvullende beoordelaar toegewezen vóór de GV-indiening.', false)`, [midFlowDossier.rows[0]?.id, v2Reviewer, nextReviewer, midFlowSelf.rows[0]?.version])
+      expect(midFlowConfigured.rows[0]).toMatchObject({ version: 3, phase: 'WAITING_ADDITIONAL_REVIEWER' })
+      await db.exec('reset role')
+      const midFlowDefinition = await db.query<{ key: string }>(`select definition.key from public.performance_review_dossiers dossier
+        join public.process_instances instance on instance.id = dossier.process_instance_id
+        join public.process_definitions definition on definition.id = instance.process_definition_id
+        where dossier.id = $1`, [midFlowDossier.rows[0]?.id])
+      expect(midFlowDefinition.rows[0]?.key).toBe('performance-review-additional-v2-after-self')
+      await db.exec('set role authenticated')
+      await db.query("select set_config('test.hr', 'false', false), set_config('test.auth_user', $1, false), set_config('test.employee', $2, false)", [v2ReviewerUser, v2Reviewer])
+      await expect(db.query(`select * from public.save_performance_review_manager($1, 'GV kan AB niet overslaan.', null, null, null, $2, true)`, [midFlowDossier.rows[0]?.id, midFlowConfigured.rows[0]?.version])).rejects.toThrow(/PERFORMANCE_VERSION_OR_PHASE_CONFLICT/)
+      await db.query("select set_config('test.auth_user', $1, false), set_config('test.employee', $2, false)", [nextReviewerUser, nextReviewer])
+      const midFlowAdditional = await db.query<{ version: number; phase: string }>(`select * from public.save_performance_review_additional_reviewer($1, 'Bijdrage na fasewissel.', $2, true)`, [midFlowDossier.rows[0]?.id, midFlowConfigured.rows[0]?.version])
+      expect(midFlowAdditional.rows[0]).toMatchObject({ version: 4, phase: 'WAITING_MANAGER' })
+
       const v2RlsCounts = await db.query<{ rls_count: string; transition_table_rls: boolean }>(`select
         (select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname like 'performance_review_%' and c.relrowsecurity) as rls_count,
         (select c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'internal_security' and c.relname = 'performance_review_pmux_transition_commands') as transition_table_rls`)

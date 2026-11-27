@@ -41,6 +41,8 @@ begin
   if new.phase is distinct from old.phase and not (
     (old.phase = 'WAITING_EMPLOYEE' and new.phase in ('WAITING_ADDITIONAL_REVIEWER', 'WAITING_MANAGER')) or
     (old.phase = 'WAITING_ADDITIONAL_REVIEWER' and new.phase = 'WAITING_MANAGER') or
+    (old.phase = 'WAITING_MANAGER' and new.phase = 'WAITING_ADDITIONAL_REVIEWER'
+      and not old.additional_reviewer_workflow and new.additional_reviewer_workflow) or
     (old.phase = 'WAITING_MANAGER' and new.phase = 'WAITING_ACKNOWLEDGEMENT') or
     (old.phase = 'WAITING_ACKNOWLEDGEMENT' and new.phase in ('WAITING_REVIEWER_CLOSE', 'COMPLETED_AGREED', 'COMPLETED_DISAGREED')) or
     (old.phase = 'WAITING_REVIEWER_CLOSE' and new.phase in ('COMPLETED_AGREED', 'COMPLETED_DISAGREED'))
@@ -504,7 +506,7 @@ begin
   select * into old_instance from public.process_instances where id = dossier_row.process_instance_id for update;
   if old_instance.id is null then raise exception 'PERFORMANCE_PMUX_INSTANCE_NOT_FOUND'; end if;
   if old_instance.status not in ('RUNNING','WAITING','BLOCKED') then raise exception 'PERFORMANCE_PMUX_INSTANCE_CLOSED'; end if;
-  if dossier_row.phase not in ('WAITING_EMPLOYEE','WAITING_MANAGER') then return; end if;
+  if dossier_row.phase not in ('WAITING_EMPLOYEE','WAITING_ADDITIONAL_REVIEWER','WAITING_MANAGER') then return; end if;
   definition_key := case
     when dossier_row.additional_reviewer_workflow and dossier_row.phase = 'WAITING_EMPLOYEE' then 'performance-review-additional-v2'
     when dossier_row.additional_reviewer_workflow then 'performance-review-additional-v2-after-self'
@@ -1478,6 +1480,9 @@ begin
     reviewer_employee_id = requested_reviewer,
     additional_reviewer_employee_id = requested_additional_reviewer,
     additional_reviewer_workflow = round_row.additional_reviewer_enabled and requested_additional_reviewer is not null,
+    phase = case when dossier_row.phase = 'WAITING_MANAGER' and not old_workflow
+      and round_row.additional_reviewer_enabled and requested_additional_reviewer is not null
+      then 'WAITING_ADDITIONAL_REVIEWER' else dossier_row.phase end,
     reviewer_assignment_override = true,
     additional_reviewer_released_at = null,
     additional_reviewer_released_by = null,
