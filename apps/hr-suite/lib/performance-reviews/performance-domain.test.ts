@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isSoftDeadlineOverdue, validateManagerRating, nextPhase, publicSubmissionVisible } from './performance-domain'
+import { isSoftDeadlineOverdue, validateManagerRating, nextPhase, publicSubmissionVisible, reviewRoleFlipBlock } from './performance-domain'
 
 describe('beoordeling bij managerindiening', () => {
   it('weigert score en toelichting als de ronde geen beoordeling heeft', () => {
@@ -23,6 +23,26 @@ describe('gespreksfasen', () => {
     expect(nextPhase('WAITING_ACKNOWLEDGEMENT', 'EMPLOYEE', 'DISAGREE')).toBe('COMPLETED_DISAGREED')
     expect(() => nextPhase('WAITING_EMPLOYEE', 'MANAGER', 'SUBMIT_MANAGER')).toThrow('TRANSITION_FORBIDDEN')
     expect(() => nextPhase('COMPLETED_AGREED', 'EMPLOYEE', 'SUBMIT_SELF')).toThrow('TRANSITION_FORBIDDEN')
+  })
+
+  it('houdt V1 zonder aanvullende beoordelaar gelijk en dwingt de V2-volgorde af', () => {
+    expect(nextPhase('WAITING_EMPLOYEE', 'EMPLOYEE', 'SUBMIT_SELF')).toBe('WAITING_MANAGER')
+    expect(nextPhase('WAITING_ACKNOWLEDGEMENT', 'EMPLOYEE', 'AGREE')).toBe('COMPLETED_AGREED')
+    expect(nextPhase('WAITING_EMPLOYEE', 'EMPLOYEE', 'SUBMIT_SELF', true)).toBe('WAITING_ADDITIONAL_REVIEWER')
+    expect(nextPhase('WAITING_ADDITIONAL_REVIEWER', 'ADDITIONAL_REVIEWER', 'SUBMIT_ADDITIONAL_REVIEWER', true)).toBe('WAITING_MANAGER')
+    expect(nextPhase('WAITING_ACKNOWLEDGEMENT', 'EMPLOYEE', 'DISAGREE', true)).toBe('WAITING_REVIEWER_CLOSE')
+    expect(nextPhase('WAITING_REVIEWER_CLOSE', 'MANAGER', 'CLOSE_DISAGREED', true)).toBe('COMPLETED_DISAGREED')
+    expect(() => nextPhase('WAITING_ADDITIONAL_REVIEWER', 'MANAGER', 'SUBMIT_MANAGER', true)).toThrow('TRANSITION_FORBIDDEN')
+  })
+
+  it('blokkeert flip zonder aanvullende beoordelaar, na definitieve indiening of op gesloten rondes', () => {
+    const base = { additionalReviewerEmployeeId: 'ab-1', additionalReviewerSubmittedAt: null, managerSubmittedAt: null, roundStatus: 'ACTIVE', employeeId: 'employee-1', reviewerEmployeeId: 'gv-1' }
+    expect(reviewRoleFlipBlock(base)).toBeNull()
+    expect(reviewRoleFlipBlock({ ...base, additionalReviewerEmployeeId: null })).toBe('MISSING_ADDITIONAL_REVIEWER')
+    expect(reviewRoleFlipBlock({ ...base, additionalReviewerSubmittedAt: '2026-11-26T10:00:00Z' })).toBe('REVIEWER_SUBMITTED')
+    expect(reviewRoleFlipBlock({ ...base, managerSubmittedAt: '2026-11-26T10:00:00Z' })).toBe('REVIEWER_SUBMITTED')
+    expect(reviewRoleFlipBlock({ ...base, roundStatus: 'CLOSED' })).toBe('ROUND_CLOSED')
+    expect(reviewRoleFlipBlock({ ...base, additionalReviewerEmployeeId: 'employee-1' })).toBe('INVALID_ASSIGNMENT')
   })
 
   it('deelt concepten alleen met de auteur en definitieve inhoud met bevoegde dossierlezers', () => {

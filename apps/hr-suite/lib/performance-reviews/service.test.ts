@@ -21,15 +21,15 @@ describe('performance review service authorization and RPC contracts', () => {
   })
 
   it('sends round creation through the permission-gated DB function', async () => {
-    await createPerformanceReviewRound({ title: 'Jaarlijks gesprek', introduction: 'Terugblik', periodStart: '2026-01-01', periodEnd: '2026-12-31', startDate: '2026-11-22', dueDate: null, rating: null })
+    await createPerformanceReviewRound({ title: 'Jaarlijks gesprek', introduction: 'Terugblik', periodStart: '2026-01-01', periodEnd: '2026-12-31', startDate: '2026-11-22', dueDate: null, rating: null, additionalReviewerEnabled: false })
     expect(requirePermission).toHaveBeenCalledWith('performance-review:manage', undefined)
-    expect(rpc).toHaveBeenCalledWith('create_performance_review_round', expect.objectContaining({ requested_hr_group: 'group' }))
+    expect(rpc).toHaveBeenCalledWith('create_performance_review_round_v2', expect.objectContaining({ requested_hr_group: 'group', requested_additional_reviewer_enabled: false }))
   })
 
   it('updates an existing draft through the permission-gated versioned DB function', async () => {
     await updatePerformanceReviewRound('round', { title: 'Jaarlijks gesprek', introduction: 'Terugblik', roundType: 'DEVELOPMENT', periodStart: '2026-01-01', periodEnd: '2026-12-31', startDate: '2026-11-30', dueDate: '2026-12-18', rating: null }, 2)
     expect(requirePermission).toHaveBeenCalledWith('performance-review:manage', undefined)
-    expect(rpc).toHaveBeenCalledWith('update_performance_review_round', expect.objectContaining({ requested_round: 'round', expected_version: 2, requested_title: 'Jaarlijks gesprek' }))
+    expect(rpc).toHaveBeenCalledWith('update_performance_review_round_v2', expect.objectContaining({ requested_round: 'round', expected_version: 2, requested_title: 'Jaarlijks gesprek', requested_additional_reviewer_enabled: false }))
   })
 
   it('keeps actor and phase checks in the DB RPC contract', async () => {

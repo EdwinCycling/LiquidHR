@@ -14,7 +14,7 @@ import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { Checkbox } from '@/components/ui/checkbox'
 
 type AssignmentStatus = 'READY' | 'REVIEWER_REQUIRED' | 'ADMINISTRATION_REQUIRED' | 'INVALID'
-type Employee = { id: string; first_name: string; birth_name: string; employee_number: string; reviewerName?: string | null; administrationName?: string | null; assignmentStatus?: AssignmentStatus; eligibilityMessage?: string }
+type Employee = { id: string; first_name: string; birth_name: string; employee_number: string; reviewerName?: string | null; administrationName?: string | null; administrationId?: string | null; reviewerEmployeeId?: string | null; additionalReviewerEmployeeId?: string | null; assignmentStatus?: AssignmentStatus; eligibilityMessage?: string }
 type EmployeePage = { items?: Employee[]; nextCursor?: string | null; total?: number }
 type FacetOption = { id: string; label: string }
 type EmployeeFacets = { hrGroups?: FacetOption[]; administrations?: FacetOption[]; departments?: FacetOption[]; jobs?: FacetOption[]; locations?: FacetOption[]; managers?: FacetOption[]; employmentStatuses?: FacetOption[] }
@@ -30,6 +30,7 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
   const [startDate, setStartDate] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [withRating, setWithRating] = useState(false)
+  const [additionalReviewerEnabled, setAdditionalReviewerEnabled] = useState(false)
   const [scale, setScale] = useState(5)
   const [ratingLabels, setRatingLabels] = useState<Record<number, string>>({})
   const [ratingDescriptions, setRatingDescriptions] = useState<Record<number, string>>({})
@@ -38,6 +39,7 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
   const [filters, setFilters] = useState<Filters>({ hrGroupId: '', administrationId: '', departmentId: '', jobId: '', locationId: '', managerId: '', employmentStatus: '' })
   const [employees, setEmployees] = useState<Employee[]>([])
   const [selected, setSelected] = useState<Map<string, Employee>>(new Map())
+  const [roleCandidates, setRoleCandidates] = useState<Map<string, Employee[]>>(new Map())
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [employeeTotal, setEmployeeTotal] = useState(0)
   const [loadingEmployees, setLoadingEmployees] = useState(false)
@@ -69,6 +71,26 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
     return () => { active = false; window.clearTimeout(timer) }
   }, [search, filters])
 
+  useEffect(() => {
+    let active = true
+    const pending = [...selected.values()].filter((employee) => employee.administrationId && !roleCandidates.has(employee.id))
+    for (const employee of pending) {
+      const url = `/api/performance-reviews/employees/${encodeURIComponent(employee.id)}/role-candidates?administrationId=${encodeURIComponent(employee.administrationId ?? '')}`
+      void fetch(url).then((response) => response.ok ? response.json() as Promise<Employee[]> : []).then((items) => {
+        if (!active) return
+        setRoleCandidates((current) => {
+          const next = new Map(current)
+          next.set(employee.id, Array.isArray(items) ? items : [])
+          return next
+        })
+      }).catch(() => {
+        if (!active) return
+        setRoleCandidates((current) => new Map(current).set(employee.id, []))
+      })
+    }
+    return () => { active = false }
+  }, [selected, roleCandidates])
+
   async function loadMore() {
     if (!nextCursor || loadingEmployees) return
     setLoadingEmployees(true)
@@ -86,9 +108,23 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
     setSelected((current) => {
       const next = new Map(current)
       if (next.has(employee.id)) next.delete(employee.id)
-      else next.set(employee.id, employee)
+      else next.set(employee.id, { ...employee, reviewerEmployeeId: employee.reviewerEmployeeId ?? null, additionalReviewerEmployeeId: null })
       return next
     })
+  }
+
+  function setParticipantRole(employeeId: string, role: 'reviewerEmployeeId' | 'additionalReviewerEmployeeId', value: string | null) {
+    setSelected((current) => {
+      const next = new Map(current)
+      const employee = next.get(employeeId)
+      if (employee) next.set(employeeId, { ...employee, [role]: value })
+      return next
+    })
+  }
+
+  function setAdditionalReviewerOption(enabled: boolean) {
+    setAdditionalReviewerEnabled(enabled)
+    if (!enabled) setSelected((current) => new Map([...current].map(([id, employee]) => [id, { ...employee, additionalReviewerEmployeeId: null }])))
   }
 
   async function save(action: 'save-draft' | 'publish') {
@@ -97,7 +133,9 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
     if (dueDate && startDate && dueDate < startDate) { setMessage(messages.dueDateBeforeStart); return }
     if (withRating && !ratingComplete) { setMessage(messages.ratingDetailsRequired); return }
     if (action === 'publish' && selected.size === 0) { setMessage(messages.participantRequired); return }
-    const invalidAssignments = [...selected.values()].filter((employee) => employee.assignmentStatus && employee.assignmentStatus !== 'READY')
+    const invalidAssignments = [...selected.values()].filter((employee) => additionalReviewerEnabled
+      ? !employee.reviewerEmployeeId || !employee.administrationId || employee.additionalReviewerEmployeeId === employee.reviewerEmployeeId
+      : employee.assignmentStatus !== 'READY' || !employee.reviewerEmployeeId || !employee.administrationId)
     if (action === 'publish' && invalidAssignments.length) { setMessage(messages.assignmentInvalid); return }
     setBusy(true)
     try {
@@ -105,7 +143,7 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
       setIdempotencyKey(requestKey)
       const length = scale
       const rating = withRating ? { options: Array.from({ length }, (_, index) => ({ score: index + 1, label: ratingLabels[index + 1]?.trim() || `${messages.level} ${index + 1}`, description: ratingDescriptions[index + 1]?.trim() || `${messages.level} ${index + 1}` })) } : null
-      const roundInput = { title, roundType, introduction, periodStart, periodEnd, startDate, dueDate: dueDate || null, rating }
+      const roundInput = { title, roundType, introduction, periodStart, periodEnd, startDate, dueDate: dueDate || null, rating, additionalReviewerEnabled }
       if (savedDraft) {
         const response = await fetch(`/api/performance-reviews/rounds/${savedDraft.id}`, {
           method: 'PATCH',
@@ -120,7 +158,7 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
             const participantResponse = await fetch(`/api/performance-reviews/rounds/${updatedDraft.id}/dossiers`, {
               method: 'POST',
               headers: { 'content-type': 'application/json', 'Idempotency-Key': `${requestKey}:dossier:${employee.id}` },
-              body: JSON.stringify({ employeeId: employee.id }),
+              body: JSON.stringify({ employeeId: employee.id, reviewerEmployeeId: employee.reviewerEmployeeId, additionalReviewerEmployeeId: employee.additionalReviewerEmployeeId, administrationId: employee.administrationId }),
             })
             if (!participantResponse.ok) throw new Error('participant')
           }
@@ -136,7 +174,7 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
         const response = await fetch('/api/performance-reviews', {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'Idempotency-Key': requestKey },
-          body: JSON.stringify({ action, ...roundInput, participants: [...selected.values()].map(({ id }) => ({ employeeId: id })) }),
+          body: JSON.stringify({ action, ...roundInput, participants: [...selected.values()].map(({ id, reviewerEmployeeId, additionalReviewerEmployeeId, administrationId }) => ({ employeeId: id, reviewerEmployeeId, additionalReviewerEmployeeId, administrationId })) }),
         })
         if (!response.ok) throw new Error('request')
         if (action === 'save-draft') {
@@ -152,8 +190,12 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
 
   const ratingScores = Array.from({ length: scale }, (_, index) => index + 1)
   const ratingComplete = ratingScores.every((score) => ratingLabels[score]?.trim() && ratingDescriptions[score]?.trim())
-  const hasAmbiguousAssignment = [...selected.values()].some((employee) => employee.assignmentStatus !== 'READY')
-  const readyVisible = employees.filter((employee) => employee.assignmentStatus === 'READY')
+  const hasAmbiguousAssignment = [...selected.values()].some((employee) => additionalReviewerEnabled
+    ? !employee.reviewerEmployeeId || !employee.administrationId || employee.additionalReviewerEmployeeId === employee.reviewerEmployeeId
+    : employee.assignmentStatus !== 'READY' || !employee.reviewerEmployeeId || !employee.administrationId)
+  const readyVisible = employees.filter((employee) => additionalReviewerEnabled
+    ? Boolean(employee.administrationId)
+    : employee.assignmentStatus === 'READY')
   const allVisibleSelected = readyVisible.length > 0 && readyVisible.every((employee) => selected.has(employee.id))
   const steps = [messages.roundConfiguration, messages.participants, messages.reviewAndPublish]
 
@@ -173,7 +215,7 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
     setSelected((current) => {
       const next = new Map(current)
       if (allVisibleSelected) readyVisible.forEach((employee) => next.delete(employee.id))
-      else readyVisible.forEach((employee) => next.set(employee.id, employee))
+      else readyVisible.forEach((employee) => next.set(employee.id, { ...employee, reviewerEmployeeId: employee.reviewerEmployeeId ?? null, additionalReviewerEmployeeId: null }))
       return next
     })
   }
@@ -198,9 +240,10 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
           <label className="block text-sm font-medium">{messages.introduction}<textarea required className="mt-1 min-h-28 block w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2" value={introduction} onChange={(event) => setIntroduction(event.target.value)} /></label>
           <div className="grid gap-4 sm:grid-cols-2"><DateField label={messages.periodFrom} value={periodStart} onChange={setPeriodStart} /><DateField label={messages.periodTo} value={periodEnd} onChange={setPeriodEnd} /><DateField label={messages.startDate} value={startDate} onChange={setStartDate} /><DateField label={messages.dueDate} value={dueDate} onChange={setDueDate} required={false} /></div>
           <p className="flex gap-2 text-sm text-muted-foreground"><CalendarDays className="size-4 shrink-0" />{messages.softDeadline}</p>
+          <div className="space-y-1"><label className="flex items-center gap-3 text-sm"><Checkbox checked={additionalReviewerEnabled} onChange={(event) => setAdditionalReviewerOption(event.target.checked)} />{messages.additionalReviewerEnabled}</label><p className="pl-7 text-xs text-muted-foreground">{messages.additionalReviewerOptional}</p></div>
         </Surface><Surface className="space-y-4 p-5">
           <h2 className="text-lg font-semibold">{messages.rating}</h2>
-          <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={withRating} onChange={(event) => setWithRating(event.target.checked)} />{messages.includeRating}</label>
+          <label className="flex items-center gap-3 text-sm"><Checkbox checked={withRating} onChange={(event) => setWithRating(event.target.checked)} />{messages.includeRating}</label>
           {withRating ? <><label className="block text-sm font-medium">{messages.scale}<select className="mt-1 block rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2" value={scale} onChange={(event) => setScale(Number(event.target.value))}><option value={4}>4</option><option value={5}>5</option><option value={10}>10</option></select></label><div className="space-y-3">{ratingScores.map((score) => <fieldset className="grid gap-3 rounded-[var(--radius-control)] border border-border-subtle p-3 sm:grid-cols-[3rem_minmax(0,1fr)_minmax(0,1fr)]" key={score}><legend className="sr-only">{messages.score} {score}</legend><span className="self-center text-sm font-semibold">{score}</span><TextField label={messages.ratingLabel} value={ratingLabels[score] ?? ''} onChange={(value) => setRatingLabels((current) => ({ ...current, [score]: value }))} required={false} /><TextField label={messages.ratingDescription} value={ratingDescriptions[score] ?? ''} onChange={(value) => setRatingDescriptions((current) => ({ ...current, [score]: value }))} required={false} /></fieldset>)}</div></> : null}
         </Surface></> : null}
       </div>
@@ -218,14 +261,21 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
             <Facet label={messages.filterEmploymentStatus} allLabel={messages.allEmploymentStatuses} options={facets.employmentStatuses ?? []} value={filters.employmentStatus} onChange={(employmentStatus) => setFilters((current) => ({ ...current, employmentStatus }))} />
           </FilterBar>
           <div aria-live="polite" className="max-h-64 divide-y divide-border-subtle overflow-auto rounded-[var(--radius-control)] border border-border-subtle">
-            {employees.map((employee) => <label className="flex cursor-pointer items-start gap-2 px-3 py-2 text-sm" key={employee.id}><Checkbox checked={selected.has(employee.id)} disabled={employee.assignmentStatus !== 'READY'} onChange={() => toggle(employee)} /><span className="min-w-0"><span className="block break-words">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')} <span className="text-xs text-muted-foreground">({employee.employee_number})</span></span>{employee.assignmentStatus === 'READY' ? <span className="mt-1 block text-xs text-muted-foreground">{employee.reviewerName ?? messages.managerAssigned}{employee.administrationName ? ` · ${employee.administrationName}` : ''}</span> : <span className="mt-1 block text-xs text-destructive">{employee.eligibilityMessage ?? (employee.assignmentStatus === 'REVIEWER_REQUIRED' ? messages.reviewerRequired : employee.assignmentStatus === 'ADMINISTRATION_REQUIRED' ? messages.administrationRequired : messages.assignmentInvalid)}</span>}</span></label>)}
+            {employees.map((employee) => <label className="flex cursor-pointer items-start gap-2 px-3 py-2 text-sm" key={employee.id}><Checkbox checked={selected.has(employee.id)} disabled={!employee.administrationId || (!additionalReviewerEnabled && employee.assignmentStatus !== 'READY')} onChange={() => toggle(employee)} /><span className="min-w-0"><span className="block break-words">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')} <span className="text-xs text-muted-foreground">({employee.employee_number})</span></span>{employee.assignmentStatus === 'READY' ? <span className="mt-1 block text-xs text-muted-foreground">{employee.reviewerName ?? messages.managerAssigned}{employee.administrationName ? ` · ${employee.administrationName}` : ''}</span> : <span className="mt-1 block text-xs text-destructive">{additionalReviewerEnabled ? employee.administrationName ?? messages.administrationRequired : employee.eligibilityMessage ?? (employee.assignmentStatus === 'REVIEWER_REQUIRED' ? messages.reviewerRequired : employee.assignmentStatus === 'ADMINISTRATION_REQUIRED' ? messages.administrationRequired : messages.assignmentInvalid)}</span>}</span></label>)}
             {!employees.length && !loadingEmployees ? <p className="p-3 text-sm text-muted-foreground">{messages.noEmployeesFound}</p> : null}
             {loadingEmployees ? <p className="p-3 text-sm text-muted-foreground" role="status">{messages.loadingEmployees}</p> : null}
           </div>
           {employees.length ? <Button className="w-full" onClick={toggleVisible} type="button" variant="secondary">{allVisibleSelected ? messages.clearVisible : messages.selectVisible}</Button> : null}
           {nextCursor ? <Button className="w-full" disabled={loadingEmployees} onClick={() => void loadMore()} type="button" variant="secondary">{messages.loadMore}</Button> : null}
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><Users className="size-4" /><span>{selected.size} {messages.selected}</span><span aria-hidden="true">·</span><span>{readyVisible.length} {messages.eligibleVisible}</span><span aria-hidden="true">·</span><span>{employeeTotal} {messages.matches}</span></div>
-          {selected.size ? <ul className="max-h-48 divide-y divide-border-subtle overflow-auto rounded-[var(--radius-control)] border border-border-subtle">{[...selected.values()].map((employee) => <li className="flex items-start justify-between gap-3 px-3 py-2 text-sm" key={employee.id}><span className="min-w-0"><span className="block break-words">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')}</span><span className="block text-xs text-muted-foreground">{employee.reviewerName ?? messages.managerAssigned}</span>{employee.administrationName ? <span className="block text-xs text-muted-foreground">{employee.administrationName}</span> : null}</span><button className="shrink-0 text-xs underline underline-offset-4" onClick={() => toggle(employee)} type="button">{messages.remove}</button></li>)}</ul> : null}
+          {selected.size ? <ul className="max-h-[34rem] divide-y divide-border-subtle overflow-auto rounded-[var(--radius-control)] border border-border-subtle">{[...selected.values()].map((employee) => {
+            const candidates = roleCandidates.get(employee.id) ?? []
+            return <li className="grid gap-3 px-3 py-3 text-sm" key={employee.id}>
+              <div className="flex items-start justify-between gap-3"><span className="min-w-0"><span className="block break-words font-medium">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')}</span>{employee.administrationName ? <span className="block text-xs text-muted-foreground">{employee.administrationName}</span> : null}</span><button className="shrink-0 text-xs underline underline-offset-4" onClick={() => toggle(employee)} type="button">{messages.remove}</button></div>
+              <label className="block text-xs font-medium">{messages.conversationLead}<DropdownSelect aria-label={`${messages.conversationLead}: ${employee.first_name}`} className="mt-1 text-sm" searchable searchPlaceholder={messages.roleCandidates} value={employee.reviewerEmployeeId ?? ''} onChange={(event) => setParticipantRole(employee.id, 'reviewerEmployeeId', event.target.value || null)}><option value="">{messages.reviewerRequired}</option>{candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{[candidate.first_name, candidate.birth_name].filter(Boolean).join(' ')} ({candidate.employee_number})</option>)}</DropdownSelect></label>
+              {additionalReviewerEnabled ? <label className="block text-xs font-medium">{messages.additionalReviewer}<DropdownSelect aria-label={`${messages.additionalReviewer}: ${employee.first_name}`} className="mt-1 text-sm" searchable searchPlaceholder={messages.roleCandidates} value={employee.additionalReviewerEmployeeId ?? ''} onChange={(event) => setParticipantRole(employee.id, 'additionalReviewerEmployeeId', event.target.value || null)}><option value="">{messages.flipBlocked}</option>{candidates.filter((candidate) => candidate.id !== employee.reviewerEmployeeId).map((candidate) => <option key={candidate.id} value={candidate.id}>{[candidate.first_name, candidate.birth_name].filter(Boolean).join(' ')} ({candidate.employee_number})</option>)}</DropdownSelect></label> : null}
+            </li>
+          })}</ul> : null}
           {hasAmbiguousAssignment ? <p className="text-sm text-destructive" role="alert">{messages.assignmentInvalid}</p> : null}
         </Surface>
         <Surface className="space-y-3 p-5" variant="subtle"><p className="flex gap-2 text-sm"><CheckCircle2 className="size-4 shrink-0" />{messages.oneDossier}</p></Surface>
@@ -246,7 +296,7 @@ export function PerformanceReviewRoundForm({ locale }: { locale: Locale }) {
         <Surface className="space-y-3 p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="font-semibold">{messages.participants}</h3><span className="text-sm text-muted-foreground">{selected.size} {messages.selected}</span></div>
           <ul className="divide-y divide-border-subtle rounded-[var(--radius-control)] border border-border-subtle">
-            {[...selected.values()].map((employee) => <li className="grid gap-1 px-3 py-3 text-sm sm:grid-cols-3" key={employee.id}><span className="break-words font-medium">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')}</span><span className="text-muted-foreground">{employee.reviewerName ?? messages.managerAssigned}</span><span className="text-muted-foreground">{employee.administrationName ?? messages.administrationRequired}</span></li>)}
+            {[...selected.values()].map((employee) => <li className="grid gap-1 px-3 py-3 text-sm sm:grid-cols-3" key={employee.id}><span className="break-words font-medium">{[employee.first_name, employee.birth_name].filter(Boolean).join(' ')}</span><span className="text-muted-foreground">{roleCandidates.get(employee.id)?.find((candidate) => candidate.id === employee.reviewerEmployeeId)?.first_name ?? employee.reviewerName ?? messages.reviewerRequired}</span><span className="text-muted-foreground">{additionalReviewerEnabled ? roleCandidates.get(employee.id)?.find((candidate) => candidate.id === employee.additionalReviewerEmployeeId)?.first_name ?? messages.additionalReviewerOptional : employee.administrationName ?? messages.administrationRequired}</span></li>)}
           </ul>
         </Surface>
       </section> : null}

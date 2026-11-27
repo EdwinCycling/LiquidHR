@@ -2,7 +2,7 @@ import type { Locale } from '@/lib/i18n/config'
 import nlMessages from '@/messages/nl/performanceReviews.json'
 import enMessages from '@/messages/en/performanceReviews.json'
 
-type PerformanceReviewRole = 'hr' | 'manager' | 'employee'
+type PerformanceReviewRole = 'hr' | 'manager' | 'employee' | 'additional-reviewer'
 
 export function performanceReviewLabels(locale: Locale, role: PerformanceReviewRole) {
   const messages = locale === 'nl' ? nlMessages : enMessages
@@ -15,6 +15,7 @@ export function performanceReviewLabels(locale: Locale, role: PerformanceReviewR
     allConversations: locale === 'nl' ? 'Alle gesprekken' : 'All conversations',
     myTeam: messages.myTeam,
     myConversations: messages.myConversations,
+    myAdditionalReviews: messages.myAdditionalReviews,
     open: messages.open,
     empty: messages.empty,
     start: locale === 'nl' ? 'Starten' : 'Start',
@@ -27,6 +28,8 @@ export function performanceReviewLabels(locale: Locale, role: PerformanceReviewR
     action: messages.action,
     selfReflection: messages.selfReflection,
     managerResponse: messages.managerResponse,
+    additionalReviewerResponse: messages.additionalReviewerResponse,
+    submitContribution: messages.submitContribution,
     acknowledgement: messages.acknowledgement,
     saveDraft: messages.saveDraft,
     submit: messages.submit,
@@ -51,8 +54,10 @@ export function performanceReviewLabels(locale: Locale, role: PerformanceReviewR
     participants: messages.participants,
     dashboard: messages.title,
     waitingEmployee: messages.phaseWaitingEmployee,
+    waitingAdditionalReviewer: messages.waitingAdditionalReviewer,
     waitingManager: messages.phaseWaitingManager,
     waitingAcknowledgement: messages.phaseWaitingAcknowledgement,
+    waitingReviewerClose: messages.waitingReviewerClose,
     completedAgreed: messages.completedAgreed,
     completedDisagreed: messages.completedDisagreed,
     closedOpen: messages.closedOpen,
@@ -70,6 +75,31 @@ export function performanceReviewLabels(locale: Locale, role: PerformanceReviewR
     reassignReviewer: messages.reassignReviewer,
     newReviewer: messages.newReviewer,
     reviewerSearch: messages.reviewerSearch,
+    conversationLead: messages.conversationLead,
+    additionalReviewer: messages.additionalReviewer,
+    assignReviewers: messages.assignReviewers,
+    reviewerRoleReason: messages.reviewerRoleReason,
+    preserveDrafts: messages.preserveDrafts,
+    draftArchiveWarning: messages.draftArchiveWarning,
+    saveAssignments: messages.saveAssignments,
+    releaseAdditionalReviewer: messages.releaseAdditionalReviewer,
+    releaseReason: messages.releaseReason,
+    closeConversation: messages.closeConversation,
+    additionalReviewerHidden: messages.additionalReviewerHidden,
+    additionalReviewerEnabled: messages.additionalReviewerEnabled,
+    additionalReviewerOptional: messages.additionalReviewerOptional,
+    bulkFlip: messages.bulkFlip,
+    flipAll: messages.flipAll,
+    flipFiltered: messages.flipFiltered,
+    flipSelected: messages.flipSelected,
+    previewFlip: messages.previewFlip,
+    applyFlip: messages.applyFlip,
+    flipPreview: messages.flipPreview,
+    flipReason: messages.flipReason,
+    flipChanged: messages.flipChanged,
+    flipBlocked: messages.flipBlocked,
+    flipDrafts: messages.flipDrafts,
+    swapRoles: messages.bulkFlip,
     confirmSubmit: messages.confirmSubmit,
     confirmSubmitTitle: messages.confirmSubmitTitle,
     cancel: messages.cancel,
