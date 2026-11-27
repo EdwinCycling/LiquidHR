@@ -1,5 +1,14 @@
 # AA-CURRENT — Current LiquidHR State
 
+## PERF-V2-01 Core TEST en GitHub-integratie — 27-11-2026
+
+- PR [#105](https://github.com/EdwinCycling/LiquidHR/pull/105) is samengevoegd op `987d1f4f475d8de316b97aeee0b87102ee1375e0`. De geteste code-SHA is `4f78b5e146d1cfb47cd89bdd8bae6f08f5ddd550`.
+- Core TEST `wnpfloqpjvaacobppbpk` registreert de migraties `20261127102848` en `20261127103840`. Bestaande reviewdata en V1-rondes bleven intact; geen Payroll-schemawijziging.
+- Lokale/Core-engineeringevidence: A01–A22 en A24 PASS; A23 NOT_RUN voor browsermatige responsive-/a11y-acceptatie. Hosted persona/browserstatus A01–A24: NOT_RUN. A24 is als totaal nog niet volledig geaccepteerd. Geen volledige ACCEPTANCE GREEN.
+- V1 A13, A26 en A27 blijven OPEN voor latere handmatige securityacceptatie. Geen bestaande HR Admin-, Manager- en Employee-sessies beschikbaar; geen accounts of tenants aangemaakt.
+- Vercel TEST is niet uitgerold. De bestaande READY-deployment blijft op source-SHA `3b76be2c614d4e1abbac5f7289925ef8d75eddbd`; Git-deployments blijven uitgeschakeld. Een aparte `RELEASE LIQUIDHR TEST`-vrijgave is vereist.
+- Bewijs: [PERF-V2-01 Core TEST-acceptatiematrix en releasechecklist](../quality/acceptance/runs/PERF-V2-01-CORE-TEST-20261127.md).
+
 ## PERF-MVP-01 GitHub-integratie — 26-11-2026
 
 - De geteste MVP-codekandidaat `a965c18ee131a43938d8886abac38a4720ca349b` is via een gewone fast-forwardpush geïntegreerd in GitHub `main`. De integratiecommit was `68493eb20e2b6ab9109edcf4f922cf34b686280a`; de exacte huidige `main`-SHA staat in het [integratierapport](../quality/acceptance/runs/PERF-MVP-01-GITHUB-INTEGRATION-20261126.md).
